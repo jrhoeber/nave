@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:neon.com)",
+      "mcp__Neon__list_organizations",
+      "mcp__Neon__list_projects",
+      "mcp__Neon__get_connection_string",
+      "Bash(python3:*)",
+      "mcp__Neon__run_sql_transaction",
+      "Bash(make build:*)",
+      "mcp__Neon__run_sql"
+    ]
+  }
+}
