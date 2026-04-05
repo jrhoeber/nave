@@ -1,0 +1,42 @@
+node_modules/
+.env
+.env.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# iOS
+ios/Pods/
+ios/build/
+*.xcworkspace
+!default.xcworkspace
+DerivedData/
+
+# Android
+android/build/
+android/app/build/
+*.keystore
+!debug.keystore
+
+# Metro
+.metro-health-check*
+
+# Buck
+.buck
+buck-out/
+
+# Xcode
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+*.xcscmblueprint
