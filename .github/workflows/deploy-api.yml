@@ -1,0 +1,75 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths: [api/**]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write   # Required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Authenticate to GCP via Workload Identity Federation ───────────────
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      # ── Run Alembic migrations before deploying new code ───────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install API dependencies
+        run: pip install -r api/requirements.txt
+
+      - name: Fetch DATABASE_URL from Secret Manager
+        id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            DATABASE_URL:${{ vars.PROJECT_ID }}/DATABASE_URL
+
+      - name: Run database migrations
+        working-directory: api
+        env:
+          DATABASE_URL: ${{ steps.secrets.outputs.DATABASE_URL }}
+        run: alembic upgrade head
+
+      # ── Build and push Docker image ────────────────────────────────────────
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        id: build
+        working-directory: api
+        env:
+          IMAGE: ${{ vars.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/naveapi/naveapi:${{ github.sha }}
+        run: |
+          docker build --platform linux/amd64 -t $IMAGE .
+          docker push $IMAGE
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+      # ── Deploy to Cloud Run ────────────────────────────────────────────────
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy naveapi \
+            --image ${{ steps.build.outputs.image }} \
+            --region ${{ vars.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest" \
+            --min-instances 0 \
+            --max-instances 10 \
+            --memory 512Mi \
+            --timeout 30

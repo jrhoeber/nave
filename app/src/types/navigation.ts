@@ -20,7 +20,7 @@ export type AuthStackParamList = {
 
 export type AppTabParamList = {
   Feed: undefined;
-  Prayer: undefined;
+  Groups: undefined;
   Community: undefined;
   Friends: undefined;
   Profile: undefined;

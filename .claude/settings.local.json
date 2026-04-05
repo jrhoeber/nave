@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python3 -m pip install alembic==1.14.1 sqlalchemy==2.0.40 psycopg2-binary -q)",
+      "Bash(/Users/jordanhoeber/Library/Python/3.9/bin/alembic heads:*)",
+      "Bash(/Users/jordanhoeber/Library/Python/3.9/bin/alembic history:*)"
+    ]
+  }
+}

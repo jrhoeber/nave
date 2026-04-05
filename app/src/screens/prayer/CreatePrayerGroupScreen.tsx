@@ -6,6 +6,8 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { PrayerGroupCategory } from '../../types';
+import { api } from '../../lib/apiClient';
+import { usePrayerStore } from '../../store/prayerStore';
 
 const CATEGORIES: { value: PrayerGroupCategory; label: string; icon: string }[] = [
   { value: 'rosary', label: 'Rosary', icon: '📿' },
@@ -24,6 +26,8 @@ export function CreatePrayerGroupScreen() {
   const navigation = useNavigation();
   const [form, setForm] = useState({ name: '', description: '', category: 'general' as PrayerGroupCategory, meetingSchedule: '', isPrivate: false });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fetchGroups = usePrayerStore((s) => s.fetchGroups);
 
   const set = (key: keyof typeof form) => (value: any) => setForm((f) => ({ ...f, [key]: value }));
   const canCreate = form.name.trim().length > 0 && form.description.trim().length > 0;
@@ -31,9 +35,22 @@ export function CreatePrayerGroupScreen() {
   const handleCreate = async () => {
     if (!canCreate) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setLoading(false);
-    navigation.goBack();
+    setError(null);
+    try {
+      await api.createGroup({
+        name: form.name.trim(),
+        description: form.description.trim(),
+        category: form.category,
+        is_private: form.isPrivate,
+        meeting_schedule: form.meetingSchedule.trim() || undefined,
+      });
+      await fetchGroups();
+      navigation.goBack();
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to create group');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -72,6 +89,7 @@ export function CreatePrayerGroupScreen() {
           <Switch value={form.isPrivate} onValueChange={set('isPrivate')} trackColor={{ false: Colors.border, true: Colors.primary }} thumbColor={Colors.surface} />
         </View>
 
+        {error && <Text style={styles.errorText}>{error}</Text>}
         <Button label="Create Prayer Group" onPress={handleCreate} loading={loading} disabled={!canCreate} fullWidth size="lg" style={styles.createBtn} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -97,4 +115,5 @@ const styles = StyleSheet.create({
   toggleLabel: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
   toggleSubLabel: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
   createBtn: { marginTop: Spacing[2] },
+  errorText: { fontSize: Typography.sm, color: Colors.error, textAlign: 'center', marginBottom: Spacing[2] },
 });

@@ -45,10 +45,10 @@ export function AppNavigator() {
         }}
       />
       <Tab.Screen
-        name="Prayer"
+        name="Groups"
         component={PrayerScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Icon name="hand-right-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Icon name="people-circle-outline" size={size} color={color} />,
         }}
       />
       <Tab.Screen
