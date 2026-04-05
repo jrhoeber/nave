@@ -6,7 +6,8 @@ export interface User {
   displayName: string;
   bio?: string;
   avatarUrl?: string;
-  parish?: string;
+  parishId?: string;
+  parish?: string;   // parish name, for display
   diocese?: string;
   location?: string;
   friendCount: number;

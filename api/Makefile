@@ -7,17 +7,12 @@ PROJECT_ID ?= $(shell gcloud config get-value project 2>/dev/null)
 REGION     ?= us-central1
 REGISTRY   := $(REGION)-docker.pkg.dev/$(PROJECT_ID)/naveapi/$(IMAGE_NAME)
 
-.PHONY: build run dev stop logs shell clean push deploy
+.PHONY: build run dev stop logs shell clean push deploy local local-down local-clean
 
 build:
 	docker build -t $(IMAGE_NAME) .
 
 run:
-	docker run --rm --name $(CONTAINER_NAME) -p $(PORT):8000 \
-		--env-file .env \
-		$(IMAGE_NAME)
-
-dev:
 	docker run --rm --name $(CONTAINER_NAME) -p $(PORT):8000 \
 		--env-file .env \
 		-v $(PWD)/app:/app/app \
@@ -35,19 +30,12 @@ shell:
 clean:
 	docker rmi $(IMAGE_NAME)
 
-push:
-	gcloud auth configure-docker $(REGION)-docker.pkg.dev --quiet
-	docker build --platform linux/amd64 -t $(REGISTRY) .
-	docker push $(REGISTRY)
+# ── Local dev (Docker Compose + local Postgres) ───────────────────────────────
+local:
+	docker compose up --build
 
-deploy: push
-	gcloud run deploy $(IMAGE_NAME) \
-		--image $(REGISTRY) \
-		--region $(REGION) \
-		--platform managed \
-		--allow-unauthenticated \
-		--set-secrets="DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest" \
-		--min-instances 0 \
-		--max-instances 10 \
-		--memory 512Mi \
-		--timeout 30
+local-down:
+	docker compose down
+
+local-clean:
+	docker compose down -v

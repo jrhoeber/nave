@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User } from '../../types';
-import { api, mapUser } from '../lib/apiClient';
+import { api, mapUser, registerUnauthorizedHandler } from '../lib/apiClient';
 
 interface AuthState {
   user: User | null;
@@ -20,7 +20,7 @@ interface SignupData {
   password: string;
   displayName: string;
   username: string;
-  parish?: string;
+  parishId?: string;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       display_name: data.displayName,
       email: data.email,
       password: data.password,
-      parish: data.parish,
+      parish_id: data.parishId,
     });
     const user = mapUser(response.user);
     const token = response.access_token;
@@ -72,3 +72,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: null, token: null, isAuthenticated: false });
   },
 }));
+
+// When the API returns 401, clear auth state — RootNavigator will redirect to login
+registerUnauthorizedHandler(() => {
+  useAuthStore.getState().logout();
+});

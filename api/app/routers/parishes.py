@@ -11,9 +11,12 @@ def _build_parish(row: dict) -> ParishResponse:
     return ParishResponse(
         id=str(row["id"]),
         name=row["name"],
+        street_address=row.get("street_address"),
         city=row["city"],
         state=row["state"],
+        postal_code=row.get("postal_code"),
         diocese=row["diocese"],
+        established=row.get("established"),
         avatar_url=row.get("avatar_url"),
         member_count=row.get("member_count", 0),
         created_at=row["created_at"],
@@ -50,7 +53,7 @@ async def search_parishes(
         SELECT p.*,
                COUNT(u.id) AS member_count
         FROM parishes p
-        LEFT JOIN users u ON u.parish = p.name
+        LEFT JOIN users u ON u.parish_id = p.id
         WHERE {where}
         GROUP BY p.id
         ORDER BY p.name
@@ -71,7 +74,7 @@ async def get_parish(
         """
         SELECT p.*, COUNT(u.id) AS member_count
         FROM parishes p
-        LEFT JOIN users u ON u.parish = p.name
+        LEFT JOIN users u ON u.parish_id = p.id
         WHERE p.id = $1
         GROUP BY p.id
         """,

@@ -15,7 +15,8 @@ def _build_user_response(row: dict) -> UserResponse:
         display_name=row["display_name"],
         bio=row.get("bio"),
         avatar_url=row.get("avatar_url"),
-        parish=row.get("parish"),
+        parish_id=str(row["parish_id"]) if row.get("parish_id") else None,
+        parish=row.get("parish_name"),
         diocese=row.get("diocese"),
         location=row.get("location"),
         friend_count=row.get("friend_count", 0),
@@ -37,7 +38,7 @@ async def signup(body: UserSignUp, conn=Depends(get_db)):
 
     row = await conn.fetchrow(
         """
-        INSERT INTO users (username, display_name, email, password_hash, parish)
+        INSERT INTO users (username, display_name, email, password_hash, parish_id)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING *
         """,
@@ -45,10 +46,10 @@ async def signup(body: UserSignUp, conn=Depends(get_db)):
         body.display_name,
         body.email,
         hash_password(body.password),
-        body.parish,
+        body.parish_id,
     )
     user_dict = dict(row)
-    user_dict.update({"friend_count": 0, "prayer_group_count": 0, "post_count": 0})
+    user_dict.update({"friend_count": 0, "prayer_group_count": 0, "post_count": 0, "parish_name": None})
     token = create_access_token(str(row["id"]))
     return TokenResponse(access_token=token, user=_build_user_response(user_dict))
 
@@ -57,10 +58,12 @@ async def signup(body: UserSignUp, conn=Depends(get_db)):
 async def login(body: UserLogin, conn=Depends(get_db)):
     row = await conn.fetchrow(
         """
-        SELECT u.*, COALESCE(us.friend_count,0) AS friend_count,
+        SELECT u.*, p.name AS parish_name,
+               COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count,
                COALESCE(us.post_count,0) AS post_count
         FROM users u
+        LEFT JOIN parishes p ON p.id = u.parish_id
         LEFT JOIN user_stats us ON us.id = u.id
         WHERE u.email = $1
         """,
@@ -77,10 +80,12 @@ async def login(body: UserLogin, conn=Depends(get_db)):
 async def me(current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
     row = await conn.fetchrow(
         """
-        SELECT u.*, COALESCE(us.friend_count,0) AS friend_count,
+        SELECT u.*, p.name AS parish_name,
+               COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count,
                COALESCE(us.post_count,0) AS post_count
         FROM users u
+        LEFT JOIN parishes p ON p.id = u.parish_id
         LEFT JOIN user_stats us ON us.id = u.id
         WHERE u.id = $1
         """,

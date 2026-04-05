@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
+import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FeedScreen } from '../screens/feed/FeedScreen';
 import { PrayerScreen } from '../screens/prayer/PrayerScreen';
 import { CommunityScreen } from '../screens/community/CommunityScreen';
@@ -52,10 +53,10 @@ export function AppNavigator() {
         }}
       />
       <Tab.Screen
-        name="Community"
+        name="Parish"
         component={CommunityScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Icon name="business-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <MCIcon name="church" size={size} color={color} />,
         }}
       />
       <Tab.Screen

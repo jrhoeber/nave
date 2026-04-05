@@ -6,7 +6,10 @@
       "Bash(pip3 install:*)",
       "Bash(python3 -m pip install alembic==1.14.1 sqlalchemy==2.0.40 psycopg2-binary -q)",
       "Bash(/Users/jordanhoeber/Library/Python/3.9/bin/alembic heads:*)",
-      "Bash(/Users/jordanhoeber/Library/Python/3.9/bin/alembic history:*)"
+      "Bash(/Users/jordanhoeber/Library/Python/3.9/bin/alembic history:*)",
+      "Bash(ls -la /Users/jordanhoeber/wksp/nave/api/docker-compose* /Users/jordanhoeber/wksp/nave/api/.env.*)",
+      "Bash(psql:*)",
+      "Bash(git config:*)"
     ]
   }
 }

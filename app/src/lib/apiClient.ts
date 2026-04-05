@@ -10,7 +10,8 @@ interface ApiUser {
   display_name: string;
   bio?: string;
   avatar_url?: string;
-  parish?: string;
+  parish_id?: string;
+  parish?: string;   // parish name, joined from parishes table
   diocese?: string;
   location?: string;
   friend_count: number;
@@ -84,6 +85,7 @@ export function mapUser(raw: ApiUser): User {
     displayName: raw.display_name,
     bio: raw.bio,
     avatarUrl: raw.avatar_url,
+    parishId: raw.parish_id,
     parish: raw.parish,
     diocese: raw.diocese,
     location: raw.location,
@@ -157,6 +159,15 @@ export function mapPrayerGroup(raw: ApiPrayerGroup): PrayerGroup {
   };
 }
 
+// ─── 401 handler ─────────────────────────────────────────────────────────────
+// Registered by authStore after the store is created to avoid a circular import.
+
+let onUnauthorized: (() => void) | null = null;
+
+export function registerUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler;
+}
+
 // ─── HTTP client ──────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -172,6 +183,10 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const response = await fetch(API_BASE_URL + path, { ...options, headers });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      onUnauthorized?.();
+      throw new Error('Session expired');
+    }
     let detail = `HTTP ${response.status}`;
     try {
       const body = await response.json();
@@ -201,7 +216,7 @@ export const api = {
     display_name: string;
     email: string;
     password: string;
-    parish?: string;
+    parish_id?: string;
   }) {
     return apiFetch<ApiTokenResponse>('/auth/signup', {
       method: 'POST',

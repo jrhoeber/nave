@@ -9,7 +9,7 @@ class UserSignUp(BaseModel):
     display_name: str
     email: EmailStr
     password: str
-    parish: Optional[str] = None
+    parish_id: Optional[str] = None
 
     @field_validator("password")
     @classmethod
@@ -35,7 +35,7 @@ class UserUpdate(BaseModel):
     display_name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    parish: Optional[str] = None
+    parish_id: Optional[str] = None
     diocese: Optional[str] = None
     location: Optional[str] = None
 
@@ -46,7 +46,8 @@ class UserResponse(BaseModel):
     display_name: str
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    parish: Optional[str] = None
+    parish_id: Optional[str] = None
+    parish: Optional[str] = None   # parish name, joined from parishes table
     diocese: Optional[str] = None
     location: Optional[str] = None
     friend_count: int = 0

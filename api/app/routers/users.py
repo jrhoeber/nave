@@ -14,7 +14,8 @@ def _build_user_response(row: dict, current_user_id: str | None = None) -> UserR
         display_name=row["display_name"],
         bio=row.get("bio"),
         avatar_url=row.get("avatar_url"),
-        parish=row.get("parish"),
+        parish_id=str(row["parish_id"]) if row.get("parish_id") else None,
+        parish=row.get("parish_name"),
         diocese=row.get("diocese"),
         location=row.get("location"),
         friend_count=row.get("friend_count", 0),
@@ -35,7 +36,7 @@ async def search_users(
 ):
     rows = await conn.fetch(
         """
-        SELECT u.*,
+        SELECT u.*, p.name AS parish_name,
                COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count,
                COALESCE(us.post_count,0) AS post_count,
@@ -50,6 +51,7 @@ async def search_users(
                    WHERE f.status = 'pending' AND f.requester_id = $2 AND f.addressee_id = u.id
                ) AS is_pending_friend
         FROM users u
+        LEFT JOIN parishes p ON p.id = u.parish_id
         LEFT JOIN user_stats us ON us.id = u.id
         WHERE u.id <> $2
           AND (u.username ILIKE $1 OR u.display_name ILIKE $1)
@@ -69,10 +71,13 @@ async def get_my_profile(
 ):
     row = await conn.fetchrow(
         """
-        SELECT u.*, COALESCE(us.friend_count,0) AS friend_count,
+        SELECT u.*, p.name AS parish_name,
+               COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count,
                COALESCE(us.post_count,0) AS post_count
-        FROM users u LEFT JOIN user_stats us ON us.id = u.id
+        FROM users u
+        LEFT JOIN parishes p ON p.id = u.parish_id
+        LEFT JOIN user_stats us ON us.id = u.id
         WHERE u.id = $1
         """,
         current_user["id"],
@@ -104,18 +109,25 @@ async def update_my_profile(
     set_clauses += f", updated_at = NOW()"
     values = list(updates.values())
 
-    row = await conn.fetchrow(
-        f"""
-        UPDATE users SET {set_clauses}
-        WHERE id = $1
-        RETURNING *
-        """,
+    await conn.execute(
+        f"UPDATE users SET {set_clauses} WHERE id = $1",
         current_user["id"],
         *values,
     )
-    result = dict(row)
-    result.update({"friend_count": 0, "prayer_group_count": 0, "post_count": 0})
-    return _build_user_response(result)
+    row = await conn.fetchrow(
+        """
+        SELECT u.*, p.name AS parish_name,
+               COALESCE(us.friend_count,0) AS friend_count,
+               COALESCE(us.prayer_group_count,0) AS prayer_group_count,
+               COALESCE(us.post_count,0) AS post_count
+        FROM users u
+        LEFT JOIN parishes p ON p.id = u.parish_id
+        LEFT JOIN user_stats us ON us.id = u.id
+        WHERE u.id = $1
+        """,
+        current_user["id"],
+    )
+    return _build_user_response(dict(row))
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -126,7 +138,7 @@ async def get_user(
 ):
     row = await conn.fetchrow(
         """
-        SELECT u.*,
+        SELECT u.*, p.name AS parish_name,
                COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count,
                COALESCE(us.post_count,0) AS post_count,
@@ -141,6 +153,7 @@ async def get_user(
                    WHERE f.status = 'pending' AND f.requester_id = $2 AND f.addressee_id = u.id
                ) AS is_pending_friend
         FROM users u
+        LEFT JOIN parishes p ON p.id = u.parish_id
         LEFT JOIN user_stats us ON us.id = u.id
         WHERE u.id = $1
         """,
