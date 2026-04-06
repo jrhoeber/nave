@@ -13,6 +13,7 @@ interface AuthState {
   signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
+  updateUser: (patch: Partial<User>) => Promise<void>;
 }
 
 interface SignupData {
@@ -70,6 +71,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
     set({ user: null, token: null, isAuthenticated: false });
+  },
+
+  updateUser: async (patch: Partial<User>) => {
+    set((state) => {
+      if (!state.user) return state;
+      const updated = { ...state.user, ...patch };
+      AsyncStorage.setItem('auth_user', JSON.stringify(updated));
+      return { user: updated };
+    });
   },
 }));
 

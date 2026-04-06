@@ -10,7 +10,7 @@ import type { AuthNavigationProp } from '../../types/navigation';
 
 export function SignUpScreen() {
   const navigation = useNavigation<AuthNavigationProp>();
-  const [form, setForm] = useState({ displayName: '', username: '', email: '', password: '', parish: '' });
+  const [form, setForm] = useState({ displayName: '', username: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const signup = useAuthStore((s) => s.signup);
@@ -58,7 +58,6 @@ export function SignUpScreen() {
         <Input label="Username *" value={form.username} onChangeText={(v) => set('username')(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))} autoCapitalize="none" leftIcon="at-outline" placeholder="your_username" hint="Letters, numbers, and underscores only" />
         <Input label="Email *" value={form.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" autoComplete="email" leftIcon="mail-outline" placeholder="you@example.com" />
         <Input label="Password *" value={form.password} onChangeText={set('password')} isPassword leftIcon="lock-closed-outline" placeholder="Min. 8 characters" hint="At least 8 characters" />
-        <Input label="Parish (optional)" value={form.parish} onChangeText={set('parish')} autoCapitalize="words" leftIcon="business-outline" placeholder="St. Mary's Parish" hint="You can add this later" />
 
         <Button label="Create Account" onPress={handleSignUp} loading={loading} fullWidth size="lg" style={styles.submitBtn} />
 

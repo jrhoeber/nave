@@ -1,43 +1,58 @@
-# naveapp
+# Nave — Mobile App
 
-React Native mobile app for Nave — a Catholic prayer community app.
+React Native app for Nave, a Catholic prayer community platform.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+
-- [Xcode](https://developer.apple.com/xcode/) (for iOS)
-- [Android Studio](https://developer.android.com/studio) (for Android)
-- [CocoaPods](https://cocoapods.org/) (for iOS native dependencies)
+| Tool | Version | Notes |
+|------|---------|-------|
+| [Node.js](https://nodejs.org/) | 18+ | Use [nvm](https://github.com/nvm-sh/nvm) to manage versions |
+| [Xcode](https://developer.apple.com/xcode/) | 15+ | iOS builds only — Mac required |
+| [Android Studio](https://developer.android.com/studio) | Latest | Android builds only |
+| [CocoaPods](https://cocoapods.org/) | Latest | iOS native dependencies |
+| [Ruby](https://www.ruby-lang.org/) | 3.x | Required by CocoaPods on macOS |
 
-## Setup
+> The API must also be running locally. See `../api/README.md` for setup.
 
+---
+
+## First-Time Setup
+
+**1. Install JS dependencies**
 ```bash
 npm install
 ```
 
-For iOS, also install native dependencies:
-
+**2. Install iOS native dependencies**
 ```bash
 cd ios && pod install && cd ..
 ```
 
-## Running Locally
+> Re-run `pod install` any time you add a new package with native code.
 
-### iOS
+---
+
+## Running the App
+
+### iOS Simulator
 
 ```bash
 npm run ios
 ```
 
-This starts the Metro bundler and launches the app in the iOS Simulator.
+Starts Metro and launches the app in the default iOS Simulator. To target a specific device:
 
-### Android
+```bash
+npm run ios -- --simulator="iPhone 15 Pro"
+```
+
+### Android Emulator
 
 ```bash
 npm run android
 ```
 
-This starts the Metro bundler and launches the app in an Android emulator or connected device.
+Starts Metro and launches the app in a running Android emulator or connected device. Make sure an emulator is already running in Android Studio before executing this command.
 
 ### Metro bundler only
 
@@ -45,15 +60,72 @@ This starts the Metro bundler and launches the app in an Android emulator or con
 npm start
 ```
 
-Use this if you want to start the bundler separately, then run the app from Xcode or Android Studio.
+Starts only the JS bundler. Use this when you want to open the app from Xcode or Android Studio directly (e.g., for a physical device build or release build).
 
-## Other Commands
+---
 
-```bash
-npm run type-check   # TypeScript type checking
-npm run lint         # Run ESLint
+## API Connection
+
+The app connects to the Nave API. The base URL is configured in:
+
+```
+src/lib/config.ts
 ```
 
-## Configuration
+| Environment | URL |
+|-------------|-----|
+| Local dev | `http://localhost:8000` |
+| Production | Set to the deployed Cloud Run URL |
 
-The app connects to the naveapi backend. The base URL is set in the store files under `src/store/`. For local development, point it to `http://localhost:8000`.
+For local development, start the API with `make run-local` from the `api/` directory before running the app.
+
+**iOS Simulator** connects to `localhost` on your Mac automatically.
+
+**Android Emulator** uses `10.0.2.2` to reach your Mac's localhost — update `config.ts` if testing on Android.
+
+---
+
+## Development Commands
+
+```bash
+npm run type-check   # TypeScript type checking (no emit)
+npm run lint         # ESLint
+npm start            # Metro bundler only
+```
+
+---
+
+## Project Structure
+
+```
+src/
+  components/     # Reusable UI components
+  lib/            # API client, config, utilities
+  navigation/     # React Navigation stack and tab configuration
+  screens/        # Screen components grouped by feature
+  store/          # Zustand state management (auth, feed, prayer groups)
+  theme/          # Colors, spacing, typography constants
+  types/          # Shared TypeScript types and navigation types
+```
+
+---
+
+## Troubleshooting
+
+**Metro cache issues**
+```bash
+npm start -- --reset-cache
+```
+
+**iOS build fails after adding a package**
+```bash
+cd ios && pod install && cd ..
+```
+
+**Android build fails**
+- Open `android/` in Android Studio and sync Gradle
+- Make sure `ANDROID_HOME` is set in your environment
+
+**"Unable to connect to development server"**
+- Make sure Metro is running (`npm start`)
+- For Android: confirm the API URL uses `10.0.2.2` not `localhost`

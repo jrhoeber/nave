@@ -26,15 +26,15 @@ export function Avatar({
   const badgeSize = size * 0.28;
 
   return (
-    <View style={[{ width: size, height: size }, style]}>
+    <View style={[{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }, style]}>
       {uri ? (
         <Image
           source={{ uri }}
-          style={[styles.image, { width: size, height: size, borderRadius: size / 2 }]}
+          style={[StyleSheet.absoluteFill, styles.image, { borderRadius: size / 2 }]}
           resizeMode="cover"
         />
       ) : (
-        <View style={[styles.fallback, { width: size, height: size, borderRadius: size / 2 }]}>
+        <View style={[StyleSheet.absoluteFill, styles.fallback, { borderRadius: size / 2 }]}>
           <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
         </View>
       )}

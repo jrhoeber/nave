@@ -8,7 +8,7 @@ from app.dependencies import get_current_user
 from app.models.post import CommentCreate, CommentResponse, CommentUpdate, CommentsResponse
 from app.models.user import UserResponse
 from app.utils.notifications import create_notification
-from app.routers.feed import _POST_SELECT, _build_post
+from app.routers.feed import _POST_SELECT, _build_post  # noqa: F401
 
 router = APIRouter()
 
@@ -53,7 +53,7 @@ async def get_post(
     conn=Depends(get_db),
 ):
     row = await conn.fetchrow(
-        f"{_POST_SELECT} WHERE p.id = $2 GROUP BY p.id, u.id, pg.id",
+        f"{_POST_SELECT} WHERE p.id = $2 GROUP BY p.id, u.id, par.id",
         current_user["id"],
         post_id,
     )

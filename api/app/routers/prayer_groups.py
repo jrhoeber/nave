@@ -57,14 +57,13 @@ _GROUP_SELECT = """
         u.avatar_url AS admin_avatar_url,
         u.created_at AS admin_created_at,
         COUNT(DISTINCT pgm.id) FILTER (WHERE pgm.status = 'member') AS member_count,
-        COUNT(DISTINCT p.id)                                         AS post_count,
+        0                                                            AS post_count,
         BOOL_OR(my_mem.status = 'member')                           AS is_member,
         BOOL_OR(my_mem.status = 'pending')                          AS is_pending_approval
     FROM prayer_groups pg
     JOIN users u ON u.id = pg.admin_id
     LEFT JOIN prayer_group_members pgm ON pgm.group_id = pg.id
     LEFT JOIN prayer_group_members my_mem ON my_mem.group_id = pg.id AND my_mem.user_id = $1
-    LEFT JOIN posts p ON p.prayer_group_id = pg.id
 """
 
 
@@ -342,8 +341,12 @@ async def group_posts(
     rows = await conn.fetch(
         f"""
         {_POST_SELECT}
-        WHERE p.prayer_group_id = $2 AND p.created_at < $3
-        GROUP BY p.id, u.id, pg.id
+        WHERE p.author_id IN (
+            SELECT user_id FROM prayer_group_members
+            WHERE group_id = $2 AND status = 'member'
+        )
+        AND p.created_at < $3
+        GROUP BY p.id, u.id, par.id
         ORDER BY p.created_at DESC
         LIMIT $4
         """,

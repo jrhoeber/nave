@@ -21,6 +21,13 @@ export interface User {
 
 export type PostType = 'general' | 'prayer_request' | 'testimony' | 'event' | 'scripture';
 
+export interface PostParish {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+}
+
 export interface Post {
   id: string;
   author: User;
@@ -33,7 +40,7 @@ export interface Post {
   isLiked: boolean;
   isPraying: boolean;
   createdAt: string;
-  prayerGroup?: PrayerGroup;
+  parish?: PostParish;
 }
 
 export interface Comment {
@@ -86,6 +93,9 @@ export interface Parish {
   diocese: string;
   memberCount: number;
   avatarUrl?: string;
+  streetAddress?: string;
+  postalCode?: string;
+  established?: number;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

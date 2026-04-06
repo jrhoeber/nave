@@ -5,10 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models.post import FeedResponse, PostCreate, PostResponse
+from app.models.post import FeedResponse, ParishBrief, PostCreate, PostResponse
 from app.models.user import UserResponse
-from app.models.post import PrayerGroupBrief
-from app.utils.notifications import create_notification, create_group_notifications
+from app.utils.notifications import create_notification
 
 router = APIRouter()
 
@@ -26,12 +25,13 @@ def _build_user(row: dict) -> UserResponse:
 
 
 def _build_post(row: dict) -> PostResponse:
-    pg = None
-    if row.get("pg_id"):
-        pg = PrayerGroupBrief(
-            id=str(row["pg_id"]),
-            name=row["pg_name"],
-            avatar_url=row.get("pg_avatar_url"),
+    parish = None
+    if row.get("par_id"):
+        parish = ParishBrief(
+            id=str(row["par_id"]),
+            name=row["par_name"],
+            city=row["par_city"],
+            state=row["par_state"],
         )
     return PostResponse(
         id=str(row["id"]),
@@ -45,7 +45,7 @@ def _build_post(row: dict) -> PostResponse:
         is_liked=bool(row.get("is_liked", False)),
         is_praying=bool(row.get("is_praying", False)),
         created_at=row["created_at"],
-        prayer_group=pg,
+        parish=parish,
     )
 
 
@@ -55,9 +55,9 @@ _POST_SELECT = """
         u.id AS author_id, u.username AS author_username,
         u.display_name AS author_display_name,
         u.avatar_url AS author_avatar_url,
-        u.parish AS author_parish,
         u.created_at AS author_created_at,
-        pg.id AS pg_id, pg.name AS pg_name, pg.avatar_url AS pg_avatar_url,
+        par.id AS par_id, par.name AS par_name,
+        par.city AS par_city, par.state AS par_state,
         COUNT(DISTINCT pr_like.id) FILTER (WHERE pr_like.type = 'like') AS like_count,
         COUNT(DISTINCT pr_pray.id) FILTER (WHERE pr_pray.type = 'pray') AS prayer_count,
         COUNT(DISTINCT c.id)                                             AS comment_count,
@@ -65,7 +65,7 @@ _POST_SELECT = """
         BOOL_OR(pr_pray.user_id = $1)                                   AS is_praying
     FROM posts p
     JOIN users u ON u.id = p.author_id
-    LEFT JOIN prayer_groups pg ON pg.id = p.prayer_group_id
+    LEFT JOIN parishes par ON par.id = p.parish_id
     LEFT JOIN post_reactions pr_like ON pr_like.post_id = p.id AND pr_like.type = 'like'
     LEFT JOIN post_reactions pr_pray ON pr_pray.post_id = p.id AND pr_pray.type = 'pray'
     LEFT JOIN comments c ON c.post_id = p.id
@@ -93,13 +93,13 @@ async def get_feed(
                 WHERE f.status = 'accepted'
                   AND (f.requester_id = $1 OR f.addressee_id = $1)
             )
-            OR p.prayer_group_id IN (
-                SELECT group_id FROM prayer_group_members
-                WHERE user_id = $1 AND status = 'member'
+            OR (
+                p.parish_id IS NOT NULL
+                AND p.parish_id = (SELECT parish_id FROM users WHERE id = $1)
             )
         )
         AND p.created_at < $2
-        GROUP BY p.id, u.id, pg.id
+        GROUP BY p.id, u.id, par.id
         ORDER BY p.created_at DESC
         LIMIT $3
         """,
@@ -119,19 +119,21 @@ async def create_post(
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    if body.prayer_group_id:
-        membership = await conn.fetchrow(
-            "SELECT id FROM prayer_group_members WHERE group_id = $1 AND user_id = $2 AND status = 'member'",
-            body.prayer_group_id,
-            current_user["id"],
-        )
-        if membership is None:
-            raise HTTPException(status_code=403, detail="You are not a member of this prayer group")
+    parish_id = body.parish_id
+
+    # Default to the author's own parish if not explicitly provided
+    if not parish_id:
+        parish_id = current_user.get("parish_id")
+
+    if parish_id:
+        exists = await conn.fetchval("SELECT id FROM parishes WHERE id = $1", parish_id)
+        if exists is None:
+            raise HTTPException(status_code=400, detail="Parish not found")
 
     async with conn.transaction():
         post_row = await conn.fetchrow(
             """
-            INSERT INTO posts (author_id, type, content, image_url, prayer_group_id)
+            INSERT INTO posts (author_id, type, content, image_url, parish_id)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *
             """,
@@ -139,21 +141,11 @@ async def create_post(
             body.type,
             body.content,
             body.image_url,
-            body.prayer_group_id,
+            parish_id,
         )
 
-        if body.prayer_group_id:
-            await create_group_notifications(
-                conn,
-                group_id=body.prayer_group_id,
-                actor_id=str(current_user["id"]),
-                type="prayer_group_post",
-                message=f"{current_user['display_name']} posted in your prayer group",
-                target_id=str(post_row["id"]),
-            )
-
     row = await conn.fetchrow(
-        f"{_POST_SELECT} WHERE p.id = $2 GROUP BY p.id, u.id, pg.id",
+        f"{_POST_SELECT} WHERE p.id = $2 GROUP BY p.id, u.id, par.id",
         current_user["id"],
         post_row["id"],
     )

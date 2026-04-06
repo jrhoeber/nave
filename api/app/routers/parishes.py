@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.database import get_db
@@ -5,6 +7,23 @@ from app.dependencies import get_current_user
 from app.models.parish import ParishResponse, ParishesResponse
 
 router = APIRouter()
+
+# Abbreviation expansions for fuzzy parish name matching
+_ABBREVIATIONS = {
+    r"\bsaint\b": "st.",
+    r"\bblessed\b": "bl.",
+    r"\bour lady\b": "our lady",
+    r"\bchurch of\b": "",
+    r"\bparish\b": "",
+}
+
+
+def _normalize_query(q: str) -> str:
+    """Expand common abbreviations so 'Saint Joseph' matches 'St. Joseph'."""
+    normalized = q.lower().strip()
+    for pattern, replacement in _ABBREVIATIONS.items():
+        normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
+    return " ".join(normalized.split())  # collapse extra whitespace
 
 
 def _build_parish(row: dict) -> ParishResponse:
@@ -26,40 +45,51 @@ def _build_parish(row: dict) -> ParishResponse:
 @router.get("/search", response_model=ParishesResponse)
 async def search_parishes(
     q: str = Query("", description="Search by name"),
-    state: str = Query("", description="Filter by state abbreviation"),
     limit: int = Query(20, le=100),
     _: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    conditions = ["1=1"]
-    params: list = []
-    idx = 1
+    if not q:
+        rows = await conn.fetch(
+            """
+            SELECT p.*, COUNT(u.id) AS member_count
+            FROM parishes p
+            LEFT JOIN users u ON u.parish_id = p.id
+            GROUP BY p.id
+            ORDER BY p.name
+            LIMIT $1
+            """,
+            limit,
+        )
+        return ParishesResponse(parishes=[_build_parish(dict(r)) for r in rows])
 
-    if q:
-        conditions.append(f"to_tsvector('english', p.name) @@ plainto_tsquery('english', ${idx})")
-        params.append(q)
-        idx += 1
-
-    if state:
-        conditions.append(f"p.state = ${idx}")
-        params.append(state.upper())
-        idx += 1
-
-    params.append(limit)
-    where = " AND ".join(conditions)
+    normalized = _normalize_query(q)
+    ilike_pattern = f"%{normalized}%"
+    original_ilike = f"%{q}%"
 
     rows = await conn.fetch(
-        f"""
-        SELECT p.*,
-               COUNT(u.id) AS member_count
+        """
+        SELECT p.*, COUNT(u.id) AS member_count,
+               GREATEST(
+                 similarity(lower(p.name), $1),
+                 similarity(lower(p.name), $2)
+               ) AS _score
         FROM parishes p
         LEFT JOIN users u ON u.parish_id = p.id
-        WHERE {where}
+        WHERE
+          similarity(lower(p.name), $1) > 0.1
+          OR similarity(lower(p.name), $2) > 0.1
+          OR lower(p.name) ILIKE $3
+          OR lower(p.name) ILIKE $4
         GROUP BY p.id
-        ORDER BY p.name
-        LIMIT ${idx}
+        ORDER BY _score DESC, p.name ASC
+        LIMIT $5
         """,
-        *params,
+        normalized,
+        q.lower(),
+        ilike_pattern,
+        original_ilike,
+        limit,
     )
     return ParishesResponse(parishes=[_build_parish(dict(r)) for r in rows])
 

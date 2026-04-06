@@ -9,7 +9,12 @@
       "Bash(/Users/jordanhoeber/Library/Python/3.9/bin/alembic history:*)",
       "Bash(ls -la /Users/jordanhoeber/wksp/nave/api/docker-compose* /Users/jordanhoeber/wksp/nave/api/.env.*)",
       "Bash(psql:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(ls /Users/jordanhoeber/wksp/nave/app/README*)",
+      "Bash(ls /Users/jordanhoeber/wksp/nave/README*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(''''Node engine:'''', d.get\\(''''engines'''',{}\\).get\\(''''node'''',''''not specified''''\\)\\); print\\(''''Scripts:'''', list\\(d.get\\(''''scripts'''',{}\\).keys\\(\\)\\)\\)\")",
+      "Bash(npm install:*)",
+      "Bash(pod install:*)"
     ]
   }
 }

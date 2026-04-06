@@ -2,7 +2,6 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { FeedScreen } from '../screens/feed/FeedScreen';
 import { PrayerScreen } from '../screens/prayer/PrayerScreen';
 import { CommunityScreen } from '../screens/community/CommunityScreen';
 import { FriendsScreen } from '../screens/friends/FriendsScreen';
@@ -25,11 +24,10 @@ export function AppNavigator() {
           borderTopWidth: 1,
           height: 60,
           paddingBottom: 8,
-          paddingHorizontal: 16,
+          paddingHorizontal: 24,
         },
         tabBarItemStyle: {
           flex: 1,
-          maxWidth: 72,
         },
         tabBarLabelStyle: {
           fontSize: 10,
@@ -39,10 +37,10 @@ export function AppNavigator() {
       }}
     >
       <Tab.Screen
-        name="Feed"
-        component={FeedScreen}
+        name="Parish"
+        component={CommunityScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Icon name="home-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <MCIcon name="church" size={size} color={color} />,
         }}
       />
       <Tab.Screen
@@ -50,13 +48,6 @@ export function AppNavigator() {
         component={PrayerScreen}
         options={{
           tabBarIcon: ({ color, size }) => <Icon name="people-circle-outline" size={size} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="Parish"
-        component={CommunityScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => <MCIcon name="church" size={size} color={color} />,
         }}
       />
       <Tab.Screen

@@ -31,11 +31,11 @@ clean:
 	docker rmi $(IMAGE_NAME)
 
 # ── Local dev (Docker Compose + local Postgres) ───────────────────────────────
-local:
+run-local:
 	docker compose up --build
 
-local-down:
+down-local:
 	docker compose down
 
-local-clean:
+clean-local:
 	docker compose down -v

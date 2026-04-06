@@ -8,17 +8,18 @@ from app.models.user import UserResponse
 PostType = Literal["general", "prayer_request", "testimony", "event", "scripture"]
 
 
-class PrayerGroupBrief(BaseModel):
+class ParishBrief(BaseModel):
     id: str
     name: str
-    avatar_url: Optional[str] = None
+    city: str
+    state: str
 
 
 class PostCreate(BaseModel):
     type: PostType
     content: str
     image_url: Optional[str] = None
-    prayer_group_id: Optional[str] = None
+    parish_id: Optional[str] = None
 
 
 class PostResponse(BaseModel):
@@ -33,7 +34,7 @@ class PostResponse(BaseModel):
     is_liked: bool = False
     is_praying: bool = False
     created_at: datetime
-    prayer_group: Optional[PrayerGroupBrief] = None
+    parish: Optional[ParishBrief] = None
 
 
 class CommentCreate(BaseModel):

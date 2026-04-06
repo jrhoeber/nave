@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -22,10 +22,11 @@ interface ApiUser {
   is_pending_friend?: boolean;
 }
 
-interface ApiPrayerGroupBrief {
+interface ApiParishBrief {
   id: string;
   name: string;
-  avatar_url?: string;
+  city: string;
+  state: string;
 }
 
 interface ApiPost {
@@ -40,7 +41,7 @@ interface ApiPost {
   is_liked: boolean;
   is_praying: boolean;
   created_at: string;
-  prayer_group?: ApiPrayerGroupBrief | null;
+  parish?: ApiParishBrief | null;
 }
 
 interface ApiPrayerGroup {
@@ -61,6 +62,18 @@ interface ApiPrayerGroup {
   created_at: string;
 }
 
+interface ApiParish {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  diocese: string;
+  member_count: number;
+  street_address?: string;
+  postal_code?: string;
+  established?: number;
+}
+
 interface ApiTokenResponse {
   access_token: string;
   user: ApiUser;
@@ -77,6 +90,20 @@ interface ApiGroupsResponse {
 }
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
+
+export function mapParish(raw: ApiParish): Parish {
+  return {
+    id: raw.id,
+    name: raw.name,
+    city: raw.city,
+    state: raw.state,
+    diocese: raw.diocese,
+    memberCount: raw.member_count,
+    streetAddress: raw.street_address,
+    postalCode: raw.postal_code,
+    established: raw.established,
+  };
+}
 
 export function mapUser(raw: ApiUser): User {
   return {
@@ -97,31 +124,6 @@ export function mapUser(raw: ApiUser): User {
   };
 }
 
-function mapPrayerGroupBrief(raw: ApiPrayerGroupBrief): PrayerGroup {
-  // Backend returns only brief info on embedded group; fill in zero-value defaults
-  const stubAdmin: User = {
-    id: '',
-    username: '',
-    displayName: '',
-    friendCount: 0,
-    prayerGroupCount: 0,
-    createdAt: '',
-  };
-  return {
-    id: raw.id,
-    name: raw.name,
-    description: '',
-    category: 'general',
-    avatarUrl: raw.avatar_url,
-    memberCount: 0,
-    postCount: 0,
-    isPrivate: false,
-    isMember: false,
-    admin: stubAdmin,
-    createdAt: '',
-  };
-}
-
 export function mapPost(raw: ApiPost): Post {
   return {
     id: raw.id,
@@ -135,7 +137,9 @@ export function mapPost(raw: ApiPost): Post {
     isLiked: raw.is_liked,
     isPraying: raw.is_praying,
     createdAt: raw.created_at,
-    prayerGroup: raw.prayer_group ? mapPrayerGroupBrief(raw.prayer_group) : undefined,
+    parish: raw.parish
+      ? { id: raw.parish.id, name: raw.parish.name, city: raw.parish.city, state: raw.parish.state }
+      : undefined,
   };
 }
 
@@ -275,6 +279,24 @@ export const api = {
   }) {
     return apiFetch<ApiPrayerGroup>('/prayer-groups', {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Parishes
+  searchParishes(q: string) {
+    const params = new URLSearchParams({ q, limit: '10' });
+    return apiFetch<{ parishes: ApiParish[] }>(`/parishes/search?${params}`);
+  },
+
+  getParish(id: string) {
+    return apiFetch<ApiParish>(`/parishes/${id}`);
+  },
+
+  // Users
+  updateProfile(data: { parish_id?: string; bio?: string; location?: string; avatar_url?: string }) {
+    return apiFetch<ApiUser>('/users/me', {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   },
