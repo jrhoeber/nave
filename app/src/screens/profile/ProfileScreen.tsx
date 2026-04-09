@@ -14,27 +14,26 @@ import type { RootNavigationProp } from '../../types/navigation';
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const { user, logout, updateUser } = useAuthStore();
+  const { user, logout, updateUser, setAvatarReady } = useAuthStore();
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   const handleAvatarPress = async () => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      includeBase64: true,
       maxWidth: 512,
       maxHeight: 512,
       quality: 0.8,
     });
 
-    if (result.didCancel || !result.assets?.[0]?.base64) return;
+    if (result.didCancel || !result.assets?.[0]?.uri) return;
 
     const asset = result.assets[0];
-    const dataUri = `data:${asset.type ?? 'image/jpeg'};base64,${asset.base64}`;
-
     setAvatarUploading(true);
     try {
-      const updated = await api.updateProfile({ avatar_url: dataUri });
-      await updateUser({ avatarUrl: updated.avatar_url });
+      const updated = await api.uploadAvatar(asset.uri!, asset.type ?? 'image/jpeg');
+      if (updated.avatar_url) {
+        await updateUser({ avatarUrl: updated.avatar_url });
+      }
     } catch (err) {
       Alert.alert('Error', 'Failed to update avatar. Please try again.');
     } finally {
@@ -63,7 +62,7 @@ export function ProfileScreen() {
       {/* Identity card */}
       <View style={styles.identityCard}>
         <TouchableOpacity onPress={handleAvatarPress} disabled={avatarUploading} style={styles.avatarWrapper} activeOpacity={0.8}>
-          <Avatar uri={user.avatarUrl} name={user.displayName} size={88} style={styles.avatar} />
+          <Avatar uri={user.avatarUrl} name={user.displayName} size={88} style={styles.avatar} onLoad={setAvatarReady} />
           <View style={styles.avatarBadge}>
             {avatarUploading
               ? <ActivityIndicator size="small" color={Colors.textInverse} />

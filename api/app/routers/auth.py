@@ -4,8 +4,17 @@ from app.auth import create_access_token, hash_password, verify_password
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import TokenResponse, UserResponse, UserLogin, UserSignUp
+from app.utils.storage import get_avatar_signed_url
 
 router = APIRouter()
+
+_GCS_PATH_PREFIX = "avatars/"
+
+
+def _resolve_avatar_url(raw: str | None) -> str | None:
+    if raw and raw.startswith(_GCS_PATH_PREFIX):
+        return get_avatar_signed_url(raw)
+    return raw
 
 
 def _build_user_response(row: dict) -> UserResponse:
@@ -14,7 +23,7 @@ def _build_user_response(row: dict) -> UserResponse:
         username=row["username"],
         display_name=row["display_name"],
         bio=row.get("bio"),
-        avatar_url=row.get("avatar_url"),
+        avatar_url=_resolve_avatar_url(row.get("avatar_url")),
         parish_id=str(row["parish_id"]) if row.get("parish_id") else None,
         parish=row.get("parish_name"),
         diocese=row.get("diocese"),

@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     algorithm: str = "HS256"
     access_token_expire_days: int = 30
+    gcs_bucket_name: str = "nave-avatars"
+    gcs_enabled: bool = True
 
     model_config = {"env_file": ".env"}
 

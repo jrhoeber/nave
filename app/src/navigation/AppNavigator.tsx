@@ -6,10 +6,20 @@ import { PrayerScreen } from '../screens/prayer/PrayerScreen';
 import { CommunityScreen } from '../screens/community/CommunityScreen';
 import { FriendsScreen } from '../screens/friends/FriendsScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { Avatar } from '../components/ui/Avatar';
+import { useAuthStore } from '../store/authStore';
 import { Colors, Typography } from '../theme';
 import type { AppTabParamList } from '../types/navigation';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
+
+function ProfileTabIcon({ color, size }: { color: string; size: number }) {
+  const user = useAuthStore((s) => s.user);
+  if (user?.avatarUrl) {
+    return <Avatar uri={user.avatarUrl} name={user.displayName} size={size} />;
+  }
+  return <Icon name="person-outline" size={size} color={color} />;
+}
 
 export function AppNavigator() {
   return (
@@ -61,7 +71,8 @@ export function AppNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Icon name="person-outline" size={size} color={color} />,
+          lazy: false,
+          tabBarIcon: ({ color, size }) => <ProfileTabIcon color={color} size={size} />,
         }}
       />
     </Tab.Navigator>

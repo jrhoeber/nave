@@ -111,7 +111,7 @@ export function mapUser(raw: ApiUser): User {
     username: raw.username,
     displayName: raw.display_name,
     bio: raw.bio,
-    avatarUrl: raw.avatar_url,
+    avatarUrl: raw.avatar_url?.startsWith('http') ? raw.avatar_url : undefined,
     parishId: raw.parish_id,
     parish: raw.parish,
     diocese: raw.diocese,
@@ -185,6 +185,33 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   }
 
   const response = await fetch(API_BASE_URL + path, { ...options, headers });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      onUnauthorized?.();
+      throw new Error('Session expired');
+    }
+    let detail = `HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body?.detail) {
+        detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
+      }
+    } catch {}
+    throw new Error(detail);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const token = await AsyncStorage.getItem('auth_token');
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  // Do NOT set Content-Type — the browser/RN sets it with the multipart boundary.
+  const response = await fetch(API_BASE_URL + path, { method: 'POST', headers, body: formData });
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -294,10 +321,20 @@ export const api = {
   },
 
   // Users
+  getMe() {
+    return apiFetch<ApiUser>('/users/me');
+  },
+
   updateProfile(data: { parish_id?: string; bio?: string; location?: string; avatar_url?: string }) {
     return apiFetch<ApiUser>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  },
+
+  uploadAvatar(uri: string, type: string) {
+    const formData = new FormData();
+    formData.append('file', { uri, type, name: 'avatar.jpg' } as unknown as Blob);
+    return apiUpload<ApiUser>('/users/me/avatar', formData);
   },
 };

@@ -7,7 +7,7 @@ PROJECT_ID ?= $(shell gcloud config get-value project 2>/dev/null)
 REGION     ?= us-central1
 REGISTRY   := $(REGION)-docker.pkg.dev/$(PROJECT_ID)/naveapi/$(IMAGE_NAME)
 
-.PHONY: build run dev stop logs shell clean push deploy local local-down local-clean
+.PHONY: build run dev stop logs shell shell-local clean push deploy local local-down local-clean
 
 build:
 	docker build -t $(IMAGE_NAME) .
@@ -26,6 +26,9 @@ logs:
 
 shell:
 	docker exec -it $(CONTAINER_NAME) /bin/sh
+
+shell-local:
+	docker compose exec api /bin/sh
 
 clean:
 	docker rmi $(IMAGE_NAME)

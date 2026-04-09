@@ -14,7 +14,10 @@
       "Bash(ls /Users/jordanhoeber/wksp/nave/README*)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(''''Node engine:'''', d.get\\(''''engines'''',{}\\).get\\(''''node'''',''''not specified''''\\)\\); print\\(''''Scripts:'''', list\\(d.get\\(''''scripts'''',{}\\).keys\\(\\)\\)\\)\")",
       "Bash(npm install:*)",
-      "Bash(pod install:*)"
+      "Bash(pod install:*)",
+      "Bash(find /Users/jordanhoeber/wksp/nave -type f -path */app/package.json)",
+      "Bash(find /Users/jordanhoeber/wksp/nave/app/src/theme -type f -name *.ts -o -name *.tsx -o -name *.js)",
+      "Bash(xcodebuild:*)"
     ]
   }
 }

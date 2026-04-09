@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Colors, Radius, Typography } from '../../theme';
 
@@ -9,6 +9,7 @@ interface AvatarProps {
   style?: ViewStyle;
   showBadge?: boolean;
   badgeColor?: string;
+  onLoad?: () => void;
 }
 
 export function Avatar({
@@ -18,7 +19,10 @@ export function Avatar({
   style,
   showBadge,
   badgeColor = Colors.success,
+  onLoad,
 }: AvatarProps) {
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => { setImgError(false); }, [uri]);
   const initials = name
     ? name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
     : '?';
@@ -27,16 +31,17 @@ export function Avatar({
 
   return (
     <View style={[{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }, style]}>
-      {uri ? (
+      <View style={[StyleSheet.absoluteFill, styles.fallback, { borderRadius: size / 2 }]}>
+        <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
+      </View>
+      {uri && !imgError && (
         <Image
           source={{ uri }}
           style={[StyleSheet.absoluteFill, styles.image, { borderRadius: size / 2 }]}
           resizeMode="cover"
+          onError={() => setImgError(true)}
+          onLoad={onLoad}
         />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, styles.fallback, { borderRadius: size / 2 }]}>
-          <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
-        </View>
       )}
       {showBadge && (
         <View
