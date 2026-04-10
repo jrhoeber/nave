@@ -346,6 +346,13 @@ function ParishSelect({ onSelect }: { onSelect: (parish: Parish) => void }) {
           </View>
         )}
 
+        {query.length === 0 && (
+          <View style={styles.welcomeContainer}>
+            <Text style={styles.welcomeTitle}>Welcome to Nave!</Text>
+            <Text style={styles.welcomeSubtitle}>Join a parish to stay connected</Text>
+          </View>
+        )}
+
         {query.length > 1 && !loading && results.length === 0 && (
           <View style={styles.noResults}>
             <Text style={styles.noResultsText}>No parishes found for "{query}"</Text>
@@ -503,6 +510,10 @@ const styles = StyleSheet.create({
   resultLocation: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 1 },
   resultMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   resultCount: { fontSize: Typography.xs, color: Colors.textSecondary },
+  welcomeContainer: { alignItems: 'center', paddingTop: Spacing[8] },
+  welcomeTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary, marginBottom: Spacing[2] },
+  welcomeSubtitle: { fontSize: Typography.base, color: Colors.textSecondary },
+
   noResults: { paddingVertical: Spacing[5], alignItems: 'center' },
   noResultsText: { fontSize: Typography.sm, color: Colors.textSecondary },
 });
