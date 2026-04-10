@@ -102,3 +102,122 @@ API config via `.env` / `.env.local` in `api/`:
 - `SECRET_KEY` — JWT signing key
 
 Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; Android emulator uses `10.0.2.2:8000`).
+
+---
+
+## File Reference
+
+> **Maintenance rule:** Any time you add, move, rename, or delete a file, update the relevant section below so this index stays accurate.
+
+### API (`/api/app/`)
+
+#### Core
+| File | Purpose |
+|------|---------|
+| `main.py` | App entry point; lifespan (pool init/teardown), CORS, logging middleware, exception handlers, router registration |
+| `config.py` | Pydantic Settings; `DATABASE_URL`, `SECRET_KEY`, `GCS_BUCKET_NAME` — read from `.env` / `.env.local` |
+| `database.py` | `get_db()` dependency that yields an asyncpg connection from the pool |
+| `auth.py` | `hash_password()`, `verify_password()` (bcrypt), `create_token()`, `decode_token()` (JWT HS256) |
+| `dependencies.py` | `get_current_user()` (required auth) and `get_optional_user()` (optional auth) FastAPI dependencies |
+
+#### Routers (`/api/app/routers/`)
+| File | Endpoints |
+|------|-----------|
+| `auth.py` | `POST /auth/signup`, `POST /auth/login` — creates user, returns JWT + user data |
+| `users.py` | User search, get/update profile, upload avatar (GCS signed URLs) |
+| `feed.py` | Paginated feed, create posts, like/unlike, pray/unpray |
+| `posts.py` | Post detail, list/create/update/delete comments, like/unlike comments |
+| `prayer_groups.py` | List/create groups, join/leave, member list, post to group |
+| `friends.py` | Friend list, send/accept/reject requests, block users |
+| `parishes.py` | Fuzzy parish search (trigram + abbreviation expansion), parish member list |
+| `notifications.py` | List notifications (paginated), mark read (single or all) |
+
+#### Models (`/api/app/models/`)
+| File | Schemas |
+|------|---------|
+| `user.py` | `UserSignUp`, `UserLogin`, `UserUpdate`, `UserResponse`, `TokenResponse` |
+| `post.py` | `PostCreate`, `PostResponse`, `CommentCreate`, `CommentResponse`, `FeedResponse`; post types: `general`, `prayer_request`, `testimony`, `event`, `scripture` |
+| `parish.py` | `ParishResponse`, `ParishesResponse` |
+| `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `rosary`, `scripture_study`, `mens_group`, `womens_group`, `youth`, etc. |
+| `notification.py` | `NotificationResponse`, `NotificationsResponse`, `MarkReadRequest`; types: `friend_request`, `post_like`, `prayer_group_invite`, etc. |
+
+#### Utils (`/api/app/utils/`)
+| File | Purpose |
+|------|---------|
+| `notifications.py` | `create_notification()`, `create_group_notifications()` — insert notification rows |
+| `storage.py` | `upload_avatar()`, `get_avatar_signed_url()` — Google Cloud Storage integration |
+| `queries.py` | Reusable database query helpers shared across routers |
+
+#### Database & Infra
+| File | Purpose |
+|------|---------|
+| `schema.sql` | Full DB schema (source of truth for table definitions) |
+| `seeds/parishes.sql` | Parish seed data loaded on startup |
+| `alembic/versions/` | Migration files — named `YYYYMMDD_NNNN_desc.py` |
+| `entrypoint.sh` | Container startup: runs `alembic upgrade head`, seeds parishes, starts uvicorn |
+| `docker-compose.yml` | Local dev: PostgreSQL 16 + API with hot reload |
+| `Dockerfile` / `Dockerfile.dev` | Production / development Docker images |
+| `requirements.txt` | Python deps (FastAPI, asyncpg, pydantic, bcrypt, python-jose, etc.) |
+
+---
+
+### App (`/app/src/`)
+
+#### Entry & Navigation
+| File | Purpose |
+|------|---------|
+| `App.tsx` | Root component; manages auth loading, splash screen, hands off to RootNavigator |
+| `navigation/RootNavigator.tsx` | Auth ↔ App stack switch; defines modal screens (PostDetail, UserProfile, PrayerGroupDetail, Compose, CreatePrayerGroup) |
+| `navigation/AuthNavigator.tsx` | Welcome → Login / SignUp stack |
+| `navigation/AppNavigator.tsx` | Bottom tabs: Community (Parish), Feed, Prayer, Friends, Profile |
+
+#### State (Zustand stores, `/app/src/store/`)
+| File | State |
+|------|-------|
+| `authStore.ts` | User, token, login/signup/logout/profile update; persisted via AsyncStorage |
+| `feedStore.ts` | Posts list, pagination, like/unlike + pray/unpray with optimistic updates |
+| `prayerStore.ts` | All groups + user's groups; join/leave with optimistic updates |
+
+#### API Layer (`/app/src/lib/`)
+| File | Purpose |
+|------|---------|
+| `apiClient.ts` | Central HTTP client; JWT injection, snake_case→camelCase mapping, 401 handler, all API methods |
+| `config.ts` | `API_BASE_URL` constant (localhost:8000 dev / 10.0.2.2:8000 Android) |
+
+#### Types (`/app/src/types/`)
+| File | Contents |
+|------|---------|
+| `index.ts` | `User`, `Post`, `PostType`, `Comment`, `PrayerGroup`, `PrayerGroupCategory`, `Parish` interfaces |
+| `navigation.ts` | Stack param lists for type-safe `navigation.navigate()` calls |
+
+#### Screens (`/app/src/screens/`)
+| File | Screen |
+|------|--------|
+| `auth/WelcomeScreen.tsx` | Landing / onboarding |
+| `auth/LoginScreen.tsx` | Email + password login |
+| `auth/SignUpScreen.tsx` | Registration (email, username, password, display name, parish) |
+| `feed/FeedScreen.tsx` | Paginated post feed with like/pray/comment |
+| `prayer/PrayerScreen.tsx` | Prayer group discovery list |
+| `prayer/PrayerGroupDetailScreen.tsx` | Group detail: members + group posts |
+| `prayer/CreatePrayerGroupScreen.tsx` | Create group form |
+| `community/CommunityScreen.tsx` | Parish community view |
+| `friends/FriendsScreen.tsx` | Friends list + request management |
+| `profile/ProfileScreen.tsx` | Own profile with edit |
+| `shared/ComposeScreen.tsx` | Modal: create new post |
+| `shared/PostDetailScreen.tsx` | Full post + comments |
+| `shared/UserProfileScreen.tsx` | Other users' profiles |
+
+#### UI Components (`/app/src/components/`)
+| File | Purpose |
+|------|---------|
+| `ui/Avatar.tsx` | Avatar with initials fallback |
+| `ui/Button.tsx` | Button with variants (primary, secondary, ghost) |
+| `ui/Input.tsx` | Styled text input |
+| `Splash.tsx` | Startup splash screen |
+| `feed/PostCard.tsx` | Post card used in feed and group views |
+| `prayer/PrayerGroupCard.tsx` | Prayer group card for list views |
+
+#### Theme
+| File | Purpose |
+|------|---------|
+| `theme/index.ts` | Design tokens: colors, typography, spacing — import from here for all styling |
