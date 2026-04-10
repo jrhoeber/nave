@@ -40,3 +40,5 @@ xcuserdata
 *.xccheckout
 *.moved-aside
 *.xcscmblueprint
+
+__pycache__/
