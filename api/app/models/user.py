@@ -50,12 +50,8 @@ class UserResponse(BaseModel):
     parish: Optional[str] = None   # parish name, joined from parishes table
     diocese: Optional[str] = None
     location: Optional[str] = None
-    friend_count: int = 0
     prayer_group_count: int = 0
-    post_count: int = 0
     created_at: datetime
-    is_friend: Optional[bool] = None
-    is_pending_friend: Optional[bool] = None
 
 
 class TokenResponse(BaseModel):

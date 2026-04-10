@@ -85,7 +85,7 @@ npm run type-check               # TypeScript check (no emit)
 
 ### Database
 
-PostgreSQL with ~10 tables: `users`, `parishes`, `friendships`, `prayer_groups`, `prayer_group_members`, `posts`, `post_reactions`, `comments`, `comment_likes`, `notifications`. All PKs are UUIDs. Parish search uses trigram (pg_trgm) indexes. Full schema in `api/schema.sql`.
+PostgreSQL with 4 tables: `users`, `parishes`, `prayer_groups`, `prayer_group_members`. All PKs are UUIDs. Parish search uses trigram (pg_trgm) indexes. Full schema in `api/schema.sql`.
 
 ### Auth flow
 
@@ -125,28 +125,21 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 |------|-----------|
 | `auth.py` | `POST /auth/signup`, `POST /auth/login` — creates user, returns JWT + user data |
 | `users.py` | User search, get/update profile, upload avatar (GCS signed URLs) |
-| `feed.py` | Paginated feed, create posts, like/unlike, pray/unpray |
-| `posts.py` | Post detail, list/create/update/delete comments, like/unlike comments |
-| `prayer_groups.py` | List/create groups, join/leave, member list, post to group |
-| `friends.py` | Friend list, send/accept/reject requests, block users |
+| `prayer_groups.py` | List/create groups, join/leave, member list, approve/remove members |
 | `parishes.py` | Fuzzy parish search (trigram + abbreviation expansion), parish member list |
-| `notifications.py` | List notifications (paginated), mark read (single or all) |
 
 #### Models (`/api/app/models/`)
 | File | Schemas |
 |------|---------|
 | `user.py` | `UserSignUp`, `UserLogin`, `UserUpdate`, `UserResponse`, `TokenResponse` |
-| `post.py` | `PostCreate`, `PostResponse`, `CommentCreate`, `CommentResponse`, `FeedResponse`; post types: `general`, `prayer_request`, `testimony`, `event`, `scripture` |
 | `parish.py` | `ParishResponse`, `ParishesResponse` |
 | `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `rosary`, `scripture_study`, `mens_group`, `womens_group`, `youth`, etc. |
-| `notification.py` | `NotificationResponse`, `NotificationsResponse`, `MarkReadRequest`; types: `friend_request`, `post_like`, `prayer_group_invite`, etc. |
 
 #### Utils (`/api/app/utils/`)
 | File | Purpose |
 |------|---------|
-| `notifications.py` | `create_notification()`, `create_group_notifications()` — insert notification rows |
 | `storage.py` | `upload_avatar()`, `get_avatar_signed_url()` — Google Cloud Storage integration |
-| `queries.py` | Reusable database query helpers shared across routers |
+| `queries.py` | `USER_STATS_COLS`, `USER_STATS_JOIN` — reusable user stats query fragments |
 
 #### Database & Infra
 | File | Purpose |

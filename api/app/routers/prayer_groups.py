@@ -12,9 +12,6 @@ from app.models.prayer_group import (
     PrayerGroupsResponse,
 )
 from app.models.user import UserResponse
-from app.models.post import FeedResponse
-from app.utils.notifications import create_notification
-from app.routers.feed import _POST_SELECT, _build_post
 
 router = APIRouter()
 
@@ -222,22 +219,12 @@ async def join_group(
         raise HTTPException(status_code=409, detail=f"Already {existing['status']}")
 
     new_status = "pending" if pg["is_private"] else "member"
-    async with conn.transaction():
-        await conn.execute(
-            "INSERT INTO prayer_group_members (group_id, user_id, status) VALUES ($1,$2,$3)",
-            group_id,
-            current_user["id"],
-            new_status,
-        )
-        if pg["is_private"]:
-            await create_notification(
-                conn,
-                user_id=str(pg["admin_id"]),
-                actor_id=str(current_user["id"]),
-                type="prayer_group_invite",
-                message=f"{current_user['display_name']} requested to join your prayer group",
-                target_id=group_id,
-            )
+    await conn.execute(
+        "INSERT INTO prayer_group_members (group_id, user_id, status) VALUES ($1,$2,$3)",
+        group_id,
+        current_user["id"],
+        new_status,
+    )
     return {"status": new_status}
 
 
@@ -283,15 +270,6 @@ async def approve_member(
     )
     if result == "UPDATE 0":
         raise HTTPException(status_code=404, detail="Pending membership not found")
-
-    await create_notification(
-        conn,
-        user_id=user_id,
-        actor_id=str(current_user["id"]),
-        type="prayer_group_invite",
-        message=f"Your request to join {pg['name']} was approved",
-        target_id=group_id,
-    )
     return {"status": "member"}
 
 
@@ -314,47 +292,3 @@ async def remove_member(
         user_id,
     )
     return {"success": True}
-
-
-@router.get("/{group_id}/posts", response_model=FeedResponse)
-async def group_posts(
-    group_id: str,
-    limit: int = Query(20, le=100),
-    cursor: Optional[str] = Query(None),
-    current_user: dict = Depends(get_current_user),
-    conn=Depends(get_db),
-):
-    pg = await conn.fetchrow("SELECT is_private FROM prayer_groups WHERE id = $1", group_id)
-    if pg is None:
-        raise HTTPException(status_code=404, detail="Prayer group not found")
-
-    if pg["is_private"]:
-        membership = await conn.fetchrow(
-            "SELECT id FROM prayer_group_members WHERE group_id = $1 AND user_id = $2 AND status = 'member'",
-            group_id,
-            current_user["id"],
-        )
-        if membership is None:
-            raise HTTPException(status_code=403, detail="This is a private group")
-
-    cursor_dt = datetime.fromisoformat(cursor) if cursor else datetime.now(timezone.utc)
-    rows = await conn.fetch(
-        f"""
-        {_POST_SELECT}
-        WHERE p.author_id IN (
-            SELECT user_id FROM prayer_group_members
-            WHERE group_id = $2 AND status = 'member'
-        )
-        AND p.created_at < $3
-        GROUP BY p.id, u.id, par.id
-        ORDER BY p.created_at DESC
-        LIMIT $4
-        """,
-        current_user["id"],
-        group_id,
-        cursor_dt,
-        limit,
-    )
-    posts = [_build_post(dict(r)) for r in rows]
-    next_cursor = posts[-1].created_at.isoformat() if len(posts) == limit else None
-    return FeedResponse(posts=posts, next_cursor=next_cursor)

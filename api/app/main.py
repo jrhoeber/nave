@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import auth, feed, friends, notifications, parishes, posts, prayer_groups, users
+from app.routers import auth, parishes, prayer_groups, users
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -108,12 +108,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.include_router(auth.router,           prefix="/auth",           tags=["auth"])
 app.include_router(users.router,          prefix="/users",          tags=["users"])
-app.include_router(feed.router,           prefix="/feed",           tags=["feed"])
-app.include_router(posts.router,          prefix="/posts",          tags=["posts"])
 app.include_router(prayer_groups.router,  prefix="/prayer-groups",  tags=["prayer-groups"])
-app.include_router(friends.router,        prefix="/friends",        tags=["friends"])
 app.include_router(parishes.router,       prefix="/parishes",       tags=["parishes"])
-app.include_router(notifications.router,  prefix="/notifications",  tags=["notifications"])
 
 
 @app.get("/health", tags=["health"])
