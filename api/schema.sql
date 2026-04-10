@@ -26,13 +26,15 @@ CREATE INDEX IF NOT EXISTS idx_users_email    ON users (email);
 -- PARISHES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS parishes (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name       TEXT NOT NULL,
-    city       TEXT NOT NULL,
-    state      TEXT NOT NULL,
-    diocese    TEXT NOT NULL,
-    avatar_url TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name             TEXT NOT NULL,
+    city             TEXT NOT NULL,
+    state            TEXT NOT NULL,
+    diocese          TEXT NOT NULL,
+    avatar_url       TEXT,
+    cover_photo_url  TEXT,
+    mass_schedule    JSONB,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_parishes_name    ON parishes USING GIN (to_tsvector('english', name));

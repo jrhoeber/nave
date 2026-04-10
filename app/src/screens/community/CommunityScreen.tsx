@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   ScrollView,
   StatusBar,
@@ -52,156 +53,98 @@ const MOCK_POSTS = [
   },
 ];
 
-const MOCK_MASS_TIMES = [
-  { day: 'Monday – Friday', time: '7:00 AM' },
-  { day: 'Saturday (Vigil)', time: '5:00 PM' },
-  { day: 'Sunday', time: '8:00 AM, 10:00 AM, 12:00 PM' },
-];
-
-const MOCK_EVENTS = [
-  { date: 'Apr 7', name: 'Stations of the Cross', time: '7:00 PM' },
-  { date: 'Apr 13', name: 'Palm Sunday Mass', time: '10:00 AM' },
-  { date: 'Apr 17', name: 'Holy Thursday Mass', time: '7:00 PM' },
-  { date: 'Apr 18', name: 'Good Friday Service', time: '3:00 PM' },
-  { date: 'Apr 20', name: 'Easter Vigil', time: '8:00 PM' },
-];
-
 // ─── Parish profile modal ─────────────────────────────────────────────────────
 
-function ParishProfileModal({ parishId, visible, onClose, onChangeParish }: {
-  parishId: string;
+function ParishProfileModal({ parish, visible, onClose, onChangeParish }: {
+  parish: Parish | null;
   visible: boolean;
   onClose: () => void;
   onChangeParish: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const [parish, setParish] = useState<Parish | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!visible || !parishId) return;
-    setLoading(true);
-    api.getParish(parishId)
-      .then((data) => setParish(mapParish(data)))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [visible, parishId]);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[profileStyles.container, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
+      <View style={profileStyles.container}>
 
-        {/* Header */}
-        <View style={profileStyles.header}>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Icon name="close" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={profileStyles.headerTitle}>Parish Profile</Text>
-          <View style={{ width: 24 }} />
-        </View>
-
-        {loading && (
+        {!parish && (
           <View style={profileStyles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
         )}
 
-        {!loading && parish && (
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={profileStyles.scroll}>
+        {parish && (
+          <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={profileStyles.scroll}>
 
-            {/* Identity */}
-            <View style={profileStyles.identitySection}>
-              <View style={profileStyles.churchIcon}>
-                <MCIcon name="church" size={40} color={Colors.primary} />
-              </View>
-              <Text style={profileStyles.parishName}>{parish.name}</Text>
-              <Text style={profileStyles.diocese}>{parish.diocese}</Text>
-              <View style={profileStyles.statRow}>
-                <View style={profileStyles.stat}>
-                  <Text style={profileStyles.statValue}>{parish.memberCount}</Text>
-                  <Text style={profileStyles.statLabel}>Members</Text>
+            {/* Hero */}
+            <View style={profileStyles.hero}>
+              <TouchableOpacity
+                style={[profileStyles.closeBtn, { top: insets.top + 12 }]}
+                onPress={onClose}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Icon name="close" size={20} color={Colors.textInverse} />
+              </TouchableOpacity>
+
+              <View style={profileStyles.heroInner}>
+                <View style={profileStyles.churchIconRing}>
+                  <MCIcon name="church" size={28} color={Colors.accent} />
                 </View>
+                <Text style={profileStyles.parishName}>{parish.name}</Text>
+                <View style={profileStyles.goldRule} />
+                <Text style={profileStyles.diocese}>{parish.diocese}</Text>
                 {parish.established && (
-                  <View style={[profileStyles.stat, profileStyles.statBorder]}>
-                    <Text style={profileStyles.statValue}>{parish.established}</Text>
-                    <Text style={profileStyles.statLabel}>Established</Text>
-                  </View>
+                  <Text style={profileStyles.established}>Est. {parish.established}</Text>
                 )}
-                <View style={[profileStyles.stat, parish.established ? profileStyles.statBorder : undefined]}>
-                  <Text style={profileStyles.statValue}>{new Date().getFullYear() - (parish.established ?? new Date().getFullYear())}</Text>
-                  <Text style={profileStyles.statLabel}>Years</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Contact & Location */}
-            <View style={profileStyles.section}>
-              <Text style={profileStyles.sectionTitle}>Location</Text>
-              <View style={profileStyles.infoCard}>
                 {parish.streetAddress && (
-                  <View style={profileStyles.infoRow}>
-                    <Icon name="location-outline" size={18} color={Colors.primary} style={profileStyles.infoIcon} />
-                    <Text style={profileStyles.infoText}>
-                      {parish.streetAddress}{'\n'}{parish.city}, {parish.state} {parish.postalCode}
-                    </Text>
-                  </View>
+                  <Text style={profileStyles.address}>
+                    {parish.streetAddress}{'\n'}{parish.city}, {parish.state}{parish.postalCode ? ` ${parish.postalCode}` : ''}
+                  </Text>
                 )}
-                <View style={profileStyles.infoRow}>
-                  <Icon name="person-outline" size={18} color={Colors.primary} style={profileStyles.infoIcon} />
-                  <Text style={profileStyles.infoText}>Fr. Michael Walsh, Pastor</Text>
-                </View>
-                <View style={profileStyles.infoRow}>
-                  <Icon name="call-outline" size={18} color={Colors.primary} style={profileStyles.infoIcon} />
-                  <Text style={profileStyles.infoText}>(716) 555-0182</Text>
-                </View>
-                <View style={[profileStyles.infoRow, profileStyles.infoRowLast]}>
-                  <Icon name="globe-outline" size={18} color={Colors.primary} style={profileStyles.infoIcon} />
-                  <Text style={[profileStyles.infoText, profileStyles.infoLink]}>www.parish.org</Text>
-                </View>
+              </View>
+
+              <View style={profileStyles.memberPill}>
+                <Icon name="people" size={13} color={Colors.accent} />
+                <Text style={profileStyles.memberPillText}>{parish.memberCount} members</Text>
               </View>
             </View>
 
-            {/* Mass Times */}
+            {/* Mass Schedule */}
             <View style={profileStyles.section}>
-              <Text style={profileStyles.sectionTitle}>Mass Times</Text>
-              <View style={profileStyles.infoCard}>
-                {MOCK_MASS_TIMES.map((m, i) => (
-                  <View
-                    key={m.day}
-                    style={[profileStyles.massRow, i === MOCK_MASS_TIMES.length - 1 && profileStyles.infoRowLast]}
-                  >
-                    <Text style={profileStyles.massDay}>{m.day}</Text>
-                    <Text style={profileStyles.massTime}>{m.time}</Text>
-                  </View>
-                ))}
+              <View style={profileStyles.sectionHeader}>
+                <View style={profileStyles.sectionAccent} />
+                <Text style={profileStyles.sectionTitle}>Mass Schedule</Text>
               </View>
-            </View>
-
-            {/* Upcoming Events */}
-            <View style={profileStyles.section}>
-              <Text style={profileStyles.sectionTitle}>Upcoming Events</Text>
-              {MOCK_EVENTS.map((event) => (
-                <View key={event.name} style={profileStyles.eventCard}>
-                  <View style={profileStyles.eventDateBox}>
-                    <Text style={profileStyles.eventDateText}>{event.date.split(' ')[0]}</Text>
-                    <Text style={profileStyles.eventDateDay}>{event.date.split(' ')[1]}</Text>
-                  </View>
-                  <View style={profileStyles.eventInfo}>
-                    <Text style={profileStyles.eventName}>{event.name}</Text>
-                    <Text style={profileStyles.eventTime}>{event.time}</Text>
-                  </View>
+              {parish.massSchedule && parish.massSchedule.length > 0 ? (
+                <View style={profileStyles.scheduleCard}>
+                  {parish.massSchedule.map((entry, i) => (
+                    <View
+                      key={entry.day}
+                      style={[
+                        profileStyles.massRow,
+                        i === parish.massSchedule!.length - 1 && profileStyles.massRowLast,
+                      ]}
+                    >
+                      <Text style={profileStyles.massDay}>{entry.day}</Text>
+                      <View style={profileStyles.massDot} />
+                      <Text style={profileStyles.massTime}>{entry.times.join('  ·  ')}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
+              ) : (
+                <View style={profileStyles.emptySchedule}>
+                  <Icon name="globe-outline" size={16} color={Colors.textLight} />
+                  <Text style={profileStyles.massEmptyText}>Visit parish website for mass schedule</Text>
+                </View>
+              )}
             </View>
 
             {/* Change Parish */}
-            <View style={profileStyles.footer}>
-              <TouchableOpacity style={profileStyles.changeBtn} onPress={onChangeParish} activeOpacity={0.75}>
-                <Icon name="swap-horizontal-outline" size={18} color={Colors.error} />
-                <Text style={profileStyles.changeBtnText}>Change Parish</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={profileStyles.changeBtn} onPress={onChangeParish} activeOpacity={0.7}>
+              <Icon name="swap-horizontal-outline" size={15} color={Colors.error} />
+              <Text style={profileStyles.changeBtnText}>Change Parish</Text>
+            </TouchableOpacity>
 
           </ScrollView>
         )}
@@ -215,21 +158,45 @@ function ParishProfileModal({ parishId, visible, onClose, onChangeParish }: {
 function ParishFeed({ parishId, parishName, onChangeParish }: { parishId: string; parishName: string; onChangeParish: () => void }) {
   const insets = useSafeAreaInsets();
   const [profileVisible, setProfileVisible] = useState(false);
+  const [parish, setParish] = useState<Parish | null>(null);
+
+  useEffect(() => {
+    api.getParish(parishId)
+      .then((data) => setParish(mapParish(data)))
+      .catch(() => {});
+  }, [parishId]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.parishHeader}>
-        <MCIcon name="church" size={28} color={Colors.primary} />
-        <View style={styles.parishHeaderText}>
-          <Text style={styles.parishName} numberOfLines={1}>{parishName}</Text>
-        </View>
-        <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Icon name="information-circle-outline" size={24} color={Colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.feedScroll}>
+
+        {/* Cover photo */}
+        {parish?.coverPhotoUrl ? (
+          <Image source={{ uri: parish.coverPhotoUrl }} style={styles.coverPhoto} resizeMode="cover" />
+        ) : (
+          <View style={styles.coverPhotoPlaceholder}>
+            <MCIcon name="church" size={48} color={Colors.primary + '60'} />
+          </View>
+        )}
+
+        {/* Identity */}
+        <View style={styles.parishIdentity}>
+          <View style={styles.parishIdentityText}>
+            <Text style={styles.parishName} numberOfLines={2}>{parishName}</Text>
+            {parish?.established && (
+              <Text style={styles.parishEstablished}>Est. {parish.established}</Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Icon name="information-circle-outline" size={24} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* Posts */}
         {MOCK_POSTS.map((post) => (
           <View key={post.id} style={styles.postCard}>
             <View style={styles.postHeader}>
@@ -255,7 +222,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: { parishId: string
       </ScrollView>
 
       <ParishProfileModal
-        parishId={parishId}
+        parish={parish}
         visible={profileVisible}
         onClose={() => setProfileVisible(false)}
         onChangeParish={onChangeParish}
@@ -414,24 +381,37 @@ export function CommunityScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
-  parishHeader: {
+  coverPhoto: {
+    width: '100%',
+    height: 180,
+  },
+  coverPhotoPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: Colors.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  parishIdentity: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing[5],
-    paddingVertical: Spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingTop: Spacing[4],
+    paddingBottom: Spacing[4],
     gap: Spacing[3],
   },
-  parishHeaderText: { flex: 1 },
+  parishIdentityText: { flex: 1 },
   parishName: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
+  parishEstablished: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium, marginTop: 2 },
+  divider: { height: 1, backgroundColor: Colors.border, marginHorizontal: Spacing[5] },
 
-  feedScroll: { padding: Spacing[4], paddingBottom: Spacing[10] },
+  feedScroll: { paddingBottom: Spacing[10] },
   postCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     padding: Spacing[4],
-    marginBottom: Spacing[3],
+    marginHorizontal: Spacing[4],
+    marginTop: Spacing[3],
     ...Shadows.sm,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing[3], gap: Spacing[3] },
@@ -523,147 +503,179 @@ const styles = StyleSheet.create({
 const profileStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing[5],
-    paddingVertical: Spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  headerTitle: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
-
   scroll: { paddingBottom: Spacing[12] },
 
-  identitySection: {
-    alignItems: 'center',
-    paddingVertical: Spacing[8],
-    paddingHorizontal: Spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  hero: {
+    backgroundColor: Colors.primaryDark,
+    paddingBottom: Spacing[6],
   },
-  churchIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primary + '12',
+  closeBtn: {
+    position: 'absolute',
+    right: Spacing[5],
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing[4],
   },
-  parishName: {
-    fontSize: Typography['2xl'],
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: Spacing[1],
+  heroInner: {
+    alignItems: 'center',
+    paddingTop: Spacing[16],
+    paddingHorizontal: Spacing[6],
+    paddingBottom: Spacing[5],
   },
-  diocese: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
+  churchIconRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1.5,
+    borderColor: Colors.accent + '60',
+    backgroundColor: Colors.accent + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing[5],
   },
-  statRow: {
+  parishName: {
+    fontFamily: Typography.fontSerif,
+    fontSize: Typography['3xl'],
+    fontWeight: Typography.bold,
+    color: '#ffffff',
+    textAlign: 'center',
+    lineHeight: Typography['3xl'] * 1.2,
+    marginBottom: Spacing[4],
+  },
+  goldRule: {
+    width: 48,
+    height: 1.5,
+    backgroundColor: Colors.accent,
+    marginBottom: Spacing[4],
+  },
+  diocese: {
+    fontSize: Typography.base,
+    color: 'rgba(255,255,255,0.80)',
+    letterSpacing: 0.3,
+    marginBottom: Spacing[2],
+    textAlign: 'center',
+  },
+  established: {
+    fontSize: Typography.sm,
+    color: Colors.accentLight,
+    fontWeight: Typography.medium,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: Spacing[3],
+  },
+  address: {
+    fontSize: Typography.sm,
+    color: 'rgba(255,255,255,0.65)',
+    textAlign: 'center',
+    lineHeight: Typography.sm * 1.7,
+  },
+  memberPill: {
     flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
-    overflow: 'hidden',
-  },
-  stat: {
-    flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing[3],
+    alignSelf: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.accent + '60',
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[2],
   },
-  statBorder: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: Colors.border,
+  memberPillText: {
+    fontSize: Typography.sm,
+    color: Colors.accentLight,
+    fontWeight: Typography.medium,
   },
-  statValue: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.primary },
-  statLabel: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
 
-  section: { paddingHorizontal: Spacing[5], paddingTop: Spacing[6] },
+  // ── Mass Schedule ─────────────────────────────────────────────────────────
+  section: {
+    paddingHorizontal: Spacing[5],
+    paddingTop: Spacing[7],
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+    marginBottom: Spacing[4],
+  },
+  sectionAccent: {
+    width: 3,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: Colors.accent,
+  },
   sectionTitle: {
     fontSize: Typography.sm,
     fontWeight: Typography.semibold,
     color: Colors.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: Spacing[3],
+    letterSpacing: 1,
   },
-
-  infoCard: {
+  scheduleCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',
+    ...Shadows.sm,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: Spacing[3],
-  },
-  infoRowLast: { borderBottomWidth: 0 },
-  infoIcon: { marginTop: 1 },
-  infoText: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary, lineHeight: Typography.base * 1.4 },
-  infoLink: { color: Colors.primary },
-
   massRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.borderLight,
+    gap: Spacing[3],
   },
-  massDay: { fontSize: Typography.base, color: Colors.textPrimary },
-  massTime: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.primary },
-
-  eventCard: {
+  massRowLast: { borderBottomWidth: 0 },
+  massDay: {
+    fontSize: Typography.base,
+    fontWeight: Typography.medium,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  massDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.accent + '80',
+  },
+  massTime: {
+    fontSize: Typography.base,
+    color: Colors.primary,
+    fontWeight: Typography.semibold,
+    textAlign: 'right',
+  },
+  emptySchedule: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    padding: Spacing[3],
-    marginBottom: Spacing[2],
-    gap: Spacing[3],
-    borderWidth: 1,
-    borderColor: Colors.border,
+    gap: Spacing[2],
+    paddingVertical: Spacing[2],
   },
-  eventDateBox: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.primary + '12',
-    alignItems: 'center',
-    justifyContent: 'center',
+  massEmptyText: {
+    fontSize: Typography.sm,
+    color: Colors.textLight,
+    fontStyle: 'italic',
   },
-  eventDateText: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.primary, textTransform: 'uppercase' },
-  eventDateDay: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.primary, lineHeight: Typography.lg },
-  eventInfo: { flex: 1 },
-  eventName: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
-  eventTime: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 1 },
 
-  footer: { paddingHorizontal: Spacing[5], paddingTop: Spacing[8], paddingBottom: Spacing[6] },
+  // ── Change Parish ─────────────────────────────────────────────────────────
   changeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing[2],
-    paddingVertical: Spacing[4],
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.error + '50',
-    backgroundColor: Colors.error + '08',
+    marginHorizontal: Spacing[5],
+    marginTop: Spacing[8],
+    paddingVertical: Spacing[3] + 2,
   },
-  changeBtnText: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.error },
+  changeBtnText: {
+    fontSize: Typography.sm,
+    color: Colors.error,
+    fontWeight: Typography.medium,
+  },
 });

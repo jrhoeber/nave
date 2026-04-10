@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, MassScheduleEntry } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -72,6 +72,8 @@ interface ApiParish {
   street_address?: string;
   postal_code?: string;
   established?: number;
+  cover_photo_url?: string;
+  mass_schedule?: MassScheduleEntry[];
 }
 
 interface ApiTokenResponse {
@@ -102,6 +104,8 @@ export function mapParish(raw: ApiParish): Parish {
     streetAddress: raw.street_address,
     postalCode: raw.postal_code,
     established: raw.established,
+    coverPhotoUrl: raw.cover_photo_url,
+    massSchedule: raw.mass_schedule,
   };
 }
 

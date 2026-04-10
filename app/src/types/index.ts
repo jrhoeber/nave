@@ -85,6 +85,11 @@ export interface PrayerGroup {
 
 // ─── Communities (Parishes / Dioceses) ───────────────────────────────────────
 
+export interface MassScheduleEntry {
+  day: string;
+  times: string[];
+}
+
 export interface Parish {
   id: string;
   name: string;
@@ -93,9 +98,11 @@ export interface Parish {
   diocese: string;
   memberCount: number;
   avatarUrl?: string;
+  coverPhotoUrl?: string;
   streetAddress?: string;
   postalCode?: string;
   established?: number;
+  massSchedule?: MassScheduleEntry[];
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

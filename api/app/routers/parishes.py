@@ -37,6 +37,8 @@ def _build_parish(row: dict) -> ParishResponse:
         diocese=row["diocese"],
         established=row.get("established"),
         avatar_url=row.get("avatar_url"),
+        cover_photo_url=row.get("cover_photo_url"),
+        mass_schedule=row.get("mass_schedule"),
         member_count=row.get("member_count", 0),
         created_at=row["created_at"],
     )

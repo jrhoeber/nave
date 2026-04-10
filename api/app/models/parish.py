@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -14,6 +14,8 @@ class ParishResponse(BaseModel):
     diocese: str
     established: Optional[int] = None
     avatar_url: Optional[str] = None
+    cover_photo_url: Optional[str] = None
+    mass_schedule: Optional[list[Any]] = None
     member_count: int = 0
     created_at: datetime
 
