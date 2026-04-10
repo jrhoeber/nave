@@ -17,7 +17,16 @@
       "Bash(pod install:*)",
       "Bash(find /Users/jordanhoeber/wksp/nave -type f -path */app/package.json)",
       "Bash(find /Users/jordanhoeber/wksp/nave/app/src/theme -type f -name *.ts -o -name *.tsx -o -name *.js)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "WebFetch(domain:api.naveapp.co)",
+      "Bash(curl -si https://api.naveapp.co/health)",
+      "Bash(curl -si https://api.naveapp.co/feed)",
+      "Bash(curl -si -H \"Origin: https://evil.com\" -H \"Access-Control-Request-Method: GET\" -X OPTIONS https://api.naveapp.co/health)",
+      "Bash(curl -si -H \"Origin: https://evil.com\" https://api.naveapp.co/health)",
+      "Bash(curl -si -X POST https://api.naveapp.co/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"nonexistent@test.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"wrongpassword\"\"\"\"}')",
+      "Bash(curl -si -X POST https://api.naveapp.co/auth/signup -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"not-an-email\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"x\"\"\"\",\"\"\"\"username\"\"\"\":\"\"\"\"\"\"\"\"}')",
+      "Bash(curl -si -H \"Origin: https://naveapp.co\" https://api.naveapp.co/health)",
+      "Bash(curl -si -H \"Origin: null\" https://api.naveapp.co/health)"
     ]
   }
 }

@@ -26,7 +26,7 @@ export function PrayerScreen() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Prayer Groups</Text>
+          <Text style={styles.title}>Groups</Text>
           <Text style={styles.subtitle}>Pray together, grow together</Text>
         </View>
         <TouchableOpacity style={styles.createBtn} onPress={() => navigation.navigate('CreatePrayerGroup')}>
