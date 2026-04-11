@@ -120,7 +120,9 @@ CREATE INDEX IF NOT EXISTS idx_parish_post_reactions_post ON parish_post_reactio
 CREATE OR REPLACE VIEW user_stats AS
 SELECT
     u.id,
-    COUNT(DISTINCT CASE WHEN pgm.status = 'member' THEN pgm.group_id END) AS prayer_group_count
+    COUNT(DISTINCT CASE WHEN pgm.status = 'member' THEN pgm.group_id END) AS prayer_group_count,
+    0::bigint AS friend_count,
+    0::bigint AS post_count
 FROM users u
 LEFT JOIN prayer_group_members pgm ON pgm.user_id = u.id
 GROUP BY u.id;
