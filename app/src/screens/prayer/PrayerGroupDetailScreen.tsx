@@ -716,7 +716,7 @@ export function PrayerGroupDetailScreen() {
 
   const { groups, joinGroup, leaveGroup } = usePrayerStore();
   const { user } = useAuthStore();
-  const { messagesByGroup, loadingByGroup, hasMoreByGroup, fetchMessages, loadMoreMessages, clearGroup } =
+  const { messagesByGroup, loadingByGroup, hasMoreByGroup, fetchMessages, loadMoreMessages, clearGroup, markGroupAsRead } =
     useGroupChatStore();
 
   const group = groups.find((g) => g.id === groupId);
@@ -729,7 +729,7 @@ export function PrayerGroupDetailScreen() {
 
   useEffect(() => {
     if (group?.isMember) {
-      fetchMessages(groupId);
+      fetchMessages(groupId).then(() => markGroupAsRead(groupId));
     }
     return () => clearGroup(groupId);
   }, [groupId, group?.isMember]);

@@ -8,6 +8,7 @@ interface GroupChatState {
   cursorByGroup: Record<string, string | null>;
   hasMoreByGroup: Record<string, boolean>;
   loadingByGroup: Record<string, boolean>;
+  lastReadIdByGroup: Record<string, string>;
 
   fetchMessages: (groupId: string) => Promise<void>;
   loadMoreMessages: (groupId: string) => Promise<void>;
@@ -16,6 +17,8 @@ interface GroupChatState {
   deleteMessage: (groupId: string, messageId: string) => Promise<void>;
   toggleReaction: (groupId: string, messageId: string, emoji: string) => Promise<void>;
   clearGroup: (groupId: string) => void;
+  markGroupAsRead: (groupId: string) => void;
+  getUnreadCount: (groupId: string) => number;
 }
 
 export const useGroupChatStore = create<GroupChatState>((set, get) => ({
@@ -23,6 +26,7 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
   cursorByGroup: {},
   hasMoreByGroup: {},
   loadingByGroup: {},
+  lastReadIdByGroup: {},
 
   fetchMessages: async (groupId: string) => {
     if (get().loadingByGroup[groupId]) return;
@@ -196,6 +200,23 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
         },
       }));
     }
+  },
+
+  markGroupAsRead: (groupId: string) => {
+    const messages = get().messagesByGroup[groupId];
+    const latestId = messages?.[0]?.id;
+    if (latestId) {
+      set((s) => ({ lastReadIdByGroup: { ...s.lastReadIdByGroup, [groupId]: latestId } }));
+    }
+  },
+
+  getUnreadCount: (groupId: string) => {
+    const { messagesByGroup, lastReadIdByGroup } = get();
+    const messages = messagesByGroup[groupId];
+    const lastReadId = lastReadIdByGroup[groupId];
+    if (!messages || !lastReadId) return 0;
+    const idx = messages.findIndex((m) => m.id === lastReadId);
+    return idx > 0 ? idx : 0;
   },
 
   clearGroup: (groupId: string) => {

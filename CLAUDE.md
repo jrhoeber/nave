@@ -212,6 +212,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `Splash.tsx` | Startup splash screen |
 | `feed/PostCard.tsx` | Post card used in feed and group views |
 | `prayer/PrayerGroupCard.tsx` | Prayer group card for list views |
+| `prayer/EditPrayerGroupModal.tsx` | pageSheet modal for admins to edit group name, description, category, schedule, privacy |
 
 #### Theme
 | File | Purpose |

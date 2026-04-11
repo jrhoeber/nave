@@ -9,6 +9,8 @@ interface PrayerState {
   fetchGroups: () => Promise<void>;
   joinGroup: (groupId: string) => Promise<void>;
   leaveGroup: (groupId: string) => Promise<void>;
+  updateGroup: (groupId: string, data: { name?: string; description?: string; category?: PrayerGroup['category']; is_private?: boolean; meeting_schedule?: string }) => Promise<void>;
+  deleteGroup: (groupId: string) => Promise<void>;
 }
 
 export const usePrayerStore = create<PrayerState>((set, get) => ({
@@ -65,6 +67,23 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
         return { groups: updated, myGroups: updated.filter((g) => g.isMember) };
       });
     }
+  },
+
+  updateGroup: async (groupId, data) => {
+    const raw = await api.updateGroup(groupId, data);
+    const updated = mapPrayerGroup(raw);
+    set((state) => {
+      const groups = state.groups.map((g) => g.id === groupId ? updated : g);
+      return { groups, myGroups: groups.filter((g) => g.isMember) };
+    });
+  },
+
+  deleteGroup: async (groupId: string) => {
+    await api.deleteGroup(groupId);
+    set((state) => {
+      const groups = state.groups.filter((g) => g.id !== groupId);
+      return { groups, myGroups: groups.filter((g) => g.isMember) };
+    });
   },
 
   leaveGroup: async (groupId: string) => {

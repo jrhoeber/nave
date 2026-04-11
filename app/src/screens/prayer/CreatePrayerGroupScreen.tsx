@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -8,6 +9,9 @@ import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { PrayerGroupCategory } from '../../types';
 import { api } from '../../lib/apiClient';
 import { usePrayerStore } from '../../store/prayerStore';
+import { useAuthStore } from '../../store/authStore';
+
+type Visibility = 'private' | 'parish';
 
 const CATEGORIES: { value: PrayerGroupCategory; label: string; icon: string }[] = [
   { value: 'rosary', label: 'Rosary', icon: '📿' },
@@ -24,10 +28,20 @@ const CATEGORIES: { value: PrayerGroupCategory; label: string; icon: string }[] 
 export function CreatePrayerGroupScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const [form, setForm] = useState({ name: '', description: '', category: 'general' as PrayerGroupCategory, meetingSchedule: '', isPrivate: false });
+  const user = useAuthStore((s) => s.user);
+  const fetchGroups = usePrayerStore((s) => s.fetchGroups);
+
+  const parishName = user?.parish ?? null;
+
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    category: 'general' as PrayerGroupCategory,
+    meetingSchedule: '',
+    visibility: 'private' as Visibility,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fetchGroups = usePrayerStore((s) => s.fetchGroups);
 
   const set = (key: keyof typeof form) => (value: any) => setForm((f) => ({ ...f, [key]: value }));
   const canCreate = form.name.trim().length > 0 && form.description.trim().length > 0;
@@ -41,8 +55,9 @@ export function CreatePrayerGroupScreen() {
         name: form.name.trim(),
         description: form.description.trim(),
         category: form.category,
-        is_private: form.isPrivate,
+        is_private: form.visibility === 'private',
         meeting_schedule: form.meetingSchedule.trim() || undefined,
+        parish: form.visibility === 'parish' ? (parishName ?? undefined) : undefined,
       });
       await fetchGroups();
       navigation.goBack();
@@ -80,19 +95,53 @@ export function CreatePrayerGroupScreen() {
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>Privacy</Text>
-        <View style={styles.toggleRow}>
-          <View style={styles.toggleInfo}>
-            <Text style={styles.toggleLabel}>Private Group</Text>
-            <Text style={styles.toggleSubLabel}>Members must be approved to join</Text>
-          </View>
-          <Switch value={form.isPrivate} onValueChange={set('isPrivate')} trackColor={{ false: Colors.border, true: Colors.primary }} thumbColor={Colors.surface} />
+        <Text style={styles.sectionTitle}>Visibility</Text>
+        <View style={styles.visibilityRow}>
+          <VisibilityCard
+            icon="lock-closed-outline"
+            label="Private"
+            sub="Members must be approved to join"
+            selected={form.visibility === 'private'}
+            onPress={() => set('visibility')('private')}
+          />
+          <VisibilityCard
+            icon="business-outline"
+            label="Parish"
+            sub={parishName ? parishName : 'Join a parish to enable'}
+            selected={form.visibility === 'parish'}
+            disabled={!parishName}
+            onPress={() => parishName && set('visibility')('parish')}
+          />
         </View>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
         <Button label="Create Prayer Group" onPress={handleCreate} loading={loading} disabled={!canCreate} fullWidth size="lg" style={styles.createBtn} />
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function VisibilityCard({ icon, label, sub, selected, disabled, onPress }: {
+  icon: string;
+  label: string;
+  sub: string;
+  selected: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.visibilityCard, selected && styles.visibilityCardSelected, disabled && styles.visibilityCardDisabled]}
+      onPress={onPress}
+      activeOpacity={disabled ? 1 : 0.7}
+    >
+      <View style={[styles.visibilityIconWrap, selected && styles.visibilityIconWrapSelected, disabled && styles.visibilityIconWrapDisabled]}>
+        <Icon name={icon} size={18} color={selected ? Colors.primary : disabled ? Colors.textLight : Colors.textSecondary} />
+      </View>
+      <Text style={[styles.visibilityLabel, selected && styles.visibilityLabelSelected, disabled && styles.visibilityLabelDisabled]}>{label}</Text>
+      <Text style={[styles.visibilitySub, disabled && styles.visibilitySubDisabled]} numberOfLines={2}>{sub}</Text>
+      {selected && <View style={styles.visibilityCheck}><Icon name="checkmark-circle" size={16} color={Colors.primary} /></View>}
+    </TouchableOpacity>
   );
 }
 
@@ -110,10 +159,21 @@ const styles = StyleSheet.create({
   categoryIcon: { fontSize: 14 },
   categoryLabel: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
   categoryLabelActive: { color: Colors.primary },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.surface, padding: Spacing[4], borderRadius: Radius.md, marginBottom: Spacing[6], borderWidth: 1, borderColor: Colors.border },
-  toggleInfo: { flex: 1 },
-  toggleLabel: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
-  toggleSubLabel: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
+
+  visibilityRow: { flexDirection: 'row', gap: Spacing[3], marginBottom: Spacing[6] },
+  visibilityCard: { flex: 1, padding: Spacing[3], borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.surface, gap: Spacing[1] },
+  visibilityCardSelected: { borderColor: Colors.primary, backgroundColor: Colors.primary + '08' },
+  visibilityCardDisabled: { opacity: 0.5 },
+  visibilityIconWrap: { width: 36, height: 36, borderRadius: Radius.md, backgroundColor: Colors.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[1] },
+  visibilityIconWrapSelected: { backgroundColor: Colors.primary + '18' },
+  visibilityIconWrapDisabled: { backgroundColor: Colors.surfaceAlt },
+  visibilityLabel: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  visibilityLabelSelected: { color: Colors.primary },
+  visibilityLabelDisabled: { color: Colors.textSecondary },
+  visibilitySub: { fontSize: Typography.xs, color: Colors.textSecondary, lineHeight: 16 },
+  visibilitySubDisabled: { color: Colors.textLight },
+  visibilityCheck: { position: 'absolute', top: Spacing[2], right: Spacing[2] },
+
   createBtn: { marginTop: Spacing[2] },
   errorText: { fontSize: Typography.sm, color: Colors.error, textAlign: 'center', marginBottom: Spacing[2] },
 });

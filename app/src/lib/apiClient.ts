@@ -397,6 +397,12 @@ export const api = {
     return apiFetch<{ groups: ApiPrayerGroup[] }>('/prayer-groups/mine');
   },
 
+  searchParishGroups(parishName: string, search?: string) {
+    const params = new URLSearchParams({ parish_name: parishName, limit: '50' });
+    if (search) params.set('search', search);
+    return apiFetch<ApiGroupsResponse>(`/prayer-groups?${params}`);
+  },
+
   joinGroup(groupId: string) {
     return apiFetch<{ status: 'pending' | 'member' }>(`/prayer-groups/${groupId}/join`, { method: 'POST' });
   },
@@ -418,6 +424,23 @@ export const api = {
   }) {
     return apiFetch<ApiPrayerGroup>('/prayer-groups', {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteGroup(groupId: string) {
+    return apiFetch<{ success: boolean }>(`/prayer-groups/${groupId}`, { method: 'DELETE' });
+  },
+
+  updateGroup(groupId: string, data: {
+    name?: string;
+    description?: string;
+    category?: PrayerGroupCategory;
+    is_private?: boolean;
+    meeting_schedule?: string;
+  }) {
+    return apiFetch<ApiPrayerGroup>(`/prayer-groups/${groupId}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   },

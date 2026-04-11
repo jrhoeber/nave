@@ -67,6 +67,8 @@ _GROUP_SELECT = """
 @router.get("", response_model=PrayerGroupsResponse)
 async def list_groups(
     category: Optional[str] = Query(None),
+    parish_name: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     limit: int = Query(20, le=100),
     cursor: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user),
@@ -79,6 +81,14 @@ async def list_groups(
     if category:
         params.append(category)
         extra_where += f" AND pg.category = ${len(params)}"
+
+    if parish_name:
+        params.append(parish_name)
+        extra_where += f" AND pg.parish ILIKE ${len(params)}"
+
+    if search:
+        params.append(f"%{search}%")
+        extra_where += f" AND pg.name ILIKE ${len(params)}"
 
     params.append(limit)
 
@@ -226,6 +236,21 @@ async def join_group(
         new_status,
     )
     return {"status": new_status}
+
+
+@router.delete("/{group_id}", response_model=dict)
+async def delete_group(
+    group_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT admin_id FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if str(pg["admin_id"]) != str(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Only the group admin can delete this group")
+    await conn.execute("DELETE FROM prayer_groups WHERE id = $1", group_id)
+    return {"success": True}
 
 
 @router.delete("/{group_id}/leave", response_model=dict)
