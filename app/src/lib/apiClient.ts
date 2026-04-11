@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, MassScheduleEntry } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, MassScheduleEntry, ParishPost, ParishPostAuthor, ParishReactionType } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -74,6 +74,34 @@ interface ApiParish {
   established?: number;
   cover_photo_url?: string;
   mass_schedule?: MassScheduleEntry[];
+}
+
+interface ApiParishPostAuthor {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string;
+}
+
+interface ApiParishPost {
+  id: string;
+  parish_id: string;
+  author: ApiParishPostAuthor;
+  content: string;
+  status: 'Pending' | 'Posted' | 'Deleted' | 'Rejected';
+  created_at: string;
+  reactions: Record<string, number>;
+  user_reactions: string[];
+}
+
+interface ApiParishPostsResponse {
+  posts: ApiParishPost[];
+  next_cursor: string | null;
+}
+
+interface ApiReactionResponse {
+  reactions: Record<string, number>;
+  user_reactions: string[];
 }
 
 interface ApiTokenResponse {
@@ -167,6 +195,26 @@ export function mapPrayerGroup(raw: ApiPrayerGroup): PrayerGroup {
   };
 }
 
+export function mapParishPost(raw: ApiParishPost): ParishPost {
+  const author: ParishPostAuthor = {
+    id: raw.author.id,
+    username: raw.author.username,
+    displayName: raw.author.display_name,
+    avatarUrl: raw.author.avatar_url?.startsWith('http') ? raw.author.avatar_url : undefined,
+  };
+  const defaultReactions: Record<ParishReactionType, number> = { '👍': 0, '🙏': 0, '❤️': 0 };
+  return {
+    id: raw.id,
+    parishId: raw.parish_id,
+    author,
+    content: raw.content,
+    status: raw.status,
+    createdAt: raw.created_at,
+    reactions: { ...defaultReactions, ...(raw.reactions ?? {}) } as Record<ParishReactionType, number>,
+    userReactions: (raw.user_reactions ?? []) as ParishReactionType[],
+  };
+}
+
 // ─── 401 handler ─────────────────────────────────────────────────────────────
 // Registered by authStore after the store is created to avoid a circular import.
 
@@ -205,6 +253,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     throw new Error(detail);
   }
 
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -261,9 +310,8 @@ export const api = {
 
   // Feed
   getFeed(cursor?: string) {
-    const params = new URLSearchParams({ limit: '20' });
-    if (cursor) params.set('cursor', cursor);
-    return apiFetch<ApiFeedResponse>(`/feed?${params}`);
+    const query = cursor ? `limit=20&cursor=${encodeURIComponent(cursor)}` : 'limit=20';
+    return apiFetch<ApiFeedResponse>(`/feed?${query}`);
   },
 
   likePost(postId: string) {
@@ -284,9 +332,8 @@ export const api = {
 
   // Prayer groups
   getGroups(cursor?: string) {
-    const params = new URLSearchParams({ limit: '20' });
-    if (cursor) params.set('cursor', cursor);
-    return apiFetch<ApiGroupsResponse>(`/prayer-groups?${params}`);
+    const query = cursor ? `limit=20&cursor=${encodeURIComponent(cursor)}` : 'limit=20';
+    return apiFetch<ApiGroupsResponse>(`/prayer-groups?${query}`);
   },
 
   getMyGroups() {
@@ -316,12 +363,48 @@ export const api = {
 
   // Parishes
   searchParishes(q: string) {
-    const params = new URLSearchParams({ q, limit: '10' });
-    return apiFetch<{ parishes: ApiParish[] }>(`/parishes/search?${params}`);
+    return apiFetch<{ parishes: ApiParish[] }>(`/parishes/search?q=${encodeURIComponent(q)}&limit=10`);
   },
 
   getParish(id: string) {
     return apiFetch<ApiParish>(`/parishes/${id}`);
+  },
+
+  // Parish posts
+  getParishPosts(parishId: string, cursor?: string) {
+    const query = cursor ? `limit=10&cursor=${encodeURIComponent(cursor)}` : 'limit=10';
+    return apiFetch<ApiParishPostsResponse>(`/parishes/${parishId}/posts?${query}`);
+  },
+
+  createParishPost(parishId: string, content: string) {
+    return apiFetch<ApiParishPost>(`/parishes/${parishId}/posts`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  updateParishPost(parishId: string, postId: string, content: string) {
+    return apiFetch<ApiParishPost>(`/parishes/${parishId}/posts/${postId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  deleteParishPost(parishId: string, postId: string) {
+    return apiFetch<void>(`/parishes/${parishId}/posts/${postId}`, { method: 'DELETE' });
+  },
+
+  addParishPostReaction(parishId: string, postId: string, reaction: ParishReactionType) {
+    return apiFetch<ApiReactionResponse>(`/parishes/${parishId}/posts/${postId}/reactions`, {
+      method: 'POST',
+      body: JSON.stringify({ reaction }),
+    });
+  },
+
+  removeParishPostReaction(parishId: string, postId: string, reaction: ParishReactionType) {
+    return apiFetch<ApiReactionResponse>(`/parishes/${parishId}/posts/${postId}/reactions/${encodeURIComponent(reaction)}`, {
+      method: 'DELETE',
+    });
   },
 
   // Users

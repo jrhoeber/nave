@@ -86,6 +86,35 @@ CREATE INDEX IF NOT EXISTS idx_pgm_group ON prayer_group_members (group_id);
 CREATE INDEX IF NOT EXISTS idx_pgm_user  ON prayer_group_members (user_id);
 
 -- ============================================================
+-- PARISH POSTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS parish_posts (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    parish_id  UUID NOT NULL REFERENCES parishes(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content    TEXT NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'Posted'
+                   CHECK (status IN ('Pending', 'Posted', 'Deleted', 'Rejected')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_parish_posts_parish ON parish_posts (parish_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_parish_posts_user   ON parish_posts (user_id);
+
+-- ============================================================
+-- PARISH POST REACTIONS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS parish_post_reactions (
+    post_id    UUID NOT NULL REFERENCES parish_posts(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reaction   TEXT NOT NULL CHECK (reaction IN ('👍', '🙏', '❤️')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (post_id, user_id, reaction)
+);
+
+CREATE INDEX IF NOT EXISTS idx_parish_post_reactions_post ON parish_post_reactions (post_id);
+
+-- ============================================================
 -- USER STATS VIEW
 -- ============================================================
 CREATE OR REPLACE VIEW user_stats AS

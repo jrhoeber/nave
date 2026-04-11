@@ -26,7 +26,8 @@
       "Bash(curl -si -X POST https://api.naveapp.co/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"nonexistent@test.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"wrongpassword\"\"\"\"}')",
       "Bash(curl -si -X POST https://api.naveapp.co/auth/signup -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"not-an-email\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"x\"\"\"\",\"\"\"\"username\"\"\"\":\"\"\"\"\"\"\"\"}')",
       "Bash(curl -si -H \"Origin: https://naveapp.co\" https://api.naveapp.co/health)",
-      "Bash(curl -si -H \"Origin: null\" https://api.naveapp.co/health)"
+      "Bash(curl -si -H \"Origin: null\" https://api.naveapp.co/health)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
     ]
   }
 }

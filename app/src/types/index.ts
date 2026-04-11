@@ -105,6 +105,28 @@ export interface Parish {
   massSchedule?: MassScheduleEntry[];
 }
 
+// ─── Parish Posts ─────────────────────────────────────────────────────────────
+
+export type ParishReactionType = '👍' | '🙏' | '❤️';
+
+export interface ParishPostAuthor {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
+export interface ParishPost {
+  id: string;
+  parishId: string;
+  author: ParishPostAuthor;
+  content: string;
+  status: 'Pending' | 'Posted' | 'Deleted' | 'Rejected';
+  createdAt: string;
+  reactions: Record<ParishReactionType, number>;
+  userReactions: ParishReactionType[];
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =

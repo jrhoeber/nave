@@ -1,10 +1,27 @@
 import re
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models.parish import ParishResponse, ParishesResponse
+from app.models.parish import (
+    ParishPostAuthor,
+    ParishPostCreate,
+    ParishPostResponse,
+    ParishPostsResponse,
+    ParishPostUpdate,
+    ParishResponse,
+    ParishesResponse,
+    ReactionResponse,
+)
+
+REACTION_EMOJIS = ['👍', '🙏', '❤️']
+
+
+class AddReactionBody(BaseModel):
+    reaction: str
 
 router = APIRouter()
 
@@ -42,6 +59,32 @@ def _build_parish(row: dict) -> ParishResponse:
         member_count=row.get("member_count", 0),
         created_at=row["created_at"],
     )
+
+
+async def _fetch_reactions(conn, post_ids: list, user_id: str) -> dict:
+    """Returns {post_id: {"reactions": {emoji: count}, "user_reactions": [emoji, ...]}}"""
+    if not post_ids:
+        return {}
+    rows = await conn.fetch(
+        """
+        SELECT post_id, reaction, COUNT(*) AS cnt,
+               BOOL_OR(user_id = $2) AS user_reacted
+        FROM parish_post_reactions
+        WHERE post_id = ANY($1::uuid[])
+        GROUP BY post_id, reaction
+        """,
+        post_ids,
+        user_id,
+    )
+    result: dict = {}
+    for row in rows:
+        pid = str(row["post_id"])
+        if pid not in result:
+            result[pid] = {"reactions": {e: 0 for e in REACTION_EMOJIS}, "user_reactions": []}
+        result[pid]["reactions"][row["reaction"]] = row["cnt"]
+        if row["user_reacted"]:
+            result[pid]["user_reactions"].append(row["reaction"])
+    return result
 
 
 @router.get("/search", response_model=ParishesResponse)
@@ -115,3 +158,215 @@ async def get_parish(
     if row is None:
         raise HTTPException(status_code=404, detail="Parish not found")
     return _build_parish(dict(row))
+
+
+@router.get("/{parish_id}/posts", response_model=ParishPostsResponse)
+async def list_parish_posts(
+    parish_id: str,
+    limit: int = Query(10, le=50),
+    cursor: str | None = Query(None),
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    if cursor:
+        cursor_dt = datetime.fromisoformat(cursor)
+        if cursor_dt.tzinfo is None:
+            cursor_dt = cursor_dt.replace(tzinfo=timezone.utc)
+        rows = await conn.fetch(
+            """
+            SELECT pp.id, pp.parish_id, pp.content, pp.status, pp.created_at,
+                   u.id AS user_id, u.username, u.display_name, u.avatar_url
+            FROM parish_posts pp
+            JOIN users u ON u.id = pp.user_id
+            WHERE pp.parish_id = $1
+              AND pp.status = 'Posted'
+              AND pp.created_at < $2
+            ORDER BY pp.created_at DESC
+            LIMIT $3
+            """,
+            parish_id,
+            cursor_dt,
+            limit,
+        )
+    else:
+        rows = await conn.fetch(
+            """
+            SELECT pp.id, pp.parish_id, pp.content, pp.status, pp.created_at,
+                   u.id AS user_id, u.username, u.display_name, u.avatar_url
+            FROM parish_posts pp
+            JOIN users u ON u.id = pp.user_id
+            WHERE pp.parish_id = $1
+              AND pp.status = 'Posted'
+            ORDER BY pp.created_at DESC
+            LIMIT $2
+            """,
+            parish_id,
+            limit,
+        )
+
+    post_ids = [r["id"] for r in rows]
+    reaction_data = await _fetch_reactions(conn, post_ids, current_user["id"])
+
+    posts = [
+        ParishPostResponse(
+            id=str(r["id"]),
+            parish_id=str(r["parish_id"]),
+            author=ParishPostAuthor(
+                id=str(r["user_id"]),
+                username=r["username"],
+                display_name=r["display_name"],
+                avatar_url=r.get("avatar_url"),
+            ),
+            content=r["content"],
+            status=r["status"],
+            created_at=r["created_at"],
+            reactions=reaction_data.get(str(r["id"]), {}).get("reactions", {e: 0 for e in REACTION_EMOJIS}),
+            user_reactions=reaction_data.get(str(r["id"]), {}).get("user_reactions", []),
+        )
+        for r in rows
+    ]
+
+    next_cursor = posts[-1].created_at.isoformat() if len(posts) == limit else None
+    return ParishPostsResponse(posts=posts, next_cursor=next_cursor)
+
+
+@router.post("/{parish_id}/posts", response_model=ParishPostResponse, status_code=201)
+async def create_parish_post(
+    parish_id: str,
+    body: ParishPostCreate,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    parish_exists = await conn.fetchval(
+        "SELECT id FROM parishes WHERE id = $1", parish_id
+    )
+    if not parish_exists:
+        raise HTTPException(status_code=404, detail="Parish not found")
+
+    row = await conn.fetchrow(
+        """
+        INSERT INTO parish_posts (parish_id, user_id, content, status)
+        VALUES ($1, $2, $3, 'Posted')
+        RETURNING id, parish_id, content, status, created_at
+        """,
+        parish_id,
+        current_user["id"],
+        body.content,
+    )
+
+    return ParishPostResponse(
+        id=str(row["id"]),
+        parish_id=str(row["parish_id"]),
+        author=ParishPostAuthor(
+            id=str(current_user["id"]),
+            username=current_user["username"],
+            display_name=current_user["display_name"],
+            avatar_url=current_user.get("avatar_url"),
+        ),
+        content=row["content"],
+        status=row["status"],
+        created_at=row["created_at"],
+    )
+
+
+@router.patch("/{parish_id}/posts/{post_id}", response_model=ParishPostResponse)
+async def update_parish_post(
+    parish_id: str,
+    post_id: str,
+    body: ParishPostUpdate,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    row = await conn.fetchrow(
+        """
+        UPDATE parish_posts
+        SET content = $1
+        WHERE id = $2 AND parish_id = $3 AND user_id = $4 AND status = 'Posted'
+        RETURNING id, parish_id, content, status, created_at
+        """,
+        body.content,
+        post_id,
+        parish_id,
+        current_user["id"],
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    return ParishPostResponse(
+        id=str(row["id"]),
+        parish_id=str(row["parish_id"]),
+        author=ParishPostAuthor(
+            id=str(current_user["id"]),
+            username=current_user["username"],
+            display_name=current_user["display_name"],
+            avatar_url=current_user.get("avatar_url"),
+        ),
+        content=row["content"],
+        status=row["status"],
+        created_at=row["created_at"],
+    )
+
+
+@router.delete("/{parish_id}/posts/{post_id}", status_code=204)
+async def delete_parish_post(
+    parish_id: str,
+    post_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    result = await conn.execute(
+        """
+        UPDATE parish_posts
+        SET status = 'Deleted'
+        WHERE id = $1 AND parish_id = $2 AND user_id = $3 AND status = 'Posted'
+        """,
+        post_id,
+        parish_id,
+        current_user["id"],
+    )
+    if result == "UPDATE 0":
+        raise HTTPException(status_code=404, detail="Post not found")
+
+
+@router.post("/{parish_id}/posts/{post_id}/reactions", response_model=ReactionResponse)
+async def add_reaction(
+    parish_id: str,
+    post_id: str,
+    body: AddReactionBody,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    if body.reaction not in REACTION_EMOJIS:
+        raise HTTPException(status_code=422, detail=f"Invalid reaction. Must be one of: {REACTION_EMOJIS}")
+    await conn.execute(
+        """
+        INSERT INTO parish_post_reactions (post_id, user_id, reaction)
+        VALUES ($1, $2, $3)
+        ON CONFLICT DO NOTHING
+        """,
+        post_id,
+        current_user["id"],
+        body.reaction,
+    )
+    data = await _fetch_reactions(conn, [post_id], current_user["id"])
+    entry = data.get(post_id, {"reactions": {e: 0 for e in REACTION_EMOJIS}, "user_reactions": []})
+    return ReactionResponse(reactions=entry["reactions"], user_reactions=entry["user_reactions"])
+
+
+@router.delete("/{parish_id}/posts/{post_id}/reactions/{reaction}", response_model=ReactionResponse)
+async def remove_reaction(
+    parish_id: str,
+    post_id: str,
+    reaction: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    await conn.execute(
+        "DELETE FROM parish_post_reactions WHERE post_id = $1 AND user_id = $2 AND reaction = $3",
+        post_id,
+        current_user["id"],
+        reaction,
+    )
+    data = await _fetch_reactions(conn, [post_id], current_user["id"])
+    entry = data.get(post_id, {"reactions": {e: 0 for e in REACTION_EMOJIS}, "user_reactions": []})
+    return ReactionResponse(reactions=entry["reactions"], user_reactions=entry["user_reactions"])
