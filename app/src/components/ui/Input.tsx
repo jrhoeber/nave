@@ -13,7 +13,7 @@ interface InputProps extends TextInputProps {
   isPassword?: boolean;
 }
 
-export function Input({ label, error, hint, leftIcon, rightIcon, onRightIconPress, isPassword, style, ...props }: InputProps) {
+export function Input({ label, error, hint, leftIcon, rightIcon, onRightIconPress, isPassword, style, testID, ...props }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -34,6 +34,7 @@ export function Input({ label, error, hint, leftIcon, rightIcon, onRightIconPres
           secureTextEntry={isPassword && !showPassword}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          testID={testID}
           {...props}
         />
         {effectiveRightIcon && (

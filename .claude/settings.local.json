@@ -27,7 +27,15 @@
       "Bash(curl -si -X POST https://api.naveapp.co/auth/signup -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"not-an-email\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"x\"\"\"\",\"\"\"\"username\"\"\"\":\"\"\"\"\"\"\"\"}')",
       "Bash(curl -si -H \"Origin: https://naveapp.co\" https://api.naveapp.co/health)",
       "Bash(curl -si -H \"Origin: null\" https://api.naveapp.co/health)",
-      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(brew list:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(brew tap:*)",
+      "Bash(brew install:*)",
+      "Bash(applesimutils --version)",
+      "Bash(gem install:*)",
+      "Bash(npx detox:*)",
+      "Bash(xargs sed:*)"
     ]
   }
 }

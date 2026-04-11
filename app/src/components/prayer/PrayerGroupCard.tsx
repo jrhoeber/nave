@@ -55,7 +55,7 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
   };
 
   return (
-    <TouchableOpacity onPress={() => onPress(group.id)} activeOpacity={0.97} style={styles.card}>
+    <TouchableOpacity onPress={() => onPress(group.id)} activeOpacity={0.97} style={styles.card} testID={`group-card-${group.id}`}>
       {group.isMember && (
         <View style={styles.kebabContainer} onStartShouldSetResponder={() => true}>
           <TouchableOpacity

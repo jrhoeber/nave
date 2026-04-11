@@ -22,12 +22,9 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
     if (get().isLoading) return;
     set({ isLoading: true });
     try {
-      const [allData, myData] = await Promise.all([api.getGroups(), api.getMyGroups()]);
-      set({
-        groups: allData.groups.map(mapPrayerGroup),
-        myGroups: myData.groups.map(mapPrayerGroup),
-        isLoading: false,
-      });
+      const myData = await api.getMyGroups();
+      const myGroups = myData.groups.map(mapPrayerGroup);
+      set({ groups: myGroups, myGroups, isLoading: false });
     } catch {
       set({ isLoading: false });
     }
@@ -35,17 +32,18 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
 
   joinGroup: async (groupId: string) => {
     const group = get().groups.find((g) => g.id === groupId);
-    if (!group) return;
-    // Optimistic update
-    set((state) => {
-      const updated = state.groups.map((g) =>
-        g.id === groupId ? { ...g, isMember: true, memberCount: g.memberCount + 1 } : g,
-      );
-      return { groups: updated, myGroups: updated.filter((g) => g.isMember) };
-    });
+    // Optimistic update only if the group is already in the list
+    if (group) {
+      set((state) => {
+        const updated = state.groups.map((g) =>
+          g.id === groupId ? { ...g, isMember: true, memberCount: g.memberCount + 1 } : g,
+        );
+        return { groups: updated, myGroups: updated.filter((g) => g.isMember) };
+      });
+    }
     try {
       const result = await api.joinGroup(groupId);
-      if (result.status === 'pending') {
+      if (group && result.status === 'pending') {
         // Private group — roll back isMember, set pending approval
         set((state) => {
           const updated = state.groups.map((g) =>
@@ -57,15 +55,17 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
         });
       }
     } catch {
-      // Roll back on failure
-      set((state) => {
-        const updated = state.groups.map((g) =>
-          g.id === groupId
-            ? { ...g, isMember: false, memberCount: Math.max(0, g.memberCount - 1) }
-            : g,
-        );
-        return { groups: updated, myGroups: updated.filter((g) => g.isMember) };
-      });
+      if (group) {
+        // Roll back on failure
+        set((state) => {
+          const updated = state.groups.map((g) =>
+            g.id === groupId
+              ? { ...g, isMember: false, memberCount: Math.max(0, g.memberCount - 1) }
+              : g,
+          );
+          return { groups: updated, myGroups: updated.filter((g) => g.isMember) };
+        });
+      }
     }
   },
 

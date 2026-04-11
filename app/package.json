@@ -7,7 +7,11 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "lint": "eslint . --ext .ts,.tsx",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "e2e:build:debug": "detox build --configuration ios.sim.debug",
+    "e2e:build:release": "detox build --configuration ios.sim.release",
+    "e2e:test:debug": "detox test --configuration ios.sim.debug",
+    "e2e:test:release": "detox test --configuration ios.sim.release"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.2",
@@ -33,9 +37,12 @@
     "@react-native/eslint-config": "^0.76.9",
     "@react-native/metro-config": "^0.76.9",
     "@react-native/typescript-config": "^0.76.9",
+    "@types/detox": "^17.14.3",
     "@types/react": "^18.3.1",
     "@types/react-native-vector-icons": "^6.4.18",
     "babel-plugin-module-resolver": "^5.0.3",
+    "detox": "^20.50.1",
+    "jest": "^30.3.0",
     "typescript": "^5.3.3"
   }
 }

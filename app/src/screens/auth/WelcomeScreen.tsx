@@ -43,7 +43,7 @@ export function WelcomeScreen() {
           ))}
         </View>
 
-        <View style={styles.cta}>
+        <View style={styles.cta} testID="welcome-cta">
           <Button
             label="Create Account"
             onPress={() => navigation.navigate('SignUp')}
@@ -51,6 +51,7 @@ export function WelcomeScreen() {
             size="lg"
             fullWidth
             style={styles.primaryBtn}
+            testID="welcome-create-account-btn"
           />
           <Button
             label="Sign In"
@@ -60,6 +61,7 @@ export function WelcomeScreen() {
             fullWidth
             style={styles.secondaryBtn}
             textStyle={styles.secondaryBtnText}
+            testID="welcome-sign-in-btn"
           />
           <Text style={styles.disclaimer}>
             By joining, you agree to our Terms of Service and Privacy Policy.

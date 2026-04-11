@@ -15,7 +15,7 @@ import type { RootNavigationProp } from '../../types/navigation';
 export function PrayerScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const { groups, isLoading, fetchGroups, joinGroup, leaveGroup, deleteGroup } = usePrayerStore();
+  const { myGroups, isLoading, fetchGroups, joinGroup, leaveGroup, deleteGroup } = usePrayerStore();
   const getUnreadCount = useGroupChatStore((s) => s.getUnreadCount);
   const [editingGroup, setEditingGroup] = useState<PrayerGroup | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -30,13 +30,14 @@ export function PrayerScreen() {
           <Text style={styles.title}>Groups</Text>
           <Text style={styles.subtitle}>Pray together, grow together</Text>
         </View>
-        <TouchableOpacity style={styles.createBtn} onPress={() => setAddModalVisible(true)}>
+        <TouchableOpacity style={styles.createBtn} onPress={() => setAddModalVisible(true)} testID="groups-add-btn">
           <Icon name="add" size={22} color={Colors.textInverse} />
         </TouchableOpacity>
       </View>
 
       <FlatList
-        data={groups}
+        testID="groups-list"
+        data={myGroups}
         keyExtractor={(item) => item.id}
         renderItem={({ item }: { item: PrayerGroup }) => (
           <PrayerGroupCard
@@ -44,7 +45,7 @@ export function PrayerScreen() {
             onPress={(id) => navigation.navigate('PrayerGroupDetail', { id })}
             onJoin={joinGroup}
             onLeave={leaveGroup}
-            onEdit={(id) => setEditingGroup(groups.find((g) => g.id === id) ?? null)}
+            onEdit={(id) => setEditingGroup(myGroups.find((g) => g.id === id) ?? null)}
             onDelete={deleteGroup}
             unreadCount={getUnreadCount(item.id)}
           />
@@ -55,8 +56,8 @@ export function PrayerScreen() {
         ListEmptyComponent={!isLoading ? (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>🙏</Text>
-            <Text style={styles.emptyTitle}>No groups found</Text>
-            <Text style={styles.emptySubtitle}>Check back soon.</Text>
+            <Text style={styles.emptyTitle}>No groups yet</Text>
+            <Text style={styles.emptySubtitle}>Tap + to join or create a prayer group.</Text>
           </View>
         ) : null}
       />

@@ -128,6 +128,7 @@ export function ProfileScreen() {
           onPress={async () => { await logout(); }}
           style={styles.signOutBtn}
           textStyle={styles.signOutText}
+          testID="profile-sign-out-btn"
         />
       </View>
     </ScrollView>

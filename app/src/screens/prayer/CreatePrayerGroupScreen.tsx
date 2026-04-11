@@ -81,8 +81,8 @@ export function CreatePrayerGroupScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Group Details</Text>
-        <Input label="Group Name *" value={form.name} onChangeText={set('name')} leftIcon="people-outline" placeholder="e.g., Daily Rosary Circle" autoCapitalize="words" />
-        <Input label="Description *" value={form.description} onChangeText={set('description')} placeholder="Describe your prayer group's purpose..." multiline style={styles.textArea} />
+        <Input label="Group Name *" value={form.name} onChangeText={set('name')} leftIcon="people-outline" placeholder="e.g., Daily Rosary Circle" autoCapitalize="words" testID="create-group-name-input" />
+        <Input label="Description *" value={form.description} onChangeText={set('description')} placeholder="Describe your prayer group's purpose..." multiline style={styles.textArea} testID="create-group-description-input" />
         <Input label="Meeting Schedule (optional)" value={form.meetingSchedule} onChangeText={set('meetingSchedule')} leftIcon="time-outline" placeholder="e.g., Sundays at 8 PM via video" />
 
         <Text style={styles.sectionTitle}>Category</Text>
@@ -115,7 +115,7 @@ export function CreatePrayerGroupScreen() {
         </View>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
-        <Button label="Create Prayer Group" onPress={handleCreate} loading={loading} disabled={!canCreate} fullWidth size="lg" style={styles.createBtn} />
+        <Button label="Create Prayer Group" onPress={handleCreate} loading={loading} disabled={!canCreate} fullWidth size="lg" style={styles.createBtn} testID="create-group-submit-btn" />
       </ScrollView>
     </KeyboardAvoidingView>
   );

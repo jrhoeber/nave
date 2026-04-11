@@ -614,6 +614,7 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
             multiline
             maxLength={2000}
             returnKeyType="default"
+            testID="group-message-input"
           />
           {canSend && (
             <TouchableOpacity
@@ -621,6 +622,7 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
               disabled={sending}
               style={inputStyles.sendBtn}
               activeOpacity={0.8}
+              testID="group-send-btn"
             >
               {sending
                 ? <ActivityIndicator size="small" color="#ffffff" />

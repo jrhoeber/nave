@@ -44,22 +44,22 @@ export function LoginScreen() {
         </View>
 
         {error ? (
-          <View style={styles.errorBanner}>
+          <View style={styles.errorBanner} testID="login-error-banner">
             <Icon name="alert-circle-outline" size={16} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText} testID="login-error-text">{error}</Text>
           </View>
         ) : null}
 
         <Input label="Email" value={email} onChangeText={setEmail} keyboardType="email-address"
-          autoCapitalize="none" autoComplete="email" leftIcon="mail-outline" placeholder="you@example.com" />
+          autoCapitalize="none" autoComplete="email" leftIcon="mail-outline" placeholder="you@example.com" testID="login-email-input" />
         <Input label="Password" value={password} onChangeText={setPassword} isPassword
-          leftIcon="lock-closed-outline" placeholder="Your password" />
+          leftIcon="lock-closed-outline" placeholder="Your password" testID="login-password-input" />
 
         <TouchableOpacity style={styles.forgotRow}>
           <Text style={styles.forgotText}>Forgot password?</Text>
         </TouchableOpacity>
 
-        <Button label="Sign In" onPress={handleLogin} loading={loading} fullWidth size="lg" style={styles.submitBtn} />
+        <Button label="Sign In" onPress={handleLogin} loading={loading} fullWidth size="lg" style={styles.submitBtn} testID="login-submit-btn" />
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>

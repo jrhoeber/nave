@@ -48,18 +48,18 @@ export function SignUpScreen() {
         </View>
 
         {error ? (
-          <View style={styles.errorBanner}>
+          <View style={styles.errorBanner} testID="signup-error-banner">
             <Icon name="alert-circle-outline" size={16} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText} testID="signup-error-text">{error}</Text>
           </View>
         ) : null}
 
-        <Input label="Full Name *" value={form.displayName} onChangeText={set('displayName')} autoCapitalize="words" leftIcon="person-outline" placeholder="Your name" />
-        <Input label="Username *" value={form.username} onChangeText={(v) => set('username')(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))} autoCapitalize="none" leftIcon="at-outline" placeholder="your_username" hint="Letters, numbers, and underscores only" />
-        <Input label="Email *" value={form.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" autoComplete="email" leftIcon="mail-outline" placeholder="you@example.com" />
-        <Input label="Password *" value={form.password} onChangeText={set('password')} isPassword leftIcon="lock-closed-outline" placeholder="Min. 8 characters" hint="At least 8 characters" />
+        <Input label="Full Name *" value={form.displayName} onChangeText={set('displayName')} autoCapitalize="words" leftIcon="person-outline" placeholder="Your name" testID="signup-displayname-input" />
+        <Input label="Username *" value={form.username} onChangeText={(v) => set('username')(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))} autoCapitalize="none" leftIcon="at-outline" placeholder="your_username" hint="Letters, numbers, and underscores only" testID="signup-username-input" />
+        <Input label="Email *" value={form.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" autoComplete="email" leftIcon="mail-outline" placeholder="you@example.com" testID="signup-email-input" />
+        <Input label="Password *" value={form.password} onChangeText={set('password')} isPassword leftIcon="lock-closed-outline" placeholder="Min. 8 characters" hint="At least 8 characters" testID="signup-password-input" />
 
-        <Button label="Create Account" onPress={handleSignUp} loading={loading} fullWidth size="lg" style={styles.submitBtn} />
+        <Button label="Create Account" onPress={handleSignUp} loading={loading} fullWidth size="lg" style={styles.submitBtn} testID="signup-submit-btn" />
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account? </Text>

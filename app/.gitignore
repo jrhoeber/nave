@@ -42,3 +42,8 @@ xcuserdata
 *.xcscmblueprint
 
 __pycache__/
+
+# Detox
+e2e/artifacts/
+.detox/
+detox-artifacts/
