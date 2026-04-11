@@ -7,7 +7,6 @@ import {
   ListRenderItemInfo,
   Modal,
   Platform,
-  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -242,7 +241,7 @@ function ReactionBar({ post, onToggleReaction }: {
           <TouchableOpacity
             key={emoji}
             style={[styles.reactionBtn, active && styles.reactionBtnActive]}
-            onPress={() => onToggleReaction(post.id, emoji)}
+            onPress={() => { onToggleReaction(post.id, emoji); setPickerOpen(false); }}
             activeOpacity={0.7}
           >
             <Text style={styles.reactionEmoji}>{emoji}</Text>
@@ -549,10 +548,6 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         contentContainerStyle={styles.feedScroll}
       />
 
-      {openMenuPostId !== null && (
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpenMenuPostId(null)} />
-      )}
-
       {/* FAB */}
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + Spacing[5] }]}
@@ -641,7 +636,7 @@ function ParishSelect({ onSelect }: { onSelect: (parish: Parish) => void }) {
         </View>
 
         {results.length > 0 && (
-          <View style={styles.resultsList}>
+          <ScrollView style={styles.resultsList} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {results.map((parish, index) => (
               <TouchableOpacity
                 key={parish.id}
@@ -660,7 +655,7 @@ function ParishSelect({ onSelect }: { onSelect: (parish: Parish) => void }) {
                 </View>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         )}
 
         {query.length === 0 && (
@@ -873,7 +868,7 @@ const styles = StyleSheet.create({
     lineHeight: Typography.base * 1.5,
   },
 
-  searchWrapper: { paddingHorizontal: Spacing[4] },
+  searchWrapper: { flex: 1, paddingHorizontal: Spacing[4] },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -898,6 +893,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',
+    flex: 1,
   },
   resultRow: {
     flexDirection: 'row',

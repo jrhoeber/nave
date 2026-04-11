@@ -6,6 +6,15 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.utils.storage import get_avatar_signed_url
+
+
+def _resolve_avatar(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    if raw.startswith("http"):
+        return raw
+    return get_avatar_signed_url(raw)
 from app.models.parish import (
     ParishPostAuthor,
     ParishPostCreate,
@@ -215,7 +224,7 @@ async def list_parish_posts(
                 id=str(r["user_id"]),
                 username=r["username"],
                 display_name=r["display_name"],
-                avatar_url=r.get("avatar_url"),
+                avatar_url=_resolve_avatar(r.get("avatar_url")),
             ),
             content=r["content"],
             status=r["status"],
@@ -261,7 +270,7 @@ async def create_parish_post(
             id=str(current_user["id"]),
             username=current_user["username"],
             display_name=current_user["display_name"],
-            avatar_url=current_user.get("avatar_url"),
+            avatar_url=_resolve_avatar(current_user.get("avatar_url")),
         ),
         content=row["content"],
         status=row["status"],
@@ -299,7 +308,7 @@ async def update_parish_post(
             id=str(current_user["id"]),
             username=current_user["username"],
             display_name=current_user["display_name"],
-            avatar_url=current_user.get("avatar_url"),
+            avatar_url=_resolve_avatar(current_user.get("avatar_url")),
         ),
         content=row["content"],
         status=row["status"],
