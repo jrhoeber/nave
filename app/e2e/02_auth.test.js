@@ -89,6 +89,7 @@ describe('Authentication', () => {
       await element(by.id('signup-displayname-input')).typeText('Test Person');
       await element(by.id('signup-username-input')).typeText(`tperson_${Date.now()}`);
       await element(by.id('signup-email-input')).typeText(`tperson_${Date.now()}@test.nave`);
+      await element(by.id('signup-scroll')).scroll(150, 'down');
       await element(by.id('signup-password-input')).typeText('short');
       await element(by.id('signup-submit-btn')).tap();
       await waitFor(element(by.id('signup-error-banner'))).toBeVisible().withTimeout(4000);
@@ -100,6 +101,7 @@ describe('Authentication', () => {
       await element(by.id('signup-displayname-input')).typeText('New E2E User');
       await element(by.id('signup-username-input')).typeText(`ne2e_${ts}`.slice(0, 40));
       await element(by.id('signup-email-input')).typeText(`ne2e_${ts}@test.nave`);
+      await element(by.id('signup-scroll')).scroll(150, 'down');
       await element(by.id('signup-password-input')).typeText('test1234');
       await element(by.id('signup-submit-btn')).tap();
       await waitFor(element(by.id('tab-groups'))).toBeVisible().withTimeout(15000);
@@ -120,6 +122,8 @@ describe('Authentication', () => {
       await dismissPasswordDialog();
       await waitFor(element(by.id('tab-groups'))).toBeVisible().withTimeout(8000);
       await element(by.id('tab-profile')).tap();
+      await waitFor(element(by.id('profile-scroll'))).toBeVisible().withTimeout(6000);
+      await element(by.id('profile-scroll')).scrollTo('bottom');
       await waitFor(element(by.id('profile-sign-out-btn'))).toBeVisible().withTimeout(6000);
       await element(by.id('profile-sign-out-btn')).tap();
       await waitFor(element(by.id('welcome-sign-in-btn'))).toBeVisible().withTimeout(8000);

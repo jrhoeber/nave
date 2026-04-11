@@ -60,7 +60,7 @@ describe('Seed: Create test data via API', () => {
       const body = {
         username:     `${E2E_TAG}u${i}`,
         display_name: `E2E User ${i}`,
-        email:        `test${i}@test.com`,
+        email:        `${E2E_TAG}t${i}@test.nave`,
         password:     TEST_PW,
       };
       const res = await api.signup(body);

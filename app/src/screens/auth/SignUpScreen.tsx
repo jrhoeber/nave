@@ -36,7 +36,7 @@ export function SignUpScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView testID="signup-scroll" contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Icon name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>

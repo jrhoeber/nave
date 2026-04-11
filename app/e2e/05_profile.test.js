@@ -24,7 +24,9 @@ describe('Profile screen', () => {
     await device.launchApp({ newInstance: true });
     await waitFor(element(by.id('tab-groups'))).toBeVisible().withTimeout(12000);
     await element(by.id('tab-profile')).tap();
-    await waitFor(element(by.id('profile-sign-out-btn'))).toBeVisible().withTimeout(8000);
+    await waitFor(element(by.id('profile-scroll'))).toBeVisible().withTimeout(8000);
+    await element(by.id('profile-scroll')).scrollTo('bottom');
+    await waitFor(element(by.id('profile-sign-out-btn'))).toBeVisible().withTimeout(6000);
   });
 
   it('shows the user display name on the profile card', async () => {

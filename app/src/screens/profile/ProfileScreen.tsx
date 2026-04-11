@@ -45,6 +45,7 @@ export function ProfileScreen() {
 
   return (
     <ScrollView
+      testID="profile-scroll"
       style={styles.container}
       contentContainerStyle={{ paddingBottom: Spacing[10] }}
       showsVerticalScrollIndicator={false}
