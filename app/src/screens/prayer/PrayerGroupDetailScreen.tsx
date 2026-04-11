@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -13,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +29,7 @@ import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { GroupMessage } from '../../types';
 import { GROUP_REACTION_EMOJIS } from '../../types';
 import type { PrayerGroupDetailRouteProp, RootNavigationProp } from '../../types/navigation';
+import { api } from '../../lib/apiClient';
 
 // ─── Chat palette (maps to app theme) ─────────────────────────────────────────
 
@@ -86,15 +91,25 @@ function formatSeparatorLabel(isoString: string): string {
 }
 
 function buildRenderData(messages: GroupMessage[]): RenderItem[] {
+  // Messages arrive newest-first; the FlatList is inverted so index 0 renders at the bottom.
+  // To show a separator *above* each day's messages, emit it *after* all messages for that day
+  // (i.e. when the day changes), so it sits above them in the inverted view.
   const result: RenderItem[] = [];
-  let lastDay = '';
+  let currentDay = '';
+  let currentLabel = '';
   for (const msg of messages) {
     const day = new Date(msg.createdAt).toDateString();
-    if (day !== lastDay) {
-      result.push({ type: 'separator', id: `sep-${msg.id}`, label: formatSeparatorLabel(msg.createdAt) });
-      lastDay = day;
+    if (day !== currentDay) {
+      if (currentDay !== '') {
+        result.push({ type: 'separator', id: `sep-${currentDay}`, label: currentLabel });
+      }
+      currentDay = day;
+      currentLabel = formatSeparatorLabel(msg.createdAt);
     }
     result.push(msg);
+  }
+  if (currentDay !== '') {
+    result.push({ type: 'separator', id: `sep-${currentDay}`, label: currentLabel });
   }
   return result;
 }
@@ -104,21 +119,13 @@ function buildRenderData(messages: GroupMessage[]): RenderItem[] {
 function DateSeparator({ label }: { label: string }) {
   return (
     <View style={sepStyles.container}>
-      <View style={sepStyles.pill}>
-        <Text style={sepStyles.label}>{label}</Text>
-      </View>
+      <Text style={sepStyles.label}>{label}</Text>
     </View>
   );
 }
 
 const sepStyles = StyleSheet.create({
-  container: { alignItems: 'center', marginVertical: Spacing[3] },
-  pill: {
-    backgroundColor: D.separator,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing[4],
-    paddingVertical: 5,
-  },
+  container: { alignItems: 'center', marginTop: Spacing[4], marginBottom: Spacing[1] },
   label: { fontSize: Typography.xs, color: D.textMuted, fontWeight: Typography.medium },
 });
 
@@ -211,11 +218,25 @@ function MessageBubble({ message, groupId, isMember, onAddReaction }: MessageBub
 
         {/* Bubble */}
         <View style={bubbleStyles.bubble}>
-          <Text style={bubbleStyles.text}>{message.content}</Text>
+          {message.imageUrl && (
+            <View>
+              <Image
+                source={{ uri: message.imageUrl }}
+                style={bubbleStyles.image}
+                resizeMode="cover"
+              />
+              {message.pending && (
+                <View style={bubbleStyles.pendingOverlay}>
+                  <ActivityIndicator size="small" color="#ffffff" />
+                </View>
+              )}
+            </View>
+          )}
+          {message.content ? <Text style={[bubbleStyles.text, message.imageUrl ? bubbleStyles.caption : null]}>{message.content}</Text> : null}
         </View>
 
         {/* Reactions */}
-        {(message.reactions.length > 0 || isMember) && (
+        {!message.pending && (message.reactions.length > 0 || isMember) && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -272,8 +293,18 @@ const bubbleStyles = StyleSheet.create({
     paddingVertical: Spacing[2],
     alignSelf: 'flex-start',
     maxWidth: '92%',
+    overflow: 'hidden',
   },
   text: { fontSize: Typography.base, color: D.text, lineHeight: Typography.base * 1.45 },
+  image: { width: 220, height: 220, borderRadius: Radius.md, marginBottom: 2 },
+  pendingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  caption: { marginTop: 4 },
   reactionsScroll: { marginTop: 5 },
   reactionsContent: { flexDirection: 'row', alignItems: 'center', gap: 5 },
 });
@@ -311,6 +342,189 @@ const chipStyles = StyleSheet.create({
   addBtnEmoji: { fontSize: 13 },
 });
 
+// ─── Members Modal ────────────────────────────────────────────────────────────
+
+interface Member {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+  joinedAt: string;
+}
+
+interface MembersModalProps {
+  visible: boolean;
+  groupId: string;
+  groupName: string;
+  memberCount: number;
+  adminId: string;
+  onDismiss: () => void;
+}
+
+function MembersModal({ visible, groupId, groupName, memberCount, adminId, onDismiss }: MembersModalProps) {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (!visible) return;
+    setLoading(true);
+    api.getGroupMembers(groupId)
+      .then((data) => {
+        setMembers(
+          data.members.map((m) => ({
+            id: m.id,
+            username: m.username,
+            displayName: m.display_name,
+            avatarUrl: m.avatar_url,
+            joinedAt: m.joined_at,
+          }))
+        );
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [visible, groupId]);
+
+  const renderMember = useCallback(({ item }: { item: Member }) => {
+    const isAdmin = item.id === adminId;
+    return (
+      <View style={memberStyles.row}>
+        <Avatar name={item.displayName} uri={item.avatarUrl} size={42} />
+        <View style={memberStyles.info}>
+          <View style={memberStyles.nameRow}>
+            <Text style={memberStyles.displayName}>{item.displayName}</Text>
+            {isAdmin && (
+              <View style={memberStyles.adminBadge}>
+                <Text style={memberStyles.adminBadgeText}>Admin</Text>
+              </View>
+            )}
+          </View>
+          <Text style={memberStyles.username}>@{item.username}</Text>
+        </View>
+      </View>
+    );
+  }, [adminId]);
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onDismiss}>
+      <View style={[memberStyles.sheet, { paddingTop: insets.top > 0 ? insets.top : Spacing[4] }]}>
+        {/* Header */}
+        <View style={memberStyles.header}>
+          <View style={memberStyles.headerLeft} />
+          <View style={memberStyles.headerCenter}>
+            <Text style={memberStyles.title}>{groupName}</Text>
+            <Text style={memberStyles.subtitle}>{memberCount} {memberCount === 1 ? 'member' : 'members'}</Text>
+          </View>
+          <TouchableOpacity onPress={onDismiss} style={memberStyles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Icon name="close" size={22} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Content */}
+        {loading ? (
+          <View style={memberStyles.centered}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={members}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMember}
+            contentContainerStyle={memberStyles.list}
+            ItemSeparatorComponent={() => <View style={memberStyles.separator} />}
+            ListEmptyComponent={
+              <View style={memberStyles.centered}>
+                <Text style={memberStyles.emptyText}>No members found.</Text>
+              </View>
+            }
+          />
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+const memberStyles = StyleSheet.create({
+  sheet: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing[4],
+    paddingBottom: Spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  headerLeft: { width: 36 },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  title: {
+    fontSize: Typography.md,
+    fontWeight: Typography.bold,
+    color: Colors.textPrimary,
+  },
+  subtitle: {
+    fontSize: Typography.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  list: {
+    paddingVertical: Spacing[2],
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    gap: Spacing[3],
+  },
+  info: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  displayName: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+  },
+  adminBadge: {
+    backgroundColor: Colors.primaryLight ?? 'rgba(26,43,74,0.1)',
+    borderRadius: Radius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  adminBadgeText: {
+    fontSize: Typography.xs,
+    color: Colors.primary,
+    fontWeight: Typography.semibold,
+  },
+  username: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginLeft: Spacing[4] + 42 + Spacing[3],
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing[16],
+  },
+  emptyText: {
+    fontSize: Typography.base,
+    color: Colors.textSecondary,
+  },
+});
+
 // ─── Input Bar ────────────────────────────────────────────────────────────────
 
 interface MessageInputBarProps {
@@ -319,73 +533,102 @@ interface MessageInputBarProps {
   bottomInset: number;
 }
 
+interface DraftPhoto {
+  uri: string;
+  type: string;
+}
+
 function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarProps) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const { sendMessage } = useGroupChatStore();
+  const [draftPhoto, setDraftPhoto] = useState<DraftPhoto | null>(null);
+  const { sendMessage, sendImageMessage } = useGroupChatStore();
+
   const hasText = text.trim().length > 0;
+  const canSend = (hasText || draftPhoto !== null) && !sending;
 
   const handleSend = useCallback(async () => {
+    if (!canSend) return;
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
     setSending(true);
     setText('');
+    const photo = draftPhoto;
+    setDraftPhoto(null);
     try {
-      await sendMessage(groupId, trimmed);
+      if (photo) {
+        await sendImageMessage(groupId, photo.uri, photo.type, trimmed || undefined);
+      } else {
+        await sendMessage(groupId, trimmed);
+      }
     } catch {
+      // restore draft on failure
       setText(trimmed);
+      if (photo) setDraftPhoto(photo);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
     } finally {
       setSending(false);
     }
-  }, [text, sending, groupId, sendMessage]);
+  }, [canSend, text, draftPhoto, groupId, sendMessage, sendImageMessage]);
 
-  // Truncate placeholder to fit
-  const placeholder = `Message ${groupName.length > 20 ? groupName.slice(0, 20) + '…' : groupName}`;
+  const handlePickPhoto = useCallback(async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8, maxWidth: 1200, maxHeight: 1200 });
+    if (result.didCancel || !result.assets?.[0]?.uri) return;
+    const asset = result.assets[0];
+    setDraftPhoto({ uri: asset.uri!, type: asset.type ?? 'image/jpeg' });
+  }, []);
+
+  const placeholder = draftPhoto ? 'Add a caption…' : `Message ${groupName.length > 20 ? groupName.slice(0, 20) + '…' : groupName}`;
 
   return (
     <View style={[inputStyles.wrapper, { paddingBottom: bottomInset > 0 ? bottomInset : Spacing[3] }]}>
       {/* + button */}
-      <TouchableOpacity style={inputStyles.plusBtn} activeOpacity={0.7}>
+      <TouchableOpacity style={inputStyles.plusBtn} activeOpacity={0.7} onPress={handlePickPhoto} disabled={sending}>
         <Icon name="add" size={22} color={Colors.textPrimary} />
       </TouchableOpacity>
 
-      {/* Pill input row */}
+      {/* Pill */}
       <View style={inputStyles.pillRow}>
-        <TextInput
-          style={inputStyles.input}
-          value={text}
-          onChangeText={setText}
-          placeholder={placeholder}
-          placeholderTextColor={D.textMuted}
-          multiline
-          maxLength={2000}
-          returnKeyType="default"
-        />
-        {hasText ? (
-          <TouchableOpacity
-            onPress={handleSend}
-            disabled={sending}
-            style={inputStyles.sendBtn}
-            activeOpacity={0.8}
-          >
-            <Icon name="send" size={17} color="#ffffff" />
-          </TouchableOpacity>
-        ) : (
-          <View style={inputStyles.rightIcons}>
-            <TouchableOpacity activeOpacity={0.7} style={inputStyles.iconBtn}>
-              <Icon name="at" size={19} color={D.textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.7} style={inputStyles.iconBtn}>
-              <Icon name="happy-outline" size={19} color={D.textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.7} style={inputStyles.iconBtn}>
-              <Icon name="mic-outline" size={19} color={D.textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.7} style={inputStyles.iconBtn}>
-              <Icon name="camera-outline" size={20} color={D.textMuted} />
+        {/* Photo preview row */}
+        {draftPhoto && (
+          <View style={inputStyles.photoPreviewRow}>
+            <Image source={{ uri: draftPhoto.uri }} style={inputStyles.photoThumb} resizeMode="cover" />
+            <TouchableOpacity
+              style={inputStyles.photoRemoveBtn}
+              onPress={() => setDraftPhoto(null)}
+              activeOpacity={0.8}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Icon name="close-circle" size={20} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Text + send row */}
+        <View style={inputStyles.textRow}>
+          <TextInput
+            style={inputStyles.input}
+            value={text}
+            onChangeText={setText}
+            placeholder={placeholder}
+            placeholderTextColor={D.textMuted}
+            multiline
+            maxLength={2000}
+            returnKeyType="default"
+          />
+          {canSend && (
+            <TouchableOpacity
+              onPress={handleSend}
+              disabled={sending}
+              style={inputStyles.sendBtn}
+              activeOpacity={0.8}
+            >
+              {sending
+                ? <ActivityIndicator size="small" color="#ffffff" />
+                : <Icon name="send" size={13} color="#ffffff" />
+              }
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -413,35 +656,53 @@ const inputStyles = StyleSheet.create({
   },
   pillRow: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: 'column',
     backgroundColor: D.input,
     borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: D.inputBorder,
+    overflow: 'hidden',
+  },
+  photoPreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: Spacing[3],
+    paddingTop: Spacing[2],
+    paddingBottom: Spacing[2],
+  },
+  photoThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: Radius.md,
+  },
+  photoRemoveBtn: {
+    marginLeft: 6,
+    marginTop: 2,
+  },
+  textRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     minHeight: 40,
     paddingLeft: Spacing[4],
     paddingRight: Spacing[2],
-    paddingVertical: 6,
   },
   input: {
     flex: 1,
     fontSize: Typography.base,
     color: D.text,
     maxHeight: 120,
-    paddingTop: 2,
-    paddingBottom: 2,
+    textAlignVertical: 'center',
+    paddingTop: 0,
+    paddingBottom: 0,
   },
-  rightIcons: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingBottom: 2 },
-  iconBtn: { padding: 4 },
   sendBtn: {
-    width: 32,
-    height: 32,
+    width: 26,
+    height: 26,
     borderRadius: Radius.full,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 1,
+    marginLeft: 4,
   },
 });
 
@@ -464,6 +725,7 @@ export function PrayerGroupDetailScreen() {
   const hasMore = hasMoreByGroup[groupId] ?? false;
 
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
+  const [membersVisible, setMembersVisible] = useState(false);
 
   useEffect(() => {
     if (group?.isMember) {
@@ -529,7 +791,7 @@ export function PrayerGroupDetailScreen() {
         </TouchableOpacity>
 
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7} onPress={() => setMembersVisible(true)}>
             <Icon name="people-outline" size={22} color={Colors.primary} />
           </TouchableOpacity>
         </View>
@@ -599,6 +861,16 @@ export function PrayerGroupDetailScreen() {
           onDismiss={() => setPickerMessageId(null)}
         />
       )}
+
+      {/* ── Members modal ── */}
+      <MembersModal
+        visible={membersVisible}
+        groupId={groupId}
+        groupName={group.name}
+        memberCount={group.memberCount}
+        adminId={group.admin.id}
+        onDismiss={() => setMembersVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

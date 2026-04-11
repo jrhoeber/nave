@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { GroupMessage } from '../types';
 import { api, mapGroupMessage, mapMessageReaction } from '../lib/apiClient';
+import { useAuthStore } from './authStore';
 
 interface GroupChatState {
   messagesByGroup: Record<string, GroupMessage[]>;
@@ -11,6 +12,7 @@ interface GroupChatState {
   fetchMessages: (groupId: string) => Promise<void>;
   loadMoreMessages: (groupId: string) => Promise<void>;
   sendMessage: (groupId: string, content: string) => Promise<void>;
+  sendImageMessage: (groupId: string, uri: string, type: string, caption?: string) => Promise<void>;
   deleteMessage: (groupId: string, messageId: string) => Promise<void>;
   toggleReaction: (groupId: string, messageId: string, emoji: string) => Promise<void>;
   clearGroup: (groupId: string) => void;
@@ -73,6 +75,55 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
         [groupId]: [message, ...(s.messagesByGroup[groupId] ?? [])],
       },
     }));
+  },
+
+  sendImageMessage: async (groupId: string, uri: string, type: string, caption?: string) => {
+    const { user } = useAuthStore.getState();
+    const tempId = `pending-${Date.now()}`;
+    const optimistic: GroupMessage = {
+      id: tempId,
+      groupId,
+      author: {
+        id: user?.id ?? '',
+        username: user?.username ?? '',
+        displayName: user?.displayName ?? '',
+        avatarUrl: user?.avatarUrl,
+      },
+      content: caption,
+      imageUrl: uri,
+      reactions: [],
+      createdAt: new Date().toISOString(),
+      pending: true,
+    };
+
+    set((s) => ({
+      messagesByGroup: {
+        ...s.messagesByGroup,
+        [groupId]: [optimistic, ...(s.messagesByGroup[groupId] ?? [])],
+      },
+    }));
+
+    try {
+      const { object_name } = await api.uploadGroupMessageImage(groupId, uri, type);
+      const raw = await api.sendGroupImageMessage(groupId, object_name, caption);
+      const message = mapGroupMessage(raw);
+      set((s) => ({
+        messagesByGroup: {
+          ...s.messagesByGroup,
+          [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
+            m.id === tempId ? message : m,
+          ),
+        },
+      }));
+    } catch {
+      set((s) => ({
+        messagesByGroup: {
+          ...s.messagesByGroup,
+          [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId),
+        },
+      }));
+      throw new Error('Failed to send photo');
+    }
   },
 
   deleteMessage: async (groupId: string, messageId: string) => {

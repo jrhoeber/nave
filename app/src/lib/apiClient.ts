@@ -121,7 +121,8 @@ interface ApiGroupMessage {
   id: string;
   group_id: string;
   author: ApiGroupMessageAuthor;
-  content: string;
+  content?: string;
+  image_url?: string;
   reactions: ApiMessageReaction[];
   created_at: string;
 }
@@ -265,6 +266,7 @@ export function mapGroupMessage(raw: ApiGroupMessage): GroupMessage {
     groupId: raw.group_id,
     author: mapGroupMessageAuthor(raw.author),
     content: raw.content,
+    imageUrl: raw.image_url,
     reactions: (raw.reactions ?? []).map(mapMessageReaction),
     createdAt: raw.created_at,
   };
@@ -403,6 +405,10 @@ export const api = {
     return apiFetch<{ success: boolean }>(`/prayer-groups/${groupId}/leave`, { method: 'DELETE' });
   },
 
+  getGroupMembers(groupId: string) {
+    return apiFetch<{ members: Array<{ id: string; username: string; display_name: string; avatar_url?: string; joined_at: string }> }>(`/prayer-groups/${groupId}/members`);
+  },
+
   createGroup(data: {
     name: string;
     description: string;
@@ -474,6 +480,22 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
+  },
+
+  sendGroupImageMessage(groupId: string, imageObjectName: string, content?: string) {
+    return apiFetch<ApiGroupMessage>(`/prayer-groups/${groupId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ image_url: imageObjectName, content: content ?? null }),
+    });
+  },
+
+  uploadGroupMessageImage(groupId: string, uri: string, type: string) {
+    const formData = new FormData();
+    formData.append('file', { uri, type, name: 'photo.jpg' } as unknown as Blob);
+    return apiUpload<{ object_name: string; url: string | null }>(
+      `/prayer-groups/${groupId}/messages/upload-image`,
+      formData,
+    );
   },
 
   deleteGroupMessage(groupId: string, messageId: string) {

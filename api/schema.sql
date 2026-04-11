@@ -121,8 +121,10 @@ CREATE TABLE IF NOT EXISTS group_messages (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     group_id   UUID NOT NULL REFERENCES prayer_groups(id) ON DELETE CASCADE,
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content    TEXT NOT NULL CHECK (char_length(content) <= 2000),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    content    TEXT CHECK (char_length(content) <= 2000),
+    image_url  TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT group_messages_content_or_image CHECK (content IS NOT NULL OR image_url IS NOT NULL)
 );
 
 CREATE INDEX IF NOT EXISTS idx_gm_group_created ON group_messages (group_id, created_at DESC);

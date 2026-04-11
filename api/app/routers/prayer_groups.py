@@ -250,6 +250,39 @@ async def leave_group(
     return {"success": True}
 
 
+@router.get("/{group_id}/members", response_model=dict)
+async def list_group_members(
+    group_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT id FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    rows = await conn.fetch(
+        """
+        SELECT u.id, u.username, u.display_name, u.avatar_url, u.created_at,
+               pgm.status, pgm.joined_at
+        FROM prayer_group_members pgm
+        JOIN users u ON u.id = pgm.user_id
+        WHERE pgm.group_id = $1 AND pgm.status = 'member'
+        ORDER BY pgm.joined_at ASC
+        """,
+        group_id,
+    )
+    members = [
+        {
+            "id": str(r["id"]),
+            "username": r["username"],
+            "display_name": r["display_name"],
+            "avatar_url": r["avatar_url"],
+            "joined_at": r["joined_at"].isoformat(),
+        }
+        for r in rows
+    ]
+    return {"members": members}
+
+
 @router.post("/{group_id}/members/{user_id}/approve", response_model=dict)
 async def approve_member(
     group_id: str,

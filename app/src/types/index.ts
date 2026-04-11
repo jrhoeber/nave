@@ -150,9 +150,11 @@ export interface GroupMessage {
   id: string;
   groupId: string;
   author: GroupMessageAuthor;
-  content: string;
+  content?: string;
+  imageUrl?: string;
   reactions: MessageReaction[];
   createdAt: string;
+  pending?: boolean;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

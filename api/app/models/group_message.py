@@ -18,24 +18,31 @@ class MessageReactionSummary(BaseModel):
 
 
 class GroupMessageCreate(BaseModel):
-    content: str
+    content: Optional[str] = None
+    image_url: Optional[str] = None
 
     @field_validator("content")
     @classmethod
-    def content_not_empty(cls, v: str) -> str:
-        v = v.strip()
-        if not v:
-            raise ValueError("Message content cannot be empty")
-        if len(v) > 2000:
-            raise ValueError("Message content cannot exceed 2000 characters")
+    def content_not_empty(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+            if len(v) > 2000:
+                raise ValueError("Message content cannot exceed 2000 characters")
         return v
+
+    def model_post_init(self, __context: object) -> None:
+        if self.content is None and self.image_url is None:
+            raise ValueError("A message must have content or an image")
 
 
 class GroupMessageResponse(BaseModel):
     id: str
     group_id: str
     author: GroupMessageAuthor
-    content: str
+    content: Optional[str] = None
+    image_url: Optional[str] = None
     reactions: list[MessageReactionSummary] = []
     created_at: datetime
 

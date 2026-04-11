@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import uuid
 
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+
+from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.group_message import (
@@ -58,6 +61,19 @@ async def _fetch_message_reactions(
     return result
 
 
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def _resolve_image_url(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    if raw.startswith("http"):
+        return raw
+    from app.utils.storage import get_signed_url
+    return get_signed_url(raw)
+
+
 def _build_message(row: dict, reactions_map: dict) -> GroupMessageResponse:
     author = GroupMessageAuthor(
         id=str(row["user_id"]),
@@ -69,7 +85,8 @@ def _build_message(row: dict, reactions_map: dict) -> GroupMessageResponse:
         id=str(row["id"]),
         group_id=str(row["group_id"]),
         author=author,
-        content=row["content"],
+        content=row.get("content"),
+        image_url=_resolve_image_url(row.get("image_url")),
         reactions=reactions_map.get(str(row["id"]), []),
         created_at=row["created_at"],
     )
@@ -91,7 +108,7 @@ async def list_messages(
 
     rows = await conn.fetch(
         """
-        SELECT gm.id, gm.group_id, gm.user_id, gm.content, gm.created_at,
+        SELECT gm.id, gm.group_id, gm.user_id, gm.content, gm.image_url, gm.created_at,
                u.username, u.display_name, u.avatar_url
         FROM group_messages gm
         JOIN users u ON u.id = gm.user_id
@@ -112,6 +129,33 @@ async def list_messages(
     return GroupMessagesResponse(messages=messages, next_cursor=next_cursor)
 
 
+@router.post("/{group_id}/messages/upload-image", response_model=dict, status_code=201)
+async def upload_message_image(
+    group_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    await _require_member(conn, group_id, str(current_user["id"]))
+
+    if not settings.gcs_enabled:
+        raise HTTPException(status_code=501, detail="File uploads are not enabled")
+
+    content_type = file.content_type or "image/jpeg"
+    if content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Unsupported image type: {content_type}")
+
+    file_bytes = await file.read()
+    if len(file_bytes) > _MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Image must be under 10 MB")
+
+    from app.utils.storage import get_signed_url, upload_message_image as _upload
+    temp_id = str(uuid.uuid4())
+    object_name = _upload(file_bytes, group_id, temp_id, content_type)
+    signed_url = get_signed_url(object_name)
+    return {"object_name": object_name, "url": signed_url}
+
+
 @router.post("/{group_id}/messages", response_model=GroupMessageResponse, status_code=201)
 async def send_message(
     group_id: str,
@@ -123,13 +167,14 @@ async def send_message(
 
     row = await conn.fetchrow(
         """
-        INSERT INTO group_messages (group_id, user_id, content)
-        VALUES ($1, $2, $3)
-        RETURNING id, group_id, user_id, content, created_at
+        INSERT INTO group_messages (group_id, user_id, content, image_url)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, group_id, user_id, content, image_url, created_at
         """,
         group_id,
         current_user["id"],
         body.content,
+        body.image_url,
     )
     user_row = await conn.fetchrow(
         "SELECT username, display_name, avatar_url FROM users WHERE id = $1",
