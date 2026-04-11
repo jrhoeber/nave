@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     bio           TEXT,
     avatar_url    TEXT,
-    parish        TEXT,
+    parish_id     UUID,
     diocese       TEXT,
     location      TEXT,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -28,18 +28,26 @@ CREATE INDEX IF NOT EXISTS idx_users_email    ON users (email);
 CREATE TABLE IF NOT EXISTS parishes (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name             TEXT NOT NULL,
+    street_address   TEXT,
     city             TEXT NOT NULL,
     state            TEXT NOT NULL,
+    postal_code      TEXT,
     diocese          TEXT NOT NULL,
+    established      INTEGER,
     avatar_url       TEXT,
     cover_photo_url  TEXT,
     mass_schedule    JSONB,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_parishes_name    ON parishes USING GIN (to_tsvector('english', name));
-CREATE INDEX IF NOT EXISTS idx_parishes_state   ON parishes (state);
-CREATE INDEX IF NOT EXISTS idx_parishes_diocese ON parishes (diocese);
+CREATE INDEX IF NOT EXISTS idx_parishes_name_trgm ON parishes USING GIN (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_parishes_name      ON parishes USING GIN (to_tsvector('english', name));
+CREATE INDEX IF NOT EXISTS idx_parishes_state     ON parishes (state);
+CREATE INDEX IF NOT EXISTS idx_parishes_diocese   ON parishes (diocese);
+
+ALTER TABLE users
+    ADD CONSTRAINT fk_users_parish
+    FOREIGN KEY (parish_id) REFERENCES parishes(id) ON DELETE SET NULL;
 
 -- ============================================================
 -- PRAYER GROUPS

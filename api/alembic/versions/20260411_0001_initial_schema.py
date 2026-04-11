@@ -14,9 +14,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("""
-        CREATE EXTENSION IF NOT EXISTS pg_trgm;
-    """)
+    op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
 
     op.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -27,7 +25,7 @@ def upgrade() -> None:
             password_hash TEXT NOT NULL,
             bio           TEXT,
             avatar_url    TEXT,
-            parish        TEXT,
+            parish_id     UUID,
             diocese       TEXT,
             location      TEXT,
             created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -42,9 +40,12 @@ def upgrade() -> None:
         CREATE TABLE IF NOT EXISTS parishes (
             id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             name             TEXT NOT NULL,
+            street_address   TEXT,
             city             TEXT NOT NULL,
             state            TEXT NOT NULL,
+            postal_code      TEXT,
             diocese          TEXT NOT NULL,
+            established      INTEGER,
             avatar_url       TEXT,
             cover_photo_url  TEXT,
             mass_schedule    JSONB,
@@ -52,10 +53,17 @@ def upgrade() -> None:
         );
     """)
 
-    op.execute("CREATE INDEX IF NOT EXISTS idx_parishes_name    ON parishes USING GIN (to_tsvector('english', name));")
     op.execute("CREATE INDEX IF NOT EXISTS idx_parishes_name_trgm ON parishes USING GIN (name gin_trgm_ops);")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_parishes_state   ON parishes (state);")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_parishes_diocese ON parishes (diocese);")
+    op.execute("CREATE INDEX IF NOT EXISTS idx_parishes_name      ON parishes USING GIN (to_tsvector('english', name));")
+    op.execute("CREATE INDEX IF NOT EXISTS idx_parishes_state     ON parishes (state);")
+    op.execute("CREATE INDEX IF NOT EXISTS idx_parishes_diocese   ON parishes (diocese);")
+
+    # Add FK from users.parish_id → parishes.id now that parishes exists
+    op.execute("""
+        ALTER TABLE users
+            ADD CONSTRAINT fk_users_parish
+            FOREIGN KEY (parish_id) REFERENCES parishes(id) ON DELETE SET NULL;
+    """)
 
     op.execute("""
         CREATE TABLE IF NOT EXISTS prayer_groups (
@@ -174,5 +182,6 @@ def downgrade() -> None:
     op.execute("DROP TABLE IF EXISTS parish_posts;")
     op.execute("DROP TABLE IF EXISTS prayer_group_members;")
     op.execute("DROP TABLE IF EXISTS prayer_groups;")
+    op.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_parish;")
     op.execute("DROP TABLE IF EXISTS parishes;")
     op.execute("DROP TABLE IF EXISTS users;")
