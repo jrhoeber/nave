@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, MassScheduleEntry, ParishPost, ParishPostAuthor, ParishReactionType } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, MassScheduleEntry, ParishPost, ParishPostAuthor, ParishReactionType, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -102,6 +102,33 @@ interface ApiParishPostsResponse {
 interface ApiReactionResponse {
   reactions: Record<string, number>;
   user_reactions: string[];
+}
+
+interface ApiGroupMessageAuthor {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string;
+}
+
+interface ApiMessageReaction {
+  emoji: string;
+  count: number;
+  user_reacted: boolean;
+}
+
+interface ApiGroupMessage {
+  id: string;
+  group_id: string;
+  author: ApiGroupMessageAuthor;
+  content: string;
+  reactions: ApiMessageReaction[];
+  created_at: string;
+}
+
+interface ApiGroupMessagesResponse {
+  messages: ApiGroupMessage[];
+  next_cursor: string | null;
 }
 
 interface ApiTokenResponse {
@@ -212,6 +239,34 @@ export function mapParishPost(raw: ApiParishPost): ParishPost {
     createdAt: raw.created_at,
     reactions: { ...defaultReactions, ...(raw.reactions ?? {}) } as Record<ParishReactionType, number>,
     userReactions: (raw.user_reactions ?? []) as ParishReactionType[],
+  };
+}
+
+export function mapGroupMessageAuthor(raw: ApiGroupMessageAuthor): GroupMessageAuthor {
+  return {
+    id: raw.id,
+    username: raw.username,
+    displayName: raw.display_name,
+    avatarUrl: raw.avatar_url?.startsWith('http') ? raw.avatar_url : undefined,
+  };
+}
+
+export function mapMessageReaction(raw: ApiMessageReaction): MessageReaction {
+  return {
+    emoji: raw.emoji as GroupMessageReactionEmoji,
+    count: raw.count,
+    userReacted: raw.user_reacted,
+  };
+}
+
+export function mapGroupMessage(raw: ApiGroupMessage): GroupMessage {
+  return {
+    id: raw.id,
+    groupId: raw.group_id,
+    author: mapGroupMessageAuthor(raw.author),
+    content: raw.content,
+    reactions: (raw.reactions ?? []).map(mapMessageReaction),
+    createdAt: raw.created_at,
   };
 }
 
@@ -405,6 +460,31 @@ export const api = {
     return apiFetch<ApiReactionResponse>(`/parishes/${parishId}/posts/${postId}/reactions/${encodeURIComponent(reaction)}`, {
       method: 'DELETE',
     });
+  },
+
+  // Group messages
+  getGroupMessages(groupId: string, cursor?: string, limit = 50) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) params.set('cursor', cursor);
+    return apiFetch<ApiGroupMessagesResponse>(`/prayer-groups/${groupId}/messages?${params}`);
+  },
+
+  sendGroupMessage(groupId: string, content: string) {
+    return apiFetch<ApiGroupMessage>(`/prayer-groups/${groupId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  deleteGroupMessage(groupId: string, messageId: string) {
+    return apiFetch<void>(`/prayer-groups/${groupId}/messages/${messageId}`, { method: 'DELETE' });
+  },
+
+  toggleGroupMessageReaction(groupId: string, messageId: string, emoji: string) {
+    return apiFetch<ApiMessageReaction[]>(
+      `/prayer-groups/${groupId}/messages/${messageId}/reactions`,
+      { method: 'POST', body: JSON.stringify({ emoji }) },
+    );
   },
 
   // Users

@@ -127,6 +127,34 @@ export interface ParishPost {
   userReactions: ParishReactionType[];
 }
 
+// ─── Group Messages ───────────────────────────────────────────────────────────
+
+export type GroupMessageReactionEmoji = '👍' | '🙏' | '❤️' | '😂' | '😮' | '🥲';
+
+export const GROUP_REACTION_EMOJIS: GroupMessageReactionEmoji[] = ['👍', '🙏', '❤️', '😂', '😮', '🥲'];
+
+export interface MessageReaction {
+  emoji: GroupMessageReactionEmoji;
+  count: number;
+  userReacted: boolean;
+}
+
+export interface GroupMessageAuthor {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
+export interface GroupMessage {
+  id: string;
+  groupId: string;
+  author: GroupMessageAuthor;
+  content: string;
+  reactions: MessageReaction[];
+  createdAt: string;
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =

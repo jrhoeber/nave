@@ -115,6 +115,34 @@ CREATE TABLE IF NOT EXISTS parish_post_reactions (
 CREATE INDEX IF NOT EXISTS idx_parish_post_reactions_post ON parish_post_reactions (post_id);
 
 -- ============================================================
+-- GROUP MESSAGES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS group_messages (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id   UUID NOT NULL REFERENCES prayer_groups(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content    TEXT NOT NULL CHECK (char_length(content) <= 2000),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_gm_group_created ON group_messages (group_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_gm_user          ON group_messages (user_id);
+
+-- ============================================================
+-- GROUP MESSAGE REACTIONS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS group_message_reactions (
+    message_id UUID NOT NULL REFERENCES group_messages(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    emoji      VARCHAR(10) NOT NULL
+                   CHECK (emoji IN ('👍', '🙏', '❤️', '😂', '😮', '🥲')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (message_id, user_id, emoji)
+);
+
+CREATE INDEX IF NOT EXISTS idx_gmr_message ON group_message_reactions (message_id);
+
+-- ============================================================
 -- USER STATS VIEW
 -- ============================================================
 CREATE OR REPLACE VIEW user_stats AS

@@ -126,6 +126,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `auth.py` | `POST /auth/signup`, `POST /auth/login` — creates user, returns JWT + user data |
 | `users.py` | User search, get/update profile, upload avatar (GCS signed URLs) |
 | `prayer_groups.py` | List/create groups, join/leave, member list, approve/remove members |
+| `group_messages.py` | `GET/POST /prayer-groups/{id}/messages`, `DELETE` message, `POST` reaction toggle |
 | `parishes.py` | Fuzzy parish search (trigram + abbreviation expansion), parish member list |
 
 #### Models (`/api/app/models/`)
@@ -134,6 +135,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `user.py` | `UserSignUp`, `UserLogin`, `UserUpdate`, `UserResponse`, `TokenResponse` |
 | `parish.py` | `ParishResponse`, `ParishesResponse` |
 | `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `rosary`, `scripture_study`, `mens_group`, `womens_group`, `youth`, etc. |
+| `group_message.py` | `GroupMessageCreate`, `GroupMessageResponse`, `GroupMessagesResponse`, `AddReactionBody` |
 
 #### Utils (`/api/app/utils/`)
 | File | Purpose |
@@ -170,6 +172,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `authStore.ts` | User, token, login/signup/logout/profile update; persisted via AsyncStorage |
 | `feedStore.ts` | Posts list, pagination, like/unlike + pray/unpray with optimistic updates |
 | `prayerStore.ts` | All groups + user's groups; join/leave with optimistic updates |
+| `groupChatStore.ts` | Per-group message lists, pagination, send/delete/react with optimistic updates |
 
 #### API Layer (`/app/src/lib/`)
 | File | Purpose |
@@ -180,7 +183,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 #### Types (`/app/src/types/`)
 | File | Contents |
 |------|---------|
-| `index.ts` | `User`, `Post`, `PostType`, `Comment`, `PrayerGroup`, `PrayerGroupCategory`, `Parish` interfaces |
+| `index.ts` | `User`, `Post`, `PostType`, `Comment`, `PrayerGroup`, `PrayerGroupCategory`, `Parish`, `GroupMessage`, `MessageReaction` interfaces |
 | `navigation.ts` | Stack param lists for type-safe `navigation.navigate()` calls |
 
 #### Screens (`/app/src/screens/`)
@@ -191,7 +194,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `auth/SignUpScreen.tsx` | Registration (email, username, password, display name, parish) |
 | `feed/FeedScreen.tsx` | Paginated post feed with like/pray/comment |
 | `prayer/PrayerScreen.tsx` | Prayer group discovery list |
-| `prayer/PrayerGroupDetailScreen.tsx` | Group detail: members + group posts |
+| `prayer/PrayerGroupDetailScreen.tsx` | Group chat: inverted message list, emoji reactions, message input |
 | `prayer/CreatePrayerGroupScreen.tsx` | Create group form |
 | `community/CommunityScreen.tsx` | Parish community view |
 | `friends/FriendsScreen.tsx` | Friends list + request management |
