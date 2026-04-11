@@ -157,6 +157,36 @@ export interface GroupMessage {
   pending?: boolean;
 }
 
+// ─── Friends ─────────────────────────────────────────────────────────────────
+
+export interface FriendUser {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+  parish?: string;
+  prayerGroupCount: number;
+}
+
+export interface Friendship {
+  id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  isRequester: boolean;
+  createdAt: string;
+  user: FriendUser;
+}
+
+export interface FriendSearchResult {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+  parish?: string;
+  friendshipId?: string;
+  friendshipStatus?: 'pending' | 'accepted' | 'rejected';
+  isRequester?: boolean;
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =

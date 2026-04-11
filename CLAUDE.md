@@ -128,6 +128,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `prayer_groups.py` | List/create groups, join/leave, member list, approve/remove members |
 | `group_messages.py` | `GET/POST /prayer-groups/{id}/messages`, `DELETE` message, `POST` reaction toggle |
 | `parishes.py` | Fuzzy parish search (trigram + abbreviation expansion), parish member list |
+| `friends.py` | `GET /friends`, `GET /friends/requests/incoming`, `GET /friends/search`, `POST /friends/requests`, `PATCH /friends/requests/{id}`, `DELETE /friends/{id}` |
 
 #### Models (`/api/app/models/`)
 | File | Schemas |
@@ -136,6 +137,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `parish.py` | `ParishResponse`, `ParishesResponse` |
 | `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `rosary`, `scripture_study`, `mens_group`, `womens_group`, `youth`, etc. |
 | `group_message.py` | `GroupMessageCreate`, `GroupMessageResponse`, `GroupMessagesResponse`, `AddReactionBody` |
+| `friendship.py` | `FriendRequestCreate`, `FriendRequestUpdate` |
 
 #### Utils (`/api/app/utils/`)
 | File | Purpose |
@@ -173,6 +175,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `feedStore.ts` | Posts list, pagination, like/unlike + pray/unpray with optimistic updates |
 | `prayerStore.ts` | All groups + user's groups; join/leave with optimistic updates |
 | `groupChatStore.ts` | Per-group message lists, pagination, send/delete/react with optimistic updates |
+| `friendsStore.ts` | Friends list + incoming requests; accept/reject/remove with optimistic updates |
 
 #### API Layer (`/app/src/lib/`)
 | File | Purpose |
@@ -206,6 +209,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 #### UI Components (`/app/src/components/`)
 | File | Purpose |
 |------|---------|
+| `friends/AddFriendModal.tsx` | pageSheet modal to search users and send friend requests; shows friendship status per result |
 | `ui/Avatar.tsx` | Avatar with initials fallback |
 | `ui/Button.tsx` | Button with variants (primary, secondary, ghost) |
 | `ui/Input.tsx` | Styled text input |

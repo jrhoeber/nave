@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, MassScheduleEntry, ParishPost, ParishPostAuthor, ParishReactionType, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, MassScheduleEntry, ParishPost, ParishPostAuthor, ParishReactionType, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -130,6 +130,34 @@ interface ApiGroupMessage {
 interface ApiGroupMessagesResponse {
   messages: ApiGroupMessage[];
   next_cursor: string | null;
+}
+
+interface ApiFriendUser {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string;
+  parish?: string;
+  prayer_group_count: number;
+}
+
+interface ApiFriendship {
+  id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  is_requester: boolean;
+  created_at: string;
+  user: ApiFriendUser;
+}
+
+interface ApiFriendSearchResult {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string;
+  parish?: string;
+  friendship_id?: string;
+  friendship_status?: 'pending' | 'accepted' | 'rejected';
+  is_requester?: boolean;
 }
 
 interface ApiTokenResponse {
@@ -269,6 +297,40 @@ export function mapGroupMessage(raw: ApiGroupMessage): GroupMessage {
     imageUrl: raw.image_url,
     reactions: (raw.reactions ?? []).map(mapMessageReaction),
     createdAt: raw.created_at,
+  };
+}
+
+export function mapFriendUser(raw: ApiFriendUser): Friendship['user'] {
+  return {
+    id: raw.id,
+    username: raw.username,
+    displayName: raw.display_name,
+    avatarUrl: raw.avatar_url?.startsWith('http') ? raw.avatar_url : undefined,
+    parish: raw.parish,
+    prayerGroupCount: raw.prayer_group_count,
+  };
+}
+
+export function mapFriendship(raw: ApiFriendship): Friendship {
+  return {
+    id: raw.id,
+    status: raw.status,
+    isRequester: raw.is_requester,
+    createdAt: raw.created_at,
+    user: mapFriendUser(raw.user),
+  };
+}
+
+export function mapFriendSearchResult(raw: ApiFriendSearchResult): FriendSearchResult {
+  return {
+    id: raw.id,
+    username: raw.username,
+    displayName: raw.display_name,
+    avatarUrl: raw.avatar_url?.startsWith('http') ? raw.avatar_url : undefined,
+    parish: raw.parish,
+    friendshipId: raw.friendship_id,
+    friendshipStatus: raw.friendship_status,
+    isRequester: raw.is_requester,
   };
 }
 
@@ -530,6 +592,37 @@ export const api = {
       `/prayer-groups/${groupId}/messages/${messageId}/reactions`,
       { method: 'POST', body: JSON.stringify({ emoji }) },
     );
+  },
+
+  // Friends
+  getFriends() {
+    return apiFetch<{ friends: ApiFriendship[] }>('/friends');
+  },
+
+  getIncomingRequests() {
+    return apiFetch<{ requests: ApiFriendship[] }>('/friends/requests/incoming');
+  },
+
+  searchFriends(q: string) {
+    return apiFetch<{ users: ApiFriendSearchResult[] }>(`/friends/search?q=${encodeURIComponent(q)}&limit=20`);
+  },
+
+  sendFriendRequest(addresseeId: string) {
+    return apiFetch<{ message: string }>('/friends/requests', {
+      method: 'POST',
+      body: JSON.stringify({ addressee_id: addresseeId }),
+    });
+  },
+
+  respondToFriendRequest(friendshipId: string, status: 'accepted' | 'rejected') {
+    return apiFetch<{ status: string }>(`/friends/requests/${friendshipId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  removeFriendship(friendshipId: string) {
+    return apiFetch<void>(`/friends/${friendshipId}`, { method: 'DELETE' });
   },
 
   // Users

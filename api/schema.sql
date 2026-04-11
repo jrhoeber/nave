@@ -153,14 +153,36 @@ CREATE TABLE IF NOT EXISTS group_message_reactions (
 CREATE INDEX IF NOT EXISTS idx_gmr_message ON group_message_reactions (message_id);
 
 -- ============================================================
+-- FRIENDSHIPS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS friendships (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    requester_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    addressee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status       TEXT NOT NULL DEFAULT 'pending'
+                     CHECK (status IN ('pending', 'accepted', 'rejected')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (requester_id, addressee_id),
+    CHECK (requester_id != addressee_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships (requester_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships (addressee_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status    ON friendships (status);
+
+-- ============================================================
 -- USER STATS VIEW
 -- ============================================================
 CREATE OR REPLACE VIEW user_stats AS
 SELECT
     u.id,
     COUNT(DISTINCT CASE WHEN pgm.status = 'member' THEN pgm.group_id END) AS prayer_group_count,
-    0::bigint AS friend_count,
+    COUNT(DISTINCT CASE WHEN f.status = 'accepted' THEN f.id END) AS friend_count,
     0::bigint AS post_count
 FROM users u
 LEFT JOIN prayer_group_members pgm ON pgm.user_id = u.id
+LEFT JOIN friendships f
+    ON f.status = 'accepted'
+    AND (f.requester_id = u.id OR f.addressee_id = u.id)
 GROUP BY u.id;
