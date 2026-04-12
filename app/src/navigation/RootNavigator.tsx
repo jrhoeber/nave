@@ -5,9 +5,9 @@ import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { PostDetailScreen } from '../screens/shared/PostDetailScreen';
 import { UserProfileScreen } from '../screens/shared/UserProfileScreen';
-import { PrayerGroupDetailScreen } from '../screens/prayer/PrayerGroupDetailScreen';
+import { GroupDetailScreen } from '../screens/group/GroupDetailScreen';
 import { ComposeScreen } from '../screens/shared/ComposeScreen';
-import { CreatePrayerGroupScreen } from '../screens/prayer/CreatePrayerGroupScreen';
+import { CreateGroupScreen } from '../screens/group/CreateGroupScreen';
 import type { RootStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -24,9 +24,9 @@ export function RootNavigator() {
           <Stack.Screen name="App" component={AppNavigator} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="PrayerGroupDetail" component={PrayerGroupDetailScreen} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="GroupDetail" component={GroupDetailScreen} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="Compose" component={ComposeScreen} options={{ presentation: 'modal' }} />
-          <Stack.Screen name="CreatePrayerGroup" component={CreatePrayerGroupScreen} options={{ presentation: 'modal' }} />
+          <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ presentation: 'modal' }} />
         </>
       )}
     </Stack.Navigator>

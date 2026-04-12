@@ -25,7 +25,7 @@ const CATEGORIES: { value: PrayerGroupCategory; label: string; icon: string }[] 
   { value: 'general', label: 'General', icon: '💬' },
 ];
 
-export function CreatePrayerGroupScreen() {
+export function CreateGroupScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const user = useAuthStore((s) => s.user);

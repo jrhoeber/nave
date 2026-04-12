@@ -28,7 +28,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { GroupMessage } from '../../types';
 import { GROUP_REACTION_EMOJIS } from '../../types';
-import type { PrayerGroupDetailRouteProp, RootNavigationProp } from '../../types/navigation';
+import type { GroupDetailRouteProp, RootNavigationProp } from '../../types/navigation';
 import { api } from '../../lib/apiClient';
 
 // ─── Chat palette (maps to app theme) ─────────────────────────────────────────
@@ -710,10 +710,10 @@ const inputStyles = StyleSheet.create({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-export function PrayerGroupDetailScreen() {
+export function GroupDetailScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const route = useRoute<PrayerGroupDetailRouteProp>();
+  const route = useRoute<GroupDetailRouteProp>();
   const groupId = route.params.id;
 
   const { groups, joinGroup, leaveGroup } = usePrayerStore();

@@ -12,7 +12,7 @@ import { Colors, Spacing, Typography } from '../../theme';
 import type { PrayerGroup } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
-export function PrayerScreen() {
+export function GroupScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
   const { myGroups, isLoading, fetchGroups, joinGroup, leaveGroup, deleteGroup } = usePrayerStore();
@@ -42,7 +42,7 @@ export function PrayerScreen() {
         renderItem={({ item }: { item: PrayerGroup }) => (
           <PrayerGroupCard
             group={item}
-            onPress={(id) => navigation.navigate('PrayerGroupDetail', { id })}
+            onPress={(id) => navigation.navigate('GroupDetail', { id })}
             onJoin={joinGroup}
             onLeave={leaveGroup}
             onEdit={(id) => setEditingGroup(myGroups.find((g) => g.id === id) ?? null)}
@@ -73,9 +73,9 @@ export function PrayerScreen() {
       <AddGroupModal
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
-        onCreateGroup={() => navigation.navigate('CreatePrayerGroup')}
+        onCreateGroup={() => navigation.navigate('CreateGroup')}
         onJoinGroup={(id) => { setAddModalVisible(false); fetchGroups(); }}
-        onOpenGroup={(id) => navigation.navigate('PrayerGroupDetail', { id })}
+        onOpenGroup={(id) => navigation.navigate('GroupDetail', { id })}
       />
     </View>
   );

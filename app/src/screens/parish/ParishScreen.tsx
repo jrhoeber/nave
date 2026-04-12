@@ -677,7 +677,7 @@ function ParishSelect({ onSelect }: { onSelect: (parish: Parish) => void }) {
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
-export function CommunityScreen() {
+export function ParishScreen() {
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
   const [selecting, setSelecting] = useState(false);

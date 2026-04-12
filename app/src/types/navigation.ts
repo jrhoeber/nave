@@ -7,9 +7,9 @@ export type RootStackParamList = {
   App: undefined;
   PostDetail: { id: string };
   UserProfile: { id: string };
-  PrayerGroupDetail: { id: string };
+  GroupDetail: { id: string };
   Compose: { postType?: string } | undefined;
-  CreatePrayerGroup: undefined;
+  CreateGroup: undefined;
 };
 
 export type AuthStackParamList = {
@@ -31,5 +31,5 @@ export type AuthNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export type PostDetailRouteProp = RouteProp<RootStackParamList, 'PostDetail'>;
 export type UserProfileRouteProp = RouteProp<RootStackParamList, 'UserProfile'>;
-export type PrayerGroupDetailRouteProp = RouteProp<RootStackParamList, 'PrayerGroupDetail'>;
+export type GroupDetailRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 export type ComposeRouteProp = RouteProp<RootStackParamList, 'Compose'>;

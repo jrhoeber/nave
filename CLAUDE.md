@@ -76,7 +76,7 @@ npm run type-check               # TypeScript check (no emit)
 
 ### Mobile app structure (`/app/src/`)
 
-- `screens/` — Organized by feature (auth, community, feed, parish, prayer, profile)
+- `screens/` — Organized by feature (auth, feed, parish, prayer, profile)
 - `navigation/` — React Navigation stack/tab navigators
 - `store/` — Zustand stores for auth, feed, prayer groups
 - `lib/apiClient.ts` — Central HTTP client (base URL from `config.ts`)
@@ -164,7 +164,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | File | Purpose |
 |------|---------|
 | `App.tsx` | Root component; manages auth loading, splash screen, hands off to RootNavigator |
-| `navigation/RootNavigator.tsx` | Auth ↔ App stack switch; defines modal screens (PostDetail, UserProfile, PrayerGroupDetail, Compose, CreatePrayerGroup) |
+| `navigation/RootNavigator.tsx` | Auth ↔ App stack switch; defines modal screens (PostDetail, UserProfile, GroupDetail, Compose, CreateGroup) |
 | `navigation/AuthNavigator.tsx` | Welcome → Login / SignUp stack |
 | `navigation/AppNavigator.tsx` | Bottom tabs: Community (Parish), Feed, Prayer, Friends, Profile |
 
@@ -195,11 +195,10 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `auth/WelcomeScreen.tsx` | Landing / onboarding |
 | `auth/LoginScreen.tsx` | Email + password login |
 | `auth/SignUpScreen.tsx` | Registration (email, username, password, display name, parish) |
-| `feed/FeedScreen.tsx` | Paginated post feed with like/pray/comment |
-| `prayer/PrayerScreen.tsx` | Prayer group discovery list |
-| `prayer/PrayerGroupDetailScreen.tsx` | Group chat: inverted message list, emoji reactions, message input |
-| `prayer/CreatePrayerGroupScreen.tsx` | Create group form |
-| `community/CommunityScreen.tsx` | Parish community view |
+| `group/GroupScreen.tsx` | Prayer group discovery list |
+| `group/GroupDetailScreen.tsx` | Group chat: inverted message list, emoji reactions, message input |
+| `group/CreateGroupScreen.tsx` | Create group form |
+| `parish/ParishScreen.tsx` | Parish community view |
 | `friends/FriendsScreen.tsx` | Friends list + request management |
 | `profile/ProfileScreen.tsx` | Own profile with edit |
 | `shared/ComposeScreen.tsx` | Modal: create new post |

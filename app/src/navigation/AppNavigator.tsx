@@ -4,8 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PrayerScreen } from '../screens/prayer/PrayerScreen';
-import { CommunityScreen } from '../screens/community/CommunityScreen';
+import { GroupScreen } from '../screens/group/GroupScreen';
+import { ParishScreen } from '../screens/parish/ParishScreen';
 import { FriendsScreen } from '../screens/friends/FriendsScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { Avatar } from '../components/ui/Avatar';
@@ -82,7 +82,7 @@ export function AppNavigator() {
     >
       <Tab.Screen
         name="Parish"
-        component={CommunityScreen}
+        component={ParishScreen}
         options={{
           tabBarTestID: 'tab-parish',
           tabBarIcon: ({ color, size }) => <MCIcon name="church" size={size} color={color} />,
@@ -90,7 +90,7 @@ export function AppNavigator() {
       />
       <Tab.Screen
         name="Groups"
-        component={PrayerScreen}
+        component={GroupScreen}
         options={{
           tabBarTestID: 'tab-groups',
           tabBarIcon: ({ color, size }) => <Icon name="people-circle-outline" size={size} color={color} />,
