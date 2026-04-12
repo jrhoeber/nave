@@ -6,14 +6,22 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { Splash } from './src/components/Splash';
 import { useAuthStore } from './src/store/authStore';
+import { useFriendsStore } from './src/store/friendsStore';
 
 export default function App() {
   const { loadStoredAuth, isLoading, isAuthenticated, user, avatarReady } = useAuthStore();
+  const fetchFriends = useFriendsStore((s) => s.fetchFriends);
   const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     loadStoredAuth();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchFriends();
+    }
+  }, [isAuthenticated]);
 
   // Dismiss splash when auth is loaded and either: not authenticated, no avatar, or avatar painted
   useEffect(() => {

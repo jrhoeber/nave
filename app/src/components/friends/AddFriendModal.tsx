@@ -13,11 +13,13 @@ import {
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../ui/Avatar';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import { api, mapFriendSearchResult } from '../../lib/apiClient';
 import type { FriendSearchResult } from '../../types';
+import type { RootNavigationProp } from '../../types/navigation';
 
 interface AddFriendModalProps {
   visible: boolean;
@@ -27,6 +29,7 @@ interface AddFriendModalProps {
 
 export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendModalProps) {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<RootNavigationProp>();
   const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FriendSearchResult[]>([]);
@@ -112,17 +115,23 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
 
     return (
       <View style={styles.userCard}>
-        <Avatar uri={item.avatarUrl} name={item.displayName} size={46} />
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{item.displayName}</Text>
-          <Text style={styles.userHandle}>@{item.username}</Text>
-          {item.parish && (
-            <View style={styles.parishRow}>
-              <Icon name="business-outline" size={11} color={Colors.textLight} />
-              <Text style={styles.userParish} numberOfLines={1}>{item.parish}</Text>
-            </View>
-          )}
-        </View>
+        <TouchableOpacity
+          style={styles.userCardLeft}
+          onPress={() => { onClose(); navigation.navigate('UserProfile', { id: item.id }); }}
+          activeOpacity={0.7}
+        >
+          <Avatar uri={item.avatarUrl} name={item.displayName} size={46} />
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{item.displayName}</Text>
+            <Text style={styles.userHandle}>@{item.username}</Text>
+            {item.parish && (
+              <View style={styles.parishRow}>
+                <Icon name="business-outline" size={11} color={Colors.textLight} />
+                <Text style={styles.userParish} numberOfLines={1}>{item.parish}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.addBtn,
@@ -222,6 +231,7 @@ const styles = StyleSheet.create({
   loader: { marginTop: Spacing[4] },
   list: { paddingHorizontal: Spacing[4], paddingBottom: Spacing[10] },
   userCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing[3], flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[3], ...Shadows.sm },
+  userCardLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing[3], minWidth: 0 },
   userInfo: { flex: 1, minWidth: 0 },
   userName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
   userHandle: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 1 },

@@ -52,6 +52,8 @@ class UserResponse(BaseModel):
     location: Optional[str] = None
     prayer_group_count: int = 0
     created_at: datetime
+    is_friend: bool = False
+    is_pending_friend: bool = False  # True when current user sent a pending request
 
 
 class TokenResponse(BaseModel):

@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -9,10 +10,39 @@ import { FriendsScreen } from '../screens/friends/FriendsScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { Avatar } from '../components/ui/Avatar';
 import { useAuthStore } from '../store/authStore';
+import { useFriendsStore } from '../store/friendsStore';
 import { Colors, Typography } from '../theme';
 import type { AppTabParamList } from '../types/navigation';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
+
+const styles = StyleSheet.create({
+  iconWrapper: {
+    position: 'relative',
+  },
+  indicator: {
+    position: 'absolute',
+    top: -1,
+    right: -3,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: Colors.accent,
+    borderWidth: 1.5,
+    borderColor: Colors.surface,
+  },
+});
+
+function FriendsTabIcon({ color, size, hasRequests }: { color: string; size: number; hasRequests: boolean }) {
+  return (
+    <View style={styles.iconWrapper}>
+      <Icon name="people-outline" size={size} color={color} />
+      {hasRequests && (
+        <View style={styles.indicator} />
+      )}
+    </View>
+  );
+}
 
 function ProfileTabIcon({ color, size }: { color: string; size: number }) {
   const user = useAuthStore((s) => s.user);
@@ -24,6 +54,7 @@ function ProfileTabIcon({ color, size }: { color: string; size: number }) {
 
 export function AppNavigator() {
   const insets = useSafeAreaInsets();
+  const incomingRequestCount = useFriendsStore((s) => s.incomingRequests.length);
   const bottomInset = insets.bottom || 0;
   return (
     <Tab.Navigator
@@ -70,7 +101,9 @@ export function AppNavigator() {
         component={FriendsScreen}
         options={{
           tabBarTestID: 'tab-friends',
-          tabBarIcon: ({ color, size }) => <Icon name="people-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <FriendsTabIcon color={color} size={size} hasRequests={incomingRequestCount > 0} />
+          ),
         }}
       />
       <Tab.Screen

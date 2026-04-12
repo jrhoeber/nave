@@ -181,4 +181,22 @@ async def get_user(
     )
     if row is None:
         raise HTTPException(status_code=404, detail="User not found")
-    return _build_user_response(dict(row))
+
+    response = _build_user_response(dict(row))
+
+    friendship = await conn.fetchrow(
+        """
+        SELECT status, requester_id
+        FROM friendships
+        WHERE (requester_id = $1 AND addressee_id = $2)
+           OR (requester_id = $2 AND addressee_id = $1)
+        """,
+        current_user["id"], user_id,
+    )
+    if friendship:
+        if friendship["status"] == "accepted":
+            response.is_friend = True
+        elif friendship["status"] == "pending" and str(friendship["requester_id"]) == str(current_user["id"]):
+            response.is_pending_friend = True
+
+    return response

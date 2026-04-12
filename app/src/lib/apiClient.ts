@@ -630,7 +630,11 @@ export const api = {
     return apiFetch<ApiUser>('/users/me');
   },
 
-  updateProfile(data: { parish_id?: string; bio?: string; location?: string; avatar_url?: string }) {
+  getUser(id: string) {
+    return apiFetch<ApiUser>(`/users/${id}`);
+  },
+
+  updateProfile(data: { display_name?: string; parish_id?: string; bio?: string; location?: string; avatar_url?: string }) {
     return apiFetch<ApiUser>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
