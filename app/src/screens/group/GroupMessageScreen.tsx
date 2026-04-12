@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -17,7 +18,7 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
@@ -28,8 +29,8 @@ import { useAuthStore } from '../../store/authStore';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { GroupMessage } from '../../types';
 import { GROUP_REACTION_EMOJIS } from '../../types';
-import type { GroupDetailRouteProp, RootNavigationProp } from '../../types/navigation';
-import { api } from '../../lib/apiClient';
+import type { GroupMessageRouteProp, RootNavigationProp } from '../../types/navigation';
+import { api, mapGroupMessage } from '../../lib/apiClient';
 
 // ─── Chat palette (maps to app theme) ─────────────────────────────────────────
 
@@ -710,16 +711,17 @@ const inputStyles = StyleSheet.create({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-export function GroupDetailScreen() {
+export function GroupMessageScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const route = useRoute<GroupDetailRouteProp>();
+  const route = useRoute<GroupMessageRouteProp>();
   const groupId = route.params.id;
 
   const { groups, joinGroup, leaveGroup } = usePrayerStore();
   const { user } = useAuthStore();
-  const { messagesByGroup, loadingByGroup, hasMoreByGroup, fetchMessages, loadMoreMessages, clearGroup, markGroupAsRead } =
+  const { messagesByGroup, loadingByGroup, hasMoreByGroup, fetchMessages, loadMoreMessages, clearGroup, markGroupAsRead, appendNewMessages } =
     useGroupChatStore();
+  const isFocused = useIsFocused();
 
   const group = groups.find((g) => g.id === groupId);
   const messages = messagesByGroup[groupId] ?? [];
@@ -729,12 +731,55 @@ export function GroupDetailScreen() {
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
   const [membersVisible, setMembersVisible] = useState(false);
 
+  // Track the latest message timestamp for polling
+  const latestMessageTimestampRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (group?.isMember) {
       fetchMessages(groupId).then(() => markGroupAsRead(groupId));
     }
     return () => clearGroup(groupId);
   }, [groupId, group?.isMember]);
+
+  // Update latest timestamp whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      latestMessageTimestampRef.current = messages[0].createdAt;
+    }
+  }, [messages]);
+
+  // 3-second polling for new messages while screen is focused and app is active
+  useEffect(() => {
+    if (!group?.isMember || !isFocused) return;
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let appIsActive = AppState.currentState === 'active';
+
+    const poll = async () => {
+      if (!appIsActive) return;
+      const after = latestMessageTimestampRef.current;
+      if (!after) return;
+      try {
+        const data = await api.getGroupMessages(groupId, undefined, 50, after);
+        if (data.messages.length > 0) {
+          appendNewMessages(groupId, data.messages.map(mapGroupMessage));
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    };
+
+    intervalId = setInterval(poll, 3000);
+
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      appIsActive = state === 'active';
+    });
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      appStateSub.remove();
+    };
+  }, [groupId, group?.isMember, isFocused]);
 
   const renderData = useMemo(() => buildRenderData(messages), [messages]);
 

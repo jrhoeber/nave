@@ -99,11 +99,35 @@ async def list_messages(
     group_id: str,
     limit: int = Query(50, le=100),
     cursor: Optional[str] = Query(None),
+    after: Optional[str] = Query(None, description="ISO timestamp — return only messages newer than this (for polling)"),
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
     await _require_member(conn, group_id, str(current_user["id"]))
 
+    # Polling mode: return messages newer than `after` timestamp, oldest-first
+    if after is not None:
+        after_dt = datetime.fromisoformat(after)
+        rows = await conn.fetch(
+            """
+            SELECT gm.id, gm.group_id, gm.user_id, gm.content, gm.image_url, gm.created_at,
+                   u.username, u.display_name, u.avatar_url
+            FROM group_messages gm
+            JOIN users u ON u.id = gm.user_id
+            WHERE gm.group_id = $1 AND gm.created_at > $2
+            ORDER BY gm.created_at ASC
+            LIMIT $3
+            """,
+            group_id,
+            after_dt,
+            limit,
+        )
+        message_ids = [str(r["id"]) for r in rows]
+        reactions_map = await _fetch_message_reactions(conn, message_ids, str(current_user["id"]))
+        messages = [_build_message(dict(r), reactions_map) for r in rows]
+        return GroupMessagesResponse(messages=messages, next_cursor=None)
+
+    # Cursor-based pagination (newest-first)
     cursor_dt = datetime.fromisoformat(cursor) if cursor else datetime.now(timezone.utc)
 
     rows = await conn.fetch(
@@ -181,7 +205,55 @@ async def send_message(
         current_user["id"],
     )
     merged = {**dict(row), **dict(user_row)}
-    return _build_message(merged, {})
+    response = _build_message(merged, {})
+
+    # Fire push notifications to eligible group members (non-blocking best-effort)
+    try:
+        group_row = await conn.fetchrow(
+            "SELECT name FROM prayer_groups WHERE id = $1", group_id
+        )
+        group_name = group_row["name"] if group_row else "Group"
+        sender_display = user_row["display_name"]
+
+        # Members who have not muted this group and want group message notifications
+        token_rows = await conn.fetch(
+            """
+            SELECT udt.token
+            FROM prayer_group_members pgm
+            JOIN users u ON u.id = pgm.user_id
+            JOIN user_device_tokens udt ON udt.user_id = pgm.user_id
+            WHERE pgm.group_id = $1
+              AND pgm.status = 'member'
+              AND pgm.user_id != $2
+              AND u.push_notifications_enabled = TRUE
+              AND u.notify_group_messages = TRUE
+              AND NOT EXISTS (
+                  SELECT 1 FROM group_notification_mutes gnm
+                  WHERE gnm.user_id = pgm.user_id AND gnm.group_id = $1
+              )
+            """,
+            group_id,
+            current_user["id"],
+        )
+        tokens = [r["token"] for r in token_rows]
+        if tokens:
+            from app.utils.push import send_push_notifications
+            import asyncio
+            notification_body = body.content if body.content else "📷 Photo"
+            if len(notification_body) > 100:
+                notification_body = notification_body[:97] + "…"
+            asyncio.ensure_future(send_push_notifications(
+                tokens=tokens,
+                title=f"{group_name}",
+                body=f"{sender_display}: {notification_body}",
+                data={"type": "group_message", "groupId": group_id, "groupName": group_name},
+                conn=conn,
+            ))
+    except Exception:
+        import logging
+        logging.getLogger("nave.api").exception("Failed to enqueue group message push notifications")
+
+    return response
 
 
 @router.delete("/{group_id}/messages/{message_id}", status_code=204)

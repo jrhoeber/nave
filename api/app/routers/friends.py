@@ -164,6 +164,38 @@ async def send_friend_request(
         current_user["id"],
         body.addressee_id,
     )
+
+    # Send push notification to recipient
+    try:
+        requester_row = await conn.fetchrow(
+            "SELECT display_name FROM users WHERE id = $1", current_user["id"]
+        )
+        token_rows = await conn.fetch(
+            """
+            SELECT udt.token
+            FROM users u
+            JOIN user_device_tokens udt ON udt.user_id = u.id
+            WHERE u.id = $1
+              AND u.push_notifications_enabled = TRUE
+              AND u.notify_friend_requests = TRUE
+            """,
+            body.addressee_id,
+        )
+        tokens = [r["token"] for r in token_rows]
+        if tokens and requester_row:
+            from app.utils.push import send_push_notifications
+            import asyncio
+            asyncio.ensure_future(send_push_notifications(
+                tokens=tokens,
+                title="New Friend Request",
+                body=f"{requester_row['display_name']} sent you a friend request",
+                data={"type": "friend_request"},
+                conn=conn,
+            ))
+    except Exception:
+        import logging
+        logging.getLogger("nave.api").exception("Failed to enqueue friend request push notification")
+
     return {"message": "Friend request sent"}
 
 

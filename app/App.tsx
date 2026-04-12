@@ -1,17 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { Splash } from './src/components/Splash';
 import { useAuthStore } from './src/store/authStore';
 import { useFriendsStore } from './src/store/friendsStore';
+import { registerPushToken, unregisterPushToken, setupNotificationHandlers } from './src/lib/notifications';
+import type { RootStackParamList } from './src/types/navigation';
+
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
   const { loadStoredAuth, isLoading, isAuthenticated, user, avatarReady } = useAuthStore();
   const fetchFriends = useFriendsStore((s) => s.fetchFriends);
   const [splashDone, setSplashDone] = useState(false);
+  const wasAuthenticatedRef = useRef(false);
 
   useEffect(() => {
     loadStoredAuth();
@@ -20,6 +25,12 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchFriends();
+      registerPushToken();
+      wasAuthenticatedRef.current = true;
+    } else if (wasAuthenticatedRef.current) {
+      // Was authenticated, now logged out
+      unregisterPushToken();
+      wasAuthenticatedRef.current = false;
     }
   }, [isAuthenticated]);
 
@@ -43,7 +54,20 @@ export default function App() {
       {!isLoading && (
         <GestureHandlerRootView style={styles.root}>
           <SafeAreaProvider>
-            <NavigationContainer>
+            <NavigationContainer
+              ref={navigationRef}
+              onReady={() => {
+                setupNotificationHandlers(
+                  (groupId) => navigationRef.navigate('GroupMessage', { id: groupId }),
+                  () => {
+                    // Navigate to App tab navigator and switch to Friends tab
+                    if (navigationRef.isReady()) {
+                      navigationRef.navigate('App' as any, { screen: 'Friends' } as any);
+                    }
+                  },
+                );
+              }}
+            >
               <RootNavigator />
             </NavigationContainer>
           </SafeAreaProvider>

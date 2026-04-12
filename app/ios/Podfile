@@ -1,3 +1,6 @@
+# Required for @react-native-firebase with React Native New Architecture
+$RNFirebaseAsStaticFramework = true
+
 # Resolve react_native_pods.rb with node to allow for hoisting
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -16,6 +19,9 @@ end
 
 target 'Nave' do
   config = use_native_modules!
+
+  # Modular headers required by FirebaseCoreInternal (a Swift pod)
+  pod 'GoogleUtilities', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],

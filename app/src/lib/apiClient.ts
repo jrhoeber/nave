@@ -554,9 +554,10 @@ export const api = {
   },
 
   // Group messages
-  getGroupMessages(groupId: string, cursor?: string, limit = 50) {
+  getGroupMessages(groupId: string, cursor?: string, limit = 50, after?: string) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor) params.set('cursor', cursor);
+    if (after) params.set('after', after);
     return apiFetch<ApiGroupMessagesResponse>(`/prayer-groups/${groupId}/messages?${params}`);
   },
 
@@ -623,6 +624,48 @@ export const api = {
 
   removeFriendship(friendshipId: string) {
     return apiFetch<void>(`/friends/${friendshipId}`, { method: 'DELETE' });
+  },
+
+  // Notifications
+  registerDeviceToken(token: string, platform: 'ios' | 'android') {
+    return apiFetch<void>('/notifications/device-token', {
+      method: 'POST',
+      body: JSON.stringify({ token, platform }),
+    });
+  },
+
+  unregisterDeviceToken(token: string, platform: 'ios' | 'android') {
+    return apiFetch<void>('/notifications/device-token', {
+      method: 'DELETE',
+      body: JSON.stringify({ token, platform }),
+    });
+  },
+
+  getNotificationPreferences() {
+    return apiFetch<{ push_notifications_enabled: boolean; notify_group_messages: boolean; notify_friend_requests: boolean }>('/notifications/preferences');
+  },
+
+  updateNotificationPreferences(prefs: {
+    push_notifications_enabled?: boolean;
+    notify_group_messages?: boolean;
+    notify_friend_requests?: boolean;
+  }) {
+    return apiFetch<{ push_notifications_enabled: boolean; notify_group_messages: boolean; notify_friend_requests: boolean }>(
+      '/notifications/preferences',
+      { method: 'PATCH', body: JSON.stringify(prefs) },
+    );
+  },
+
+  getGroupMuteStatus(groupId: string) {
+    return apiFetch<{ muted: boolean }>(`/notifications/prayer-groups/${groupId}/mute`);
+  },
+
+  muteGroup(groupId: string) {
+    return apiFetch<void>(`/notifications/prayer-groups/${groupId}/mute`, { method: 'POST' });
+  },
+
+  unmuteGroup(groupId: string) {
+    return apiFetch<void>(`/notifications/prayer-groups/${groupId}/mute`, { method: 'DELETE' });
   },
 
   // Users

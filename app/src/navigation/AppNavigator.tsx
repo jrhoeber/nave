@@ -11,6 +11,8 @@ import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { Avatar } from '../components/ui/Avatar';
 import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
+import { useGroupChatStore } from '../store/groupChatStore';
+import { TabBadge } from '../components/ui/TabBadge';
 import { Colors, Typography } from '../theme';
 import type { AppTabParamList } from '../types/navigation';
 
@@ -20,26 +22,22 @@ const styles = StyleSheet.create({
   iconWrapper: {
     position: 'relative',
   },
-  indicator: {
-    position: 'absolute',
-    top: -1,
-    right: -3,
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: Colors.accent,
-    borderWidth: 1.5,
-    borderColor: Colors.surface,
-  },
 });
 
 function FriendsTabIcon({ color, size, hasRequests }: { color: string; size: number; hasRequests: boolean }) {
   return (
     <View style={styles.iconWrapper}>
       <Icon name="people-outline" size={size} color={color} />
-      {hasRequests && (
-        <View style={styles.indicator} />
-      )}
+      <TabBadge show={hasRequests} />
+    </View>
+  );
+}
+
+function GroupsTabIcon({ color, size, hasUnread }: { color: string; size: number; hasUnread: boolean }) {
+  return (
+    <View style={styles.iconWrapper}>
+      <Icon name="people-circle-outline" size={size} color={color} />
+      <TabBadge show={hasUnread} />
     </View>
   );
 }
@@ -55,6 +53,7 @@ function ProfileTabIcon({ color, size }: { color: string; size: number }) {
 export function AppNavigator() {
   const insets = useSafeAreaInsets();
   const incomingRequestCount = useFriendsStore((s) => s.incomingRequests.length);
+  const totalUnreadCount = useGroupChatStore((s) => s.getTotalUnreadCount());
   const bottomInset = insets.bottom || 0;
   return (
     <Tab.Navigator
@@ -93,7 +92,9 @@ export function AppNavigator() {
         component={GroupScreen}
         options={{
           tabBarTestID: 'tab-groups',
-          tabBarIcon: ({ color, size }) => <Icon name="people-circle-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <GroupsTabIcon color={color} size={size} hasUnread={totalUnreadCount > 0} />
+          ),
         }}
       />
       <Tab.Screen

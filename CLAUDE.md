@@ -85,7 +85,9 @@ npm run type-check               # TypeScript check (no emit)
 
 ### Database
 
-PostgreSQL with 4 tables: `users`, `parishes`, `prayer_groups`, `prayer_group_members`. All PKs are UUIDs. Parish search uses trigram (pg_trgm) indexes. Full schema in `api/schema.sql`.
+PostgreSQL. All PKs are UUIDs. Parish search uses trigram (pg_trgm) indexes. Full schema in `api/schema.sql`.
+
+Core tables: `users` (includes `push_notifications_enabled`, `notify_group_messages`, `notify_friend_requests`), `parishes`, `prayer_groups`, `prayer_group_members`, `group_messages`, `group_message_reactions`, `parish_posts`, `parish_post_reactions`, `friendships`, `user_device_tokens` (FCM tokens), `group_notification_mutes`.
 
 ### Auth flow
 
@@ -126,9 +128,10 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `auth.py` | `POST /auth/signup`, `POST /auth/login` — creates user, returns JWT + user data |
 | `users.py` | User search, get/update profile, upload avatar (GCS signed URLs) |
 | `prayer_groups.py` | List/create groups, join/leave, member list, approve/remove members |
-| `group_messages.py` | `GET/POST /prayer-groups/{id}/messages`, `DELETE` message, `POST` reaction toggle |
+| `group_messages.py` | `GET/POST /prayer-groups/{id}/messages` (supports `?after=` for polling), `DELETE` message, `POST` reaction toggle; sends FCM push on new message |
 | `parishes.py` | Fuzzy parish search (trigram + abbreviation expansion), parish member list |
-| `friends.py` | `GET /friends`, `GET /friends/requests/incoming`, `GET /friends/search`, `POST /friends/requests`, `PATCH /friends/requests/{id}`, `DELETE /friends/{id}` |
+| `friends.py` | `GET /friends`, `GET /friends/requests/incoming`, `GET /friends/search`, `POST /friends/requests` (sends FCM push), `PATCH /friends/requests/{id}`, `DELETE /friends/{id}` |
+| `notifications.py` | `POST/DELETE /notifications/device-token`, `GET/PATCH /notifications/preferences`, `POST/DELETE/GET /notifications/prayer-groups/{id}/mute` |
 
 #### Models (`/api/app/models/`)
 | File | Schemas |
@@ -144,6 +147,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 |------|---------|
 | `storage.py` | `upload_avatar()`, `get_avatar_signed_url()` — Google Cloud Storage integration |
 | `queries.py` | `USER_STATS_COLS`, `USER_STATS_JOIN` — reusable user stats query fragments |
+| `push.py` | `send_push_notifications()` — Firebase Admin SDK FCM multicast helper; cleans up invalid tokens |
 
 #### Database & Infra
 | File | Purpose |
@@ -164,7 +168,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | File | Purpose |
 |------|---------|
 | `App.tsx` | Root component; manages auth loading, splash screen, hands off to RootNavigator |
-| `navigation/RootNavigator.tsx` | Auth ↔ App stack switch; defines modal screens (PostDetail, UserProfile, GroupDetail, Compose, CreateGroup) |
+| `navigation/RootNavigator.tsx` | Auth ↔ App stack switch; defines modal screens (PostDetail, UserProfile, GroupMessage, Compose, CreateGroup) |
 | `navigation/AuthNavigator.tsx` | Welcome → Login / SignUp stack |
 | `navigation/AppNavigator.tsx` | Bottom tabs: Community (Parish), Feed, Prayer, Friends, Profile |
 
@@ -174,7 +178,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `authStore.ts` | User, token, login/signup/logout/profile update; persisted via AsyncStorage |
 | `feedStore.ts` | Posts list, pagination, like/unlike + pray/unpray with optimistic updates |
 | `prayerStore.ts` | All groups + user's groups; join/leave with optimistic updates |
-| `groupChatStore.ts` | Per-group message lists, pagination, send/delete/react with optimistic updates |
+| `groupChatStore.ts` | Per-group message lists, pagination, send/delete/react with optimistic updates; `getTotalUnreadCount()`, `appendNewMessages()` for polling |
 | `friendsStore.ts` | Friends list + incoming requests; accept/reject/remove with optimistic updates |
 
 #### API Layer (`/app/src/lib/`)
@@ -182,6 +186,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 |------|---------|
 | `apiClient.ts` | Central HTTP client; JWT injection, snake_case→camelCase mapping, 401 handler, all API methods |
 | `config.ts` | `API_BASE_URL` constant (localhost:8000 dev / 10.0.2.2:8000 Android) |
+| `notifications.ts` | FCM token registration/unregistration + notification tap handlers (foreground, background, cold-start) |
 
 #### Types (`/app/src/types/`)
 | File | Contents |
@@ -195,8 +200,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `auth/WelcomeScreen.tsx` | Landing / onboarding |
 | `auth/LoginScreen.tsx` | Email + password login |
 | `auth/SignUpScreen.tsx` | Registration (email, username, password, display name, parish) |
-| `group/GroupScreen.tsx` | Prayer group discovery list |
-| `group/GroupDetailScreen.tsx` | Group chat: inverted message list, emoji reactions, message input |
+| `group/GroupScreen.tsx` | Prayer group discovery list; loads mute status per group |
+| `group/GroupMessageScreen.tsx` | Group chat: inverted message list, emoji reactions, message input; 3-second polling for new messages when focused |
 | `group/CreateGroupScreen.tsx` | Create group form |
 | `parish/ParishScreen.tsx` | Parish community view |
 | `friends/FriendsScreen.tsx` | Friends list + request management |
@@ -210,6 +215,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 |------|---------|
 | `friends/AddFriendModal.tsx` | pageSheet modal to search users and send friend requests; shows friendship status per result |
 | `ui/Avatar.tsx` | Avatar with initials fallback |
+| `ui/TabBadge.tsx` | Shared red dot badge for nav tab icons (Friends and Groups tabs) |
 | `ui/Button.tsx` | Button with variants (primary, secondary, ghost) |
 | `ui/Input.tsx` | Styled text input |
 | `Splash.tsx` | Startup splash screen |

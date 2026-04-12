@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import auth, friends, group_messages, parishes, prayer_groups, users
+from app.routers import auth, friends, group_messages, notifications, parishes, prayer_groups, users
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -106,12 +106,13 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 # ─── Routers ──────────────────────────────────────────────────────────────────
 
-app.include_router(auth.router,           prefix="/auth",           tags=["auth"])
-app.include_router(users.router,          prefix="/users",          tags=["users"])
-app.include_router(friends.router,        prefix="/friends",        tags=["friends"])
-app.include_router(prayer_groups.router,  prefix="/prayer-groups",  tags=["prayer-groups"])
-app.include_router(group_messages.router, prefix="/prayer-groups",  tags=["group-messages"])
-app.include_router(parishes.router,       prefix="/parishes",       tags=["parishes"])
+app.include_router(auth.router,            prefix="/auth",            tags=["auth"])
+app.include_router(users.router,           prefix="/users",           tags=["users"])
+app.include_router(friends.router,         prefix="/friends",         tags=["friends"])
+app.include_router(prayer_groups.router,   prefix="/prayer-groups",   tags=["prayer-groups"])
+app.include_router(group_messages.router,  prefix="/prayer-groups",   tags=["group-messages"])
+app.include_router(parishes.router,        prefix="/parishes",        tags=["parishes"])
+app.include_router(notifications.router,   prefix="/notifications",   tags=["notifications"])
 
 
 @app.get("/health", tags=["health"])

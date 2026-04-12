@@ -6,17 +6,22 @@ interface PrayerState {
   groups: PrayerGroup[];
   myGroups: PrayerGroup[];
   isLoading: boolean;
+  mutedGroupIds: Set<string>;
   fetchGroups: () => Promise<void>;
   joinGroup: (groupId: string) => Promise<void>;
   leaveGroup: (groupId: string) => Promise<void>;
   updateGroup: (groupId: string, data: { name?: string; description?: string; category?: PrayerGroup['category']; is_private?: boolean; meeting_schedule?: string }) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
+  muteGroup: (groupId: string) => Promise<void>;
+  unmuteGroup: (groupId: string) => Promise<void>;
+  loadMuteStatus: (groupId: string) => Promise<void>;
 }
 
 export const usePrayerStore = create<PrayerState>((set, get) => ({
   groups: [],
   myGroups: [],
   isLoading: false,
+  mutedGroupIds: new Set<string>(),
 
   fetchGroups: async () => {
     if (get().isLoading) return;
@@ -84,6 +89,49 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       const groups = state.groups.filter((g) => g.id !== groupId);
       return { groups, myGroups: groups.filter((g) => g.isMember) };
     });
+  },
+
+  muteGroup: async (groupId: string) => {
+    set((s) => ({ mutedGroupIds: new Set([...s.mutedGroupIds, groupId]) }));
+    try {
+      await api.muteGroup(groupId);
+    } catch {
+      set((s) => {
+        const updated = new Set(s.mutedGroupIds);
+        updated.delete(groupId);
+        return { mutedGroupIds: updated };
+      });
+    }
+  },
+
+  unmuteGroup: async (groupId: string) => {
+    set((s) => {
+      const updated = new Set(s.mutedGroupIds);
+      updated.delete(groupId);
+      return { mutedGroupIds: updated };
+    });
+    try {
+      await api.unmuteGroup(groupId);
+    } catch {
+      set((s) => ({ mutedGroupIds: new Set([...s.mutedGroupIds, groupId]) }));
+    }
+  },
+
+  loadMuteStatus: async (groupId: string) => {
+    try {
+      const { muted } = await api.getGroupMuteStatus(groupId);
+      set((s) => {
+        const updated = new Set(s.mutedGroupIds);
+        if (muted) {
+          updated.add(groupId);
+        } else {
+          updated.delete(groupId);
+        }
+        return { mutedGroupIds: updated };
+      });
+    } catch {
+      // Ignore — mute status will default to false
+    }
   },
 
   leaveGroup: async (groupId: string) => {

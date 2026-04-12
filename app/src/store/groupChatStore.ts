@@ -19,6 +19,8 @@ interface GroupChatState {
   clearGroup: (groupId: string) => void;
   markGroupAsRead: (groupId: string) => void;
   getUnreadCount: (groupId: string) => number;
+  getTotalUnreadCount: () => number;
+  appendNewMessages: (groupId: string, messages: GroupMessage[]) => void;
 }
 
 export const useGroupChatStore = create<GroupChatState>((set, get) => ({
@@ -217,6 +219,27 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     if (!messages || !lastReadId) return 0;
     const idx = messages.findIndex((m) => m.id === lastReadId);
     return idx > 0 ? idx : 0;
+  },
+
+  getTotalUnreadCount: () => {
+    const { messagesByGroup, lastReadIdByGroup } = get();
+    return Object.keys(messagesByGroup).reduce((total, groupId) => {
+      const messages = messagesByGroup[groupId];
+      const lastReadId = lastReadIdByGroup[groupId];
+      if (!messages || !lastReadId) return total;
+      const idx = messages.findIndex((m) => m.id === lastReadId);
+      return total + (idx > 0 ? idx : 0);
+    }, 0);
+  },
+
+  appendNewMessages: (groupId: string, newMessages: GroupMessage[]) => {
+    if (newMessages.length === 0) return;
+    set((s) => ({
+      messagesByGroup: {
+        ...s.messagesByGroup,
+        [groupId]: [...newMessages.reverse(), ...(s.messagesByGroup[groupId] ?? [])],
+      },
+    }));
   },
 
   clearGroup: (groupId: string) => {

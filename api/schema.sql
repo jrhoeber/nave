@@ -5,18 +5,21 @@
 -- USERS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS users (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username      TEXT NOT NULL UNIQUE,
-    display_name  TEXT NOT NULL,
-    email         TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    bio           TEXT,
-    avatar_url    TEXT,
-    parish_id     UUID,
-    diocese       TEXT,
-    location      TEXT,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username                  TEXT NOT NULL UNIQUE,
+    display_name              TEXT NOT NULL,
+    email                     TEXT NOT NULL UNIQUE,
+    password_hash             TEXT NOT NULL,
+    bio                       TEXT,
+    avatar_url                TEXT,
+    parish_id                 UUID,
+    diocese                   TEXT,
+    location                  TEXT,
+    push_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    notify_group_messages     BOOLEAN NOT NULL DEFAULT TRUE,
+    notify_friend_requests    BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
@@ -151,6 +154,30 @@ CREATE TABLE IF NOT EXISTS group_message_reactions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_gmr_message ON group_message_reactions (message_id);
+
+-- ============================================================
+-- PUSH NOTIFICATION DEVICE TOKENS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS user_device_tokens (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token      TEXT NOT NULL,
+    platform   TEXT NOT NULL CHECK (platform IN ('ios', 'android')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, token)
+);
+
+CREATE INDEX IF NOT EXISTS idx_udt_user ON user_device_tokens (user_id);
+
+-- ============================================================
+-- GROUP NOTIFICATION MUTES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS group_notification_mutes (
+    user_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    group_id UUID NOT NULL REFERENCES prayer_groups(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, group_id)
+);
 
 -- ============================================================
 -- FRIENDSHIPS

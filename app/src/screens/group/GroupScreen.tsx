@@ -15,12 +15,19 @@ import type { RootNavigationProp } from '../../types/navigation';
 export function GroupScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const { myGroups, isLoading, fetchGroups, joinGroup, leaveGroup, deleteGroup } = usePrayerStore();
+  const { myGroups, isLoading, fetchGroups, joinGroup, leaveGroup, deleteGroup, muteGroup, unmuteGroup, loadMuteStatus, mutedGroupIds } = usePrayerStore();
   const getUnreadCount = useGroupChatStore((s) => s.getUnreadCount);
   const [editingGroup, setEditingGroup] = useState<PrayerGroup | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
 
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  // Load mute status for all member groups when the list changes
+  useEffect(() => {
+    myGroups.filter((g) => g.isMember).forEach((g) => loadMuteStatus(g.id));
+  }, [myGroups.map((g) => g.id).join(',')]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -42,11 +49,14 @@ export function GroupScreen() {
         renderItem={({ item }: { item: PrayerGroup }) => (
           <PrayerGroupCard
             group={item}
-            onPress={(id) => navigation.navigate('GroupDetail', { id })}
+            onPress={(id) => navigation.navigate('GroupMessage', { id })}
             onJoin={joinGroup}
             onLeave={leaveGroup}
             onEdit={(id) => setEditingGroup(myGroups.find((g) => g.id === id) ?? null)}
             onDelete={deleteGroup}
+            onMute={muteGroup}
+            onUnmute={unmuteGroup}
+            isMuted={mutedGroupIds.has(item.id)}
             unreadCount={getUnreadCount(item.id)}
           />
         )}
@@ -75,7 +85,7 @@ export function GroupScreen() {
         onClose={() => setAddModalVisible(false)}
         onCreateGroup={() => navigation.navigate('CreateGroup')}
         onJoinGroup={(id) => { setAddModalVisible(false); fetchGroups(); }}
-        onOpenGroup={(id) => navigation.navigate('GroupDetail', { id })}
+        onOpenGroup={(id) => navigation.navigate('GroupMessage', { id })}
       />
     </View>
   );

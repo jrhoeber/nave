@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     access_token_expire_days: int = 30
     gcs_bucket_name: str = "nave-avatars"
     gcs_enabled: bool = True
+    # JSON string of the Firebase service account key. If empty, push notifications are disabled.
+    firebase_service_account_json: str = ""
 
     model_config = {"env_file": ".env"}
 

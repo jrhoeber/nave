@@ -14,6 +14,9 @@ interface PrayerGroupCardProps {
   onLeave: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onMute?: (id: string) => void;
+  onUnmute?: (id: string) => void;
+  isMuted?: boolean;
   unreadCount?: number;
 }
 
@@ -38,7 +41,7 @@ function UnreadBadge({ count }: { count: number }) {
   );
 }
 
-export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDelete, unreadCount = 0 }: PrayerGroupCardProps) {
+export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDelete, onMute, onUnmute, isMuted = false, unreadCount = 0 }: PrayerGroupCardProps) {
   const cat = CATEGORY_CONFIG[group.category];
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isAdmin = group.admin.id === currentUserId;
@@ -123,6 +126,21 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
             >
               <Icon name="share-outline" size={15} color={Colors.textPrimary} />
               <Text style={styles.kebabItemText}>Share</Text>
+            </TouchableOpacity>
+            <View style={styles.kebabDivider} />
+            <TouchableOpacity
+              style={styles.kebabItem}
+              onPress={() => {
+                setMenuOpen(false);
+                if (isMuted) {
+                  onUnmute?.(group.id);
+                } else {
+                  onMute?.(group.id);
+                }
+              }}
+            >
+              <Icon name={isMuted ? 'notifications-outline' : 'notifications-off-outline'} size={15} color={Colors.textPrimary} />
+              <Text style={styles.kebabItemText}>{isMuted ? 'Unmute notifications' : 'Mute notifications'}</Text>
             </TouchableOpacity>
             <View style={styles.kebabDivider} />
             {isAdmin ? (

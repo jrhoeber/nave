@@ -187,6 +187,14 @@ export interface FriendSearchResult {
   isRequester?: boolean;
 }
 
+// ─── Notification Preferences ────────────────────────────────────────────────
+
+export interface NotificationPreferences {
+  pushNotificationsEnabled: boolean;
+  notifyGroupMessages: boolean;
+  notifyFriendRequests: boolean;
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =

@@ -35,7 +35,11 @@
       "Bash(applesimutils --version)",
       "Bash(gem install:*)",
       "Bash(npx detox:*)",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(xargs ls:*)",
+      "Bash(find:*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.get\\('dependencies',{}\\).items\\(\\)}, indent=2\\)\\)\")",
+      "Bash(grep -E \"^.*error:.*$\")"
     ]
   }
 }
