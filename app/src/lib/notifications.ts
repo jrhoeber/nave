@@ -22,6 +22,7 @@ async function getModules() {
     getMessaging,
     getToken,
     requestPermission,
+    onMessage,
     onNotificationOpenedApp,
     getInitialNotification,
     onTokenRefresh,
@@ -32,6 +33,7 @@ async function getModules() {
     messagingInstance,
     getToken,
     requestPermission,
+    onMessage,
     onNotificationOpenedApp,
     getInitialNotification,
     onTokenRefresh,
@@ -104,6 +106,7 @@ type NavigateToFriends = () => void;
 /**
  * Set up handlers for notification taps.
  *
+ * - Foreground: app is open — navigate immediately.
  * - Background tap: user tapped a notification while app was backgrounded.
  * - Cold start: user tapped a notification that launched the app from closed state.
  *
@@ -114,7 +117,7 @@ export async function setupNotificationHandlers(
   navigateToFriends: NavigateToFriends,
 ): Promise<void> {
   try {
-    const { messagingInstance, onNotificationOpenedApp, getInitialNotification } =
+    const { messagingInstance, onNotificationOpenedApp, getInitialNotification, onMessage } =
       await getModules();
 
     const handleMessage = (remoteMessage: any) => {
@@ -126,6 +129,9 @@ export async function setupNotificationHandlers(
         navigateToFriends();
       }
     };
+
+    // App in foreground — navigate directly
+    onMessage(messagingInstance, handleMessage);
 
     // App backgrounded — user tapped notification
     onNotificationOpenedApp(messagingInstance, handleMessage);

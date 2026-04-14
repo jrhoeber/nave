@@ -1,0 +1,11 @@
+{
+  "aps": {
+    "alert": {
+      "title": "New Friend Request",
+      "body": "Maria sent you a friend request"
+    },
+    "sound": "default",
+    "content-available": 1
+  },
+  "type": "friend_request"
+}

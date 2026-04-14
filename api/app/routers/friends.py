@@ -190,7 +190,7 @@ async def send_friend_request(
                 title="New Friend Request",
                 body=f"{requester_row['display_name']} sent you a friend request",
                 data={"type": "friend_request"},
-                conn=conn,
+                conn=None,
             ))
     except Exception:
         import logging

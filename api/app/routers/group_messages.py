@@ -247,7 +247,7 @@ async def send_message(
                 title=f"{group_name}",
                 body=f"{sender_display}: {notification_body}",
                 data={"type": "group_message", "groupId": group_id, "groupName": group_name},
-                conn=conn,
+                conn=None,
             ))
     except Exception:
         import logging

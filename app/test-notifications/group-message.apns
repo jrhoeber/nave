@@ -1,0 +1,13 @@
+{
+  "aps": {
+    "alert": {
+      "title": "Morning Rosary",
+      "body": "Maria: Blessed are those who trust in the Lord"
+    },
+    "sound": "default",
+    "content-available": 1
+  },
+  "type": "group_message",
+  "groupId": "00000000-0000-0000-0000-000000000001",
+  "groupName": "Morning Rosary"
+}
