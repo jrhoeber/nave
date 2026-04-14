@@ -13,3 +13,4 @@ sqlalchemy==2.0.40
 psycopg2-binary>=2.9.9
 google-cloud-storage==2.19.0
 firebase-admin==6.5.0
+Pillow

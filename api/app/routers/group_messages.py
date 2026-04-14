@@ -81,12 +81,27 @@ def _resolve_image_url(raw: str | None) -> str | None:
     return get_signed_url(raw)
 
 
-def _build_message(row: dict, reactions_map: dict) -> GroupMessageResponse:
+def _resolve_avatars(rows) -> dict[str, str | None]:
+    """Resolve avatar signed URLs once per unique GCS path across a batch of rows."""
+    unique: dict[str, str | None] = {}
+    for r in rows:
+        raw = r.get("avatar_url")
+        if raw and raw not in unique:
+            unique[raw] = _resolve_avatar_url(raw)
+    return unique
+
+
+def _build_message(row: dict, reactions_map: dict, avatar_cache: dict | None = None) -> GroupMessageResponse:
+    raw_avatar = row.get("avatar_url")
+    if avatar_cache is not None:
+        resolved_avatar = avatar_cache.get(raw_avatar) if raw_avatar else None
+    else:
+        resolved_avatar = _resolve_avatar_url(raw_avatar)
     author = GroupMessageAuthor(
         id=str(row["user_id"]),
         username=row["username"],
         display_name=row["display_name"],
-        avatar_url=_resolve_avatar_url(row.get("avatar_url")),
+        avatar_url=resolved_avatar,
     )
     return GroupMessageResponse(
         id=str(row["id"]),
@@ -131,7 +146,7 @@ async def list_messages(
         )
         message_ids = [str(r["id"]) for r in rows]
         reactions_map = await _fetch_message_reactions(conn, message_ids, str(current_user["id"]))
-        messages = [_build_message(dict(r), reactions_map) for r in rows]
+        messages = [_build_message(dict(r), reactions_map, _resolve_avatars(rows)) for r in rows]
         return GroupMessagesResponse(messages=messages, next_cursor=None)
 
     # Cursor-based pagination (newest-first)
@@ -154,7 +169,7 @@ async def list_messages(
 
     message_ids = [str(r["id"]) for r in rows]
     reactions_map = await _fetch_message_reactions(conn, message_ids, str(current_user["id"]))
-    messages = [_build_message(dict(r), reactions_map) for r in rows]
+    messages = [_build_message(dict(r), reactions_map, _resolve_avatars(rows)) for r in rows]
 
     next_cursor = messages[-1].created_at.isoformat() if len(messages) == limit else None
     return GroupMessagesResponse(messages=messages, next_cursor=next_cursor)

@@ -1,28 +1,39 @@
 import datetime
 import logging
+import time
+from io import BytesIO
+
+from PIL import Image as PilImage
 
 logger = logging.getLogger(__name__)
 
 _SIGNED_URL_TTL = datetime.timedelta(hours=1)
+_SIGNED_URL_CACHE_TTL = 55 * 60  # cache for 55 min (5 min before GCS expiry)
+
+# object_name -> (signed_url, expiry_epoch)
+_signed_url_cache: dict[str, tuple[str, float]] = {}
 
 _ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _MAX_AVATAR_BYTES = 5 * 1024 * 1024   # 5 MB
 _MAX_MESSAGE_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+_AVATAR_MAX_PX = 128
 
 
 def upload_avatar(file_bytes: bytes, user_id: str, content_type: str) -> str:
-    """Upload avatar to the private GCS bucket. Returns the GCS object name."""
+    """Resize to 128×128, upload to GCS as JPEG. Returns the GCS object name."""
     from app.config import settings
     from google.cloud import storage
 
-    ext = content_type.split("/")[-1]
-    if ext == "jpeg":
-        ext = "jpg"
-    object_name = f"avatars/{user_id}.{ext}"
+    img = PilImage.open(BytesIO(file_bytes)).convert("RGB")
+    img.thumbnail((_AVATAR_MAX_PX, _AVATAR_MAX_PX), PilImage.LANCZOS)
+    buf = BytesIO()
+    img.save(buf, format="JPEG", quality=85, optimize=True)
 
+    object_name = f"avatars/{user_id}.jpg"
     client = storage.Client()
-    blob = client.bucket(settings.gcs_bucket_name).blob(object_name)
-    blob.upload_from_string(file_bytes, content_type=content_type)
+    client.bucket(settings.gcs_bucket_name).blob(object_name).upload_from_string(
+        buf.getvalue(), content_type="image/jpeg"
+    )
     logger.info("Uploaded avatar to gs://%s/%s", settings.gcs_bucket_name, object_name)
     return object_name
 
@@ -45,7 +56,15 @@ def upload_message_image(file_bytes: bytes, group_id: str, message_id: str, cont
 
 
 def get_signed_url(object_name: str) -> str | None:
-    """Generate a V4 signed URL for any private GCS object, valid for 1 hour."""
+    """Generate a V4 signed URL for any private GCS object, valid for 1 hour.
+
+    Results are cached in-process for 55 minutes to avoid redundant auth round-trips.
+    """
+    now = time.monotonic()
+    cached = _signed_url_cache.get(object_name)
+    if cached and now < cached[1]:
+        return cached[0]
+
     from app.config import settings
 
     try:
@@ -74,7 +93,9 @@ def get_signed_url(object_name: str) -> str | None:
             sign_kwargs["service_account_email"] = service_account_email
             sign_kwargs["access_token"] = credentials.token
 
-        return blob.generate_signed_url(**sign_kwargs)
+        url = blob.generate_signed_url(**sign_kwargs)
+        _signed_url_cache[object_name] = (url, now + _SIGNED_URL_CACHE_TTL)
+        return url
     except Exception:
         logger.warning("Failed to generate signed URL for %s", object_name, exc_info=True)
         return None
