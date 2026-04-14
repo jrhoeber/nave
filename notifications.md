@@ -52,7 +52,7 @@ Complete these steps once to configure Firebase push notifications and run the a
 ### Step 2 — Add the iOS app to Firebase
 
 1. In Firebase console, click **+ Add app → iOS**.
-2. **iOS bundle ID:** `com.navenative`
+2. **iOS bundle ID:** `co.naveapp.app`
 3. App nickname: `Nave iOS` (optional). Click **Register app**.
 4. Download **`GoogleService-Info.plist`**.
 5. Place it at `app/ios/Nave/GoogleService-Info.plist`.

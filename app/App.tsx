@@ -58,7 +58,11 @@ export default function App() {
               ref={navigationRef}
               onReady={() => {
                 setupNotificationHandlers(
-                  (groupId) => navigationRef.navigate('GroupMessage', { id: groupId }),
+                  (groupId) => {
+                    if (navigationRef.isReady()) {
+                      navigationRef.navigate('GroupMessage', { id: groupId });
+                    }
+                  },
                   () => {
                     // Navigate to App tab navigator and switch to Friends tab
                     if (navigationRef.isReady()) {

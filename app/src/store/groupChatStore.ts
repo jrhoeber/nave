@@ -73,14 +73,50 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
   },
 
   sendMessage: async (groupId: string, content: string) => {
-    const raw = await api.sendGroupMessage(groupId, content);
-    const message = mapGroupMessage(raw);
+    const { user } = useAuthStore.getState();
+    const tempId = `pending-${Date.now()}`;
+    const optimistic: GroupMessage = {
+      id: tempId,
+      groupId,
+      author: {
+        id: user?.id ?? '',
+        username: user?.username ?? '',
+        displayName: user?.displayName ?? '',
+        avatarUrl: user?.avatarUrl,
+      },
+      content,
+      imageUrl: undefined,
+      reactions: [],
+      createdAt: new Date().toISOString(),
+    };
+
     set((s) => ({
       messagesByGroup: {
         ...s.messagesByGroup,
-        [groupId]: [message, ...(s.messagesByGroup[groupId] ?? [])],
+        [groupId]: [optimistic, ...(s.messagesByGroup[groupId] ?? [])],
       },
     }));
+
+    try {
+      const raw = await api.sendGroupMessage(groupId, content);
+      const message = mapGroupMessage(raw);
+      set((s) => ({
+        messagesByGroup: {
+          ...s.messagesByGroup,
+          [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
+            m.id === tempId ? message : m,
+          ),
+        },
+      }));
+    } catch {
+      set((s) => ({
+        messagesByGroup: {
+          ...s.messagesByGroup,
+          [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId),
+        },
+      }));
+      throw new Error('Failed to send message');
+    }
   },
 
   sendImageMessage: async (groupId: string, uri: string, type: string, caption?: string) => {
@@ -234,12 +270,18 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
 
   appendNewMessages: (groupId: string, newMessages: GroupMessage[]) => {
     if (newMessages.length === 0) return;
-    set((s) => ({
-      messagesByGroup: {
-        ...s.messagesByGroup,
-        [groupId]: [...newMessages.reverse(), ...(s.messagesByGroup[groupId] ?? [])],
-      },
-    }));
+    set((s) => {
+      const existing = s.messagesByGroup[groupId] ?? [];
+      const existingIds = new Set(existing.map((m) => m.id));
+      const deduped = newMessages.filter((m) => !existingIds.has(m.id));
+      if (deduped.length === 0) return s;
+      return {
+        messagesByGroup: {
+          ...s.messagesByGroup,
+          [groupId]: [...deduped.reverse(), ...existing],
+        },
+      };
+    });
   },
 
   clearGroup: (groupId: string) => {

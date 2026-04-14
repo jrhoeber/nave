@@ -192,10 +192,11 @@ interface MessageBubbleProps {
   message: GroupMessage;
   groupId: string;
   isMember: boolean;
+  isOwn: boolean;
   onAddReaction: (messageId: string) => void;
 }
 
-function MessageBubble({ message, groupId, isMember, onAddReaction }: MessageBubbleProps) {
+function MessageBubble({ message, groupId, isMember, isOwn, onAddReaction }: MessageBubbleProps) {
   const { toggleReaction } = useGroupChatStore();
 
   return (
@@ -218,7 +219,7 @@ function MessageBubble({ message, groupId, isMember, onAddReaction }: MessageBub
         </View>
 
         {/* Bubble */}
-        <View style={bubbleStyles.bubble}>
+        <View style={[bubbleStyles.bubble, isOwn && bubbleStyles.bubbleOwn]}>
           {message.imageUrl && (
             <View>
               <Image
@@ -295,6 +296,9 @@ const bubbleStyles = StyleSheet.create({
     alignSelf: 'flex-start',
     maxWidth: '92%',
     overflow: 'hidden',
+  },
+  bubbleOwn: {
+    backgroundColor: 'rgba(26,43,74,0.08)',
   },
   text: { fontSize: Typography.base, color: D.text, lineHeight: Typography.base * 1.45 },
   image: { width: 220, height: 220, borderRadius: Radius.md, marginBottom: 2 },
@@ -717,7 +721,7 @@ export function GroupMessageScreen() {
   const route = useRoute<GroupMessageRouteProp>();
   const groupId = route.params.id;
 
-  const { groups, joinGroup, leaveGroup } = usePrayerStore();
+  const { groups, isLoading: groupsLoading, fetchGroups, joinGroup, leaveGroup } = usePrayerStore();
   const { user } = useAuthStore();
   const { messagesByGroup, loadingByGroup, hasMoreByGroup, fetchMessages, loadMoreMessages, clearGroup, markGroupAsRead, appendNewMessages } =
     useGroupChatStore();
@@ -733,6 +737,13 @@ export function GroupMessageScreen() {
 
   // Track the latest message timestamp for polling
   const latestMessageTimestampRef = useRef<string | null>(null);
+
+  // If we landed here via a notification and groups haven't been loaded yet, fetch them
+  useEffect(() => {
+    if (!group && !groupsLoading) {
+      fetchGroups();
+    }
+  }, [groupId]);
 
   useEffect(() => {
     if (group?.isMember) {
@@ -752,8 +763,14 @@ export function GroupMessageScreen() {
   useEffect(() => {
     if (!group?.isMember || !isFocused) return;
 
+    // Seed the ref so polling works even if messages haven't loaded yet (or group is empty)
+    if (!latestMessageTimestampRef.current) {
+      latestMessageTimestampRef.current = new Date().toISOString();
+    }
+
     let intervalId: ReturnType<typeof setInterval> | null = null;
-    let appIsActive = AppState.currentState === 'active';
+    // currentState can be null before it's determined asynchronously — treat null/active/inactive as active
+    let appIsActive = AppState.currentState !== 'background';
 
     const poll = async () => {
       if (!appIsActive) return;
@@ -772,7 +789,7 @@ export function GroupMessageScreen() {
     intervalId = setInterval(poll, 3000);
 
     const appStateSub = AppState.addEventListener('change', (state) => {
-      appIsActive = state === 'active';
+      appIsActive = state !== 'background';
     });
 
     return () => {
@@ -797,11 +814,12 @@ export function GroupMessageScreen() {
           message={item as GroupMessage}
           groupId={groupId}
           isMember={group?.isMember ?? false}
+          isOwn={(item as GroupMessage).author.id === user?.id}
           onAddReaction={setPickerMessageId}
         />
       );
     },
-    [groupId, group?.isMember],
+    [groupId, group?.isMember, user?.id],
   );
 
   if (!group) {

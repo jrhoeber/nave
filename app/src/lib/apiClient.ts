@@ -555,10 +555,10 @@ export const api = {
 
   // Group messages
   getGroupMessages(groupId: string, cursor?: string, limit = 50, after?: string) {
-    const params = new URLSearchParams({ limit: String(limit) });
-    if (cursor) params.set('cursor', cursor);
-    if (after) params.set('after', after);
-    return apiFetch<ApiGroupMessagesResponse>(`/prayer-groups/${groupId}/messages?${params}`);
+    let query = `limit=${limit}`;
+    if (cursor) query += `&cursor=${encodeURIComponent(cursor)}`;
+    if (after) query += `&after=${encodeURIComponent(after)}`;
+    return apiFetch<ApiGroupMessagesResponse>(`/prayer-groups/${groupId}/messages?${query}`);
   },
 
   sendGroupMessage(groupId: string, content: string) {

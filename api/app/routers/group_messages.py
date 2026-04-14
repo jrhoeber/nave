@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.utils.storage import get_avatar_signed_url
 from app.models.group_message import (
     AddReactionBody,
     GroupMessageCreate,
@@ -21,6 +22,12 @@ router = APIRouter()
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
+
+def _resolve_avatar_url(raw: str | None) -> str | None:
+    if raw and raw.startswith("avatars/"):
+        return get_avatar_signed_url(raw)
+    return raw
+
 
 async def _require_member(conn, group_id: str, user_id: str) -> None:
     row = await conn.fetchrow(
@@ -79,7 +86,7 @@ def _build_message(row: dict, reactions_map: dict) -> GroupMessageResponse:
         id=str(row["user_id"]),
         username=row["username"],
         display_name=row["display_name"],
-        avatar_url=row.get("avatar_url"),
+        avatar_url=_resolve_avatar_url(row.get("avatar_url")),
     )
     return GroupMessageResponse(
         id=str(row["id"]),
