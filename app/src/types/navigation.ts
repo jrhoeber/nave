@@ -8,6 +8,7 @@ export type RootStackParamList = {
   PostDetail: { id: string };
   UserProfile: { id: string };
   GroupMessage: { id: string };
+  GroupProfile: { id: string };
   Compose: { postType?: string } | undefined;
   CreateGroup: undefined;
 };
@@ -32,4 +33,5 @@ export type AuthNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 export type PostDetailRouteProp = RouteProp<RootStackParamList, 'PostDetail'>;
 export type UserProfileRouteProp = RouteProp<RootStackParamList, 'UserProfile'>;
 export type GroupMessageRouteProp = RouteProp<RootStackParamList, 'GroupMessage'>;
+export type GroupProfileRouteProp = RouteProp<RootStackParamList, 'GroupProfile'>;
 export type ComposeRouteProp = RouteProp<RootStackParamList, 'Compose'>;

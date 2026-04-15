@@ -6,6 +6,7 @@ import { AppNavigator } from './AppNavigator';
 import { PostDetailScreen } from '../screens/shared/PostDetailScreen';
 import { UserProfileScreen } from '../screens/shared/UserProfileScreen';
 import { GroupMessageScreen } from '../screens/group/GroupMessageScreen';
+import { GroupProfileScreen } from '../screens/group/GroupProfileScreen';
 import { ComposeScreen } from '../screens/shared/ComposeScreen';
 import { CreateGroupScreen } from '../screens/group/CreateGroupScreen';
 import type { RootStackParamList } from '../types/navigation';
@@ -27,6 +28,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="GroupMessage"
             component={GroupMessageScreen}
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="GroupProfile"
+            component={GroupProfileScreen}
             options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen name="Compose" component={ComposeScreen} options={{ presentation: 'modal' }} />

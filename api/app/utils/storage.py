@@ -106,6 +106,25 @@ def get_avatar_signed_url(object_name: str) -> str | None:
     return get_signed_url(object_name)
 
 
+def upload_group_avatar(file_bytes: bytes, group_id: str, content_type: str) -> str:
+    """Resize to 128×128, upload to GCS as JPEG for a prayer group. Returns the GCS object name."""
+    from app.config import settings
+    from google.cloud import storage
+
+    img = PilImage.open(BytesIO(file_bytes)).convert("RGB")
+    img.thumbnail((_AVATAR_MAX_PX, _AVATAR_MAX_PX), PilImage.LANCZOS)
+    buf = BytesIO()
+    img.save(buf, format="JPEG", quality=85, optimize=True)
+
+    object_name = f"group-avatars/{group_id}.jpg"
+    client = storage.Client()
+    client.bucket(settings.gcs_bucket_name).blob(object_name).upload_from_string(
+        buf.getvalue(), content_type="image/jpeg"
+    )
+    logger.info("Uploaded group avatar to gs://%s/%s", settings.gcs_bucket_name, object_name)
+    return object_name
+
+
 def upload_parish_cover(file_bytes: bytes, parish_id: str, content_type: str) -> str:
     """Upload a parish cover photo to GCS. Returns the GCS object name."""
     from app.config import settings

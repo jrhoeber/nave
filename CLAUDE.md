@@ -127,7 +127,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 |------|-----------|
 | `auth.py` | `POST /auth/signup`, `POST /auth/login` — creates user, returns JWT + user data |
 | `users.py` | User search, get/update profile, upload avatar (GCS signed URLs) |
-| `prayer_groups.py` | List/create groups, join/leave, member list, approve/remove members |
+| `prayer_groups.py` | List/create/update/delete groups, join/leave, member list, approve/remove members, `POST/DELETE /{id}/avatar` for group avatar upload |
 | `group_messages.py` | `GET/POST /prayer-groups/{id}/messages` (supports `?after=` for polling), `DELETE` message, `POST` reaction toggle; sends FCM push on new message |
 | `parishes.py` | Fuzzy parish search (trigram + abbreviation expansion), parish member list |
 | `friends.py` | `GET /friends`, `GET /friends/requests/incoming`, `GET /friends/search`, `POST /friends/requests` (sends FCM push), `PATCH /friends/requests/{id}`, `DELETE /friends/{id}` |
@@ -145,7 +145,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 #### Utils (`/api/app/utils/`)
 | File | Purpose |
 |------|---------|
-| `storage.py` | `upload_avatar()`, `get_avatar_signed_url()` — Google Cloud Storage integration |
+| `storage.py` | `upload_avatar()`, `upload_group_avatar()`, `get_signed_url()` — Google Cloud Storage integration; signed URLs cached 55 min |
 | `queries.py` | `USER_STATS_COLS`, `USER_STATS_JOIN` — reusable user stats query fragments |
 | `push.py` | `send_push_notifications()` — Firebase Admin SDK FCM multicast helper; cleans up invalid tokens |
 
@@ -201,7 +201,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `auth/LoginScreen.tsx` | Email + password login |
 | `auth/SignUpScreen.tsx` | Registration (email, username, password, display name, parish) |
 | `group/GroupScreen.tsx` | Prayer group discovery list; loads mute status per group |
-| `group/GroupMessageScreen.tsx` | Group chat: inverted message list, emoji reactions, message input; 3-second polling for new messages when focused |
+| `group/GroupMessageScreen.tsx` | Group chat: inverted message list, emoji reactions, message input; 3-second polling for new messages when focused; tapping group name navigates to GroupProfile |
+| `group/GroupProfileScreen.tsx` | Group profile: avatar (admin-uploadable), name, category, parish, info, mute/share/leave/delete actions, member list with admin remove |
 | `group/CreateGroupScreen.tsx` | Create group form |
 | `parish/ParishScreen.tsx` | Parish community view |
 | `friends/FriendsScreen.tsx` | Friends list + request management |

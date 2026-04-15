@@ -15,6 +15,8 @@ interface PrayerState {
   muteGroup: (groupId: string) => Promise<void>;
   unmuteGroup: (groupId: string) => Promise<void>;
   loadMuteStatus: (groupId: string) => Promise<void>;
+  uploadGroupAvatar: (groupId: string, uri: string, type: string) => Promise<void>;
+  removeGroupAvatar: (groupId: string) => Promise<void>;
 }
 
 export const usePrayerStore = create<PrayerState>((set, get) => ({
@@ -132,6 +134,24 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
     } catch {
       // Ignore — mute status will default to false
     }
+  },
+
+  uploadGroupAvatar: async (groupId: string, uri: string, type: string) => {
+    const raw = await api.uploadGroupAvatar(groupId, uri, type);
+    const updated = mapPrayerGroup(raw);
+    set((state) => {
+      const groups = state.groups.map((g) => g.id === groupId ? updated : g);
+      return { groups, myGroups: groups.filter((g) => g.isMember) };
+    });
+  },
+
+  removeGroupAvatar: async (groupId: string) => {
+    const raw = await api.removeGroupAvatar(groupId);
+    const updated = mapPrayerGroup(raw);
+    set((state) => {
+      const groups = state.groups.map((g) => g.id === groupId ? updated : g);
+      return { groups, myGroups: groups.filter((g) => g.isMember) };
+    });
   },
 
   leaveGroup: async (groupId: string) => {

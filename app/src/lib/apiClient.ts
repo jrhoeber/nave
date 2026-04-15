@@ -242,7 +242,7 @@ export function mapPrayerGroup(raw: ApiPrayerGroup): PrayerGroup {
     name: raw.name,
     description: raw.description,
     category: raw.category,
-    avatarUrl: raw.avatar_url,
+    avatarUrl: raw.avatar_url?.startsWith('http') ? raw.avatar_url : undefined,
     memberCount: raw.member_count,
     postCount: raw.post_count,
     isPrivate: raw.is_private,
@@ -511,6 +511,20 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  },
+
+  uploadGroupAvatar(groupId: string, uri: string, type: string) {
+    const formData = new FormData();
+    formData.append('file', { uri, type, name: 'avatar.jpg' } as unknown as Blob);
+    return apiUpload<ApiPrayerGroup>(`/prayer-groups/${groupId}/avatar`, formData);
+  },
+
+  removeGroupAvatar(groupId: string) {
+    return apiFetch<ApiPrayerGroup>(`/prayer-groups/${groupId}/avatar`, { method: 'DELETE' });
+  },
+
+  removeMember(groupId: string, userId: string) {
+    return apiFetch<{ success: boolean }>(`/prayer-groups/${groupId}/members/${userId}`, { method: 'DELETE' });
   },
 
   // Parishes

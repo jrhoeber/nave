@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
+from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.utils.storage import _ALLOWED_CONTENT_TYPES, _MAX_AVATAR_BYTES, get_signed_url, upload_group_avatar
 from app.models.prayer_group import (
     PrayerGroupCreate,
     PrayerGroupResponse,
@@ -26,13 +28,19 @@ def _build_admin(row: dict) -> UserResponse:
     )
 
 
+def _resolve_group_avatar(raw: str | None) -> str | None:
+    if raw and raw.startswith("group-avatars/"):
+        return get_signed_url(raw)
+    return raw or None
+
+
 def _build_group(row: dict) -> PrayerGroupResponse:
     return PrayerGroupResponse(
         id=str(row["id"]),
         name=row["name"],
         description=row["description"],
         category=row["category"],
-        avatar_url=row.get("avatar_url"),
+        avatar_url=_resolve_group_avatar(row.get("avatar_url")),
         member_count=row.get("member_count", 0) or 0,
         post_count=row.get("post_count", 0) or 0,
         is_private=row["is_private"],
@@ -350,3 +358,64 @@ async def remove_member(
         user_id,
     )
     return {"success": True}
+
+
+@router.post("/{group_id}/avatar", response_model=PrayerGroupResponse)
+async def upload_group_avatar_endpoint(
+    group_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT admin_id FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if str(pg["admin_id"]) != str(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Only the group admin can upload an avatar")
+    if not settings.gcs_enabled:
+        raise HTTPException(status_code=501, detail="File uploads are not enabled")
+
+    content_type = file.content_type or "image/jpeg"
+    if content_type not in _ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"Unsupported image type: {content_type}")
+
+    file_bytes = await file.read()
+    if len(file_bytes) > _MAX_AVATAR_BYTES:
+        raise HTTPException(status_code=413, detail="Avatar image must be under 5 MB")
+
+    object_name = upload_group_avatar(file_bytes, group_id, content_type)
+    await conn.execute(
+        "UPDATE prayer_groups SET avatar_url = $1, updated_at = NOW() WHERE id = $2",
+        object_name,
+        group_id,
+    )
+    row = await conn.fetchrow(
+        f"{_GROUP_SELECT} WHERE pg.id = $2 GROUP BY pg.id, u.id",
+        current_user["id"],
+        group_id,
+    )
+    return _build_group(dict(row))
+
+
+@router.delete("/{group_id}/avatar", response_model=PrayerGroupResponse)
+async def remove_group_avatar(
+    group_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT admin_id FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if str(pg["admin_id"]) != str(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Only the group admin can remove the avatar")
+
+    await conn.execute(
+        "UPDATE prayer_groups SET avatar_url = NULL, updated_at = NOW() WHERE id = $1",
+        group_id,
+    )
+    row = await conn.fetchrow(
+        f"{_GROUP_SELECT} WHERE pg.id = $2 GROUP BY pg.id, u.id",
+        current_user["id"],
+        group_id,
+    )
+    return _build_group(dict(row))

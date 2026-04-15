@@ -399,188 +399,6 @@ const chipStyles = StyleSheet.create({
   countActive: { color: Colors.primary },
 });
 
-// ─── Members Modal ────────────────────────────────────────────────────────────
-
-interface Member {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUrl?: string;
-  joinedAt: string;
-}
-
-interface MembersModalProps {
-  visible: boolean;
-  groupId: string;
-  groupName: string;
-  memberCount: number;
-  adminId: string;
-  onDismiss: () => void;
-}
-
-function MembersModal({ visible, groupId, groupName, memberCount, adminId, onDismiss }: MembersModalProps) {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(false);
-  const insets = useSafeAreaInsets();
-
-  useEffect(() => {
-    if (!visible) return;
-    setLoading(true);
-    api.getGroupMembers(groupId)
-      .then((data) => {
-        setMembers(
-          data.members.map((m) => ({
-            id: m.id,
-            username: m.username,
-            displayName: m.display_name,
-            avatarUrl: m.avatar_url,
-            joinedAt: m.joined_at,
-          }))
-        );
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [visible, groupId]);
-
-  const renderMember = useCallback(({ item }: { item: Member }) => {
-    const isAdmin = item.id === adminId;
-    return (
-      <View style={memberStyles.row}>
-        <Avatar name={item.displayName} uri={item.avatarUrl} size={42} />
-        <View style={memberStyles.info}>
-          <View style={memberStyles.nameRow}>
-            <Text style={memberStyles.displayName}>{item.displayName}</Text>
-            {isAdmin && (
-              <View style={memberStyles.adminBadge}>
-                <Text style={memberStyles.adminBadgeText}>Admin</Text>
-              </View>
-            )}
-          </View>
-          <Text style={memberStyles.username}>@{item.username}</Text>
-        </View>
-      </View>
-    );
-  }, [adminId]);
-
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onDismiss}>
-      <View style={[memberStyles.sheet, { paddingTop: insets.top > 0 ? insets.top : Spacing[4] }]}>
-        {/* Header */}
-        <View style={memberStyles.header}>
-          <View style={memberStyles.headerLeft} />
-          <View style={memberStyles.headerCenter}>
-            <Text style={memberStyles.title}>{groupName}</Text>
-            <Text style={memberStyles.subtitle}>{memberCount} {memberCount === 1 ? 'member' : 'members'}</Text>
-          </View>
-          <TouchableOpacity onPress={onDismiss} style={memberStyles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Icon name="close" size={22} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Content */}
-        {loading ? (
-          <View style={memberStyles.centered}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        ) : (
-          <FlatList
-            data={members}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMember}
-            contentContainerStyle={memberStyles.list}
-            ItemSeparatorComponent={() => <View style={memberStyles.separator} />}
-            ListEmptyComponent={
-              <View style={memberStyles.centered}>
-                <Text style={memberStyles.emptyText}>No members found.</Text>
-              </View>
-            }
-          />
-        )}
-      </View>
-    </Modal>
-  );
-}
-
-const memberStyles = StyleSheet.create({
-  sheet: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing[4],
-    paddingBottom: Spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  headerLeft: { width: 36 },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  title: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  list: {
-    paddingVertical: Spacing[2],
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
-    gap: Spacing[3],
-  },
-  info: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
-  displayName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  adminBadge: {
-    backgroundColor: Colors.primaryLight ?? 'rgba(26,43,74,0.1)',
-    borderRadius: Radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  adminBadgeText: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  username: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginLeft: Spacing[4] + 42 + Spacing[3],
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing[16],
-  },
-  emptyText: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-  },
-});
 
 // ─── Input Bar ────────────────────────────────────────────────────────────────
 
@@ -785,7 +603,6 @@ export function GroupMessageScreen() {
   const hasMore = hasMoreByGroup[groupId] ?? false;
 
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
-  const [membersVisible, setMembersVisible] = useState(false);
 
   // Track the latest message timestamp for polling
   const latestMessageTimestampRef = useRef<string | null>(null);
@@ -903,16 +720,14 @@ export function GroupMessageScreen() {
 
         <Avatar name={group.name} size={34} uri={group.avatarUrl} style={styles.headerAvatar} />
 
-        <TouchableOpacity style={styles.headerTitleRow} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.headerTitleRow}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('GroupProfile', { id: groupId })}
+        >
           <Text style={styles.headerName} numberOfLines={1}>{group.name}</Text>
           <Icon name="chevron-forward" size={14} color={Colors.textSecondary} style={{ marginTop: 1 }} />
         </TouchableOpacity>
-
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7} onPress={() => setMembersVisible(true)}>
-            <Icon name="people-outline" size={22} color={Colors.primary} />
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* ── Message list ── */}
@@ -980,15 +795,6 @@ export function GroupMessageScreen() {
         />
       )}
 
-      {/* ── Members modal ── */}
-      <MembersModal
-        visible={membersVisible}
-        groupId={groupId}
-        groupName={group.name}
-        memberCount={group.memberCount}
-        adminId={group.admin.id}
-        onDismiss={() => setMembersVisible(false)}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -1020,9 +826,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     flexShrink: 1,
   },
-  headerActions: { flexDirection: 'row', gap: Spacing[1] },
-  headerIconBtn: { padding: 6 },
-
   // List
   listContent: { paddingTop: Spacing[2], paddingBottom: Spacing[2] },
 
