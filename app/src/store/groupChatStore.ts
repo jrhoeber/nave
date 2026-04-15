@@ -1,7 +1,16 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GroupMessage } from '../types';
 import { api, mapGroupMessage, mapMessageReaction } from '../lib/apiClient';
 import { useAuthStore } from './authStore';
+
+const LAST_READ_KEY = 'nave_last_read_by_group';
+
+async function persistLastRead(lastReadIdByGroup: Record<string, string>) {
+  try {
+    await AsyncStorage.setItem(LAST_READ_KEY, JSON.stringify(lastReadIdByGroup));
+  } catch {}
+}
 
 interface GroupChatState {
   messagesByGroup: Record<string, GroupMessage[]>;
@@ -18,6 +27,8 @@ interface GroupChatState {
   toggleReaction: (groupId: string, messageId: string, emoji: string) => Promise<void>;
   clearGroup: (groupId: string) => void;
   markGroupAsRead: (groupId: string) => void;
+  hydrateLastRead: () => Promise<void>;
+  loadGroupBaseline: (groupId: string) => Promise<void>;
   getUnreadCount: (groupId: string) => number;
   getTotalUnreadCount: () => number;
   appendNewMessages: (groupId: string, messages: GroupMessage[]) => void;
@@ -191,16 +202,23 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     if (!msg) return;
 
     // Optimistic update: toggle locally
+    // Branch on userReacted — the emoji may already exist from other users.
     const existingIdx = msg.reactions.findIndex((r) => r.emoji === emoji);
     let optimisticReactions = msg.reactions.map((r) => ({ ...r }));
-    if (existingIdx >= 0) {
+    if (existingIdx >= 0 && optimisticReactions[existingIdx].userReacted) {
+      // User is removing their reaction
       const r = optimisticReactions[existingIdx];
       if (r.count <= 1) {
         optimisticReactions = optimisticReactions.filter((_, i) => i !== existingIdx);
       } else {
         optimisticReactions[existingIdx] = { ...r, count: r.count - 1, userReacted: false };
       }
+    } else if (existingIdx >= 0) {
+      // Emoji exists from other users — user is adding their reaction
+      const r = optimisticReactions[existingIdx];
+      optimisticReactions[existingIdx] = { ...r, count: r.count + 1, userReacted: true };
     } else {
+      // New emoji
       optimisticReactions = [
         ...optimisticReactions,
         { emoji: emoji as any, count: 1, userReacted: true },
@@ -244,7 +262,49 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     const messages = get().messagesByGroup[groupId];
     const latestId = messages?.[0]?.id;
     if (latestId) {
-      set((s) => ({ lastReadIdByGroup: { ...s.lastReadIdByGroup, [groupId]: latestId } }));
+      set((s) => {
+        const updated = { ...s.lastReadIdByGroup, [groupId]: latestId };
+        persistLastRead(updated);
+        return { lastReadIdByGroup: updated };
+      });
+    }
+  },
+
+  hydrateLastRead: async () => {
+    try {
+      const json = await AsyncStorage.getItem(LAST_READ_KEY);
+      if (json) {
+        set({ lastReadIdByGroup: JSON.parse(json) as Record<string, string> });
+      }
+    } catch {}
+  },
+
+  loadGroupBaseline: async (groupId: string) => {
+    // Guard: skip if messages are already loaded for this group, or if a load is in progress
+    const { messagesByGroup, loadingByGroup } = get();
+    if (messagesByGroup[groupId] || loadingByGroup[groupId]) return;
+    set((s) => ({ loadingByGroup: { ...s.loadingByGroup, [groupId]: true } }));
+    try {
+      const data = await api.getGroupMessages(groupId, undefined, 20);
+      const messages = data.messages.map(mapGroupMessage);
+      const latestId = messages[0]?.id;
+      set((s) => {
+        // Only set baseline lastReadId if not already set (e.g. from AsyncStorage hydration or a prior chat visit)
+        const alreadyRead = !!s.lastReadIdByGroup[groupId];
+        const newLastReadIdByGroup = !alreadyRead && latestId
+          ? { ...s.lastReadIdByGroup, [groupId]: latestId }
+          : s.lastReadIdByGroup;
+        if (!alreadyRead && latestId) persistLastRead(newLastReadIdByGroup);
+        return {
+          messagesByGroup: { ...s.messagesByGroup, [groupId]: messages },
+          cursorByGroup: { ...s.cursorByGroup, [groupId]: data.next_cursor ?? null },
+          hasMoreByGroup: { ...s.hasMoreByGroup, [groupId]: data.next_cursor != null },
+          loadingByGroup: { ...s.loadingByGroup, [groupId]: false },
+          lastReadIdByGroup: newLastReadIdByGroup,
+        };
+      });
+    } catch {
+      set((s) => ({ loadingByGroup: { ...s.loadingByGroup, [groupId]: false } }));
     }
   },
 
@@ -254,7 +314,8 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     const lastReadId = lastReadIdByGroup[groupId];
     if (!messages || !lastReadId) return 0;
     const idx = messages.findIndex((m) => m.id === lastReadId);
-    return idx > 0 ? idx : 0;
+    // idx === -1: lastReadId is older than our fetched window → all fetched messages are unread
+    return idx === -1 ? messages.length : idx;
   },
 
   getTotalUnreadCount: () => {
@@ -264,7 +325,7 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
       const lastReadId = lastReadIdByGroup[groupId];
       if (!messages || !lastReadId) return total;
       const idx = messages.findIndex((m) => m.id === lastReadId);
-      return total + (idx > 0 ? idx : 0);
+      return total + (idx === -1 ? messages.length : idx);
     }, 0);
   },
 

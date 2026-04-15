@@ -59,7 +59,9 @@ interface DateSeparatorItem {
   label: string;
 }
 
-type RenderItem = GroupMessage | DateSeparatorItem;
+type MessagePosition = 'solo' | 'top' | 'middle' | 'bottom';
+type PositionedMessage = GroupMessage & { _position: MessagePosition };
+type RenderItem = PositionedMessage | DateSeparatorItem;
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -107,11 +109,29 @@ function buildRenderData(messages: GroupMessage[]): RenderItem[] {
       currentDay = day;
       currentLabel = formatSeparatorLabel(msg.createdAt);
     }
-    result.push(msg);
+    result.push({ ...msg, _position: 'solo' } as PositionedMessage);
   }
   if (currentDay !== '') {
     result.push({ type: 'separator', id: `sep-${currentDay}`, label: currentLabel });
   }
+
+  // Compute group positions.
+  // Data is newest-first; result[i-1] is newer (renders below), result[i+1] is older (renders above).
+  // bottom = newest in a run (visually lowest), top = oldest in a run (visually highest).
+  for (let i = 0; i < result.length; i++) {
+    const item = result[i];
+    if ('type' in item) continue;
+    const msg = item as PositionedMessage;
+    const below = result[i - 1];
+    const above = result[i + 1];
+    const sameAsBelow = below && !('type' in below) && (below as GroupMessage).author.id === msg.author.id;
+    const sameAsAbove = above && !('type' in above) && (above as GroupMessage).author.id === msg.author.id;
+    if (sameAsBelow && sameAsAbove) msg._position = 'middle';
+    else if (sameAsBelow) msg._position = 'top';
+    else if (sameAsAbove) msg._position = 'bottom';
+    else msg._position = 'solo';
+  }
+
   return result;
 }
 
@@ -193,33 +213,58 @@ interface MessageBubbleProps {
   groupId: string;
   isMember: boolean;
   isOwn: boolean;
-  onAddReaction: (messageId: string) => void;
+  position: MessagePosition;
+  onLongPress: (messageId: string) => void;
 }
 
-function MessageBubble({ message, groupId, isMember, isOwn, onAddReaction }: MessageBubbleProps) {
+function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPress }: MessageBubbleProps) {
   const { toggleReaction } = useGroupChatStore();
 
+  // Avatar appears beside the bottom (newest) message in a group, or a solo message.
+  // A spacer keeps text aligned for the other bubbles in the group.
+  const showAvatar = !isOwn && (position === 'solo' || position === 'bottom');
+  // Name + time appear above the top (oldest) message in a group, or a solo message.
+  const showMeta = !isOwn && (position === 'solo' || position === 'top');
+  // Timestamp shown below the last (bottom/solo) own bubble only.
+  const showOwnTime = isOwn && (position === 'solo' || position === 'bottom');
+
   return (
-    <View style={bubbleStyles.row}>
-      {/* Avatar column */}
-      <View style={bubbleStyles.avatarCol}>
-        <Avatar
-          name={message.author.displayName}
-          uri={message.author.avatarUrl}
-          size={36}
-        />
-      </View>
+    <View style={[
+      bubbleStyles.row,
+      isOwn && bubbleStyles.rowOwn,
+      position === 'top' && bubbleStyles.rowTop,
+      position === 'middle' && bubbleStyles.rowMiddle,
+      position === 'bottom' && bubbleStyles.rowBottom,
+    ]}>
+      {/* Avatar / spacer column for other-user messages */}
+      {!isOwn && (
+        showAvatar
+          ? <View style={bubbleStyles.avatarCol}><Avatar name={message.author.displayName} uri={message.author.avatarUrl} size={36} /></View>
+          : <View style={bubbleStyles.avatarSpacer} />
+      )}
 
       {/* Content column */}
-      <View style={bubbleStyles.contentCol}>
-        {/* Name + time */}
-        <View style={bubbleStyles.metaRow}>
-          <Text style={bubbleStyles.senderName}>{message.author.displayName}</Text>
-          <Text style={bubbleStyles.time}>{formatMessageTime(message.createdAt)}</Text>
-        </View>
+      <View style={[bubbleStyles.contentCol, isOwn && bubbleStyles.contentColOwn]}>
+        {showMeta && (
+          <View style={bubbleStyles.metaRow}>
+            <Text style={bubbleStyles.senderName}>{message.author.displayName}</Text>
+            <Text style={bubbleStyles.time}>{formatMessageTime(message.createdAt)}</Text>
+          </View>
+        )}
 
         {/* Bubble */}
-        <View style={[bubbleStyles.bubble, isOwn && bubbleStyles.bubbleOwn]}>
+        <Pressable
+          onLongPress={() => isMember && !message.pending && onLongPress(message.id)}
+          delayLongPress={350}
+          style={[
+            bubbleStyles.bubble,
+            isOwn && bubbleStyles.bubbleOwn,
+            !isOwn && position === 'top' && bubbleStyles.bubblePosTopOther,
+            !isOwn && position === 'middle' && bubbleStyles.bubblePosMiddleOther,
+            isOwn && position === 'top' && bubbleStyles.bubblePosTopOwn,
+            isOwn && position === 'middle' && bubbleStyles.bubblePosMiddleOwn,
+          ]}
+        >
           {message.imageUrl && (
             <View>
               <Image
@@ -235,10 +280,14 @@ function MessageBubble({ message, groupId, isMember, isOwn, onAddReaction }: Mes
             </View>
           )}
           {message.content ? <Text style={[bubbleStyles.text, message.imageUrl ? bubbleStyles.caption : null]}>{message.content}</Text> : null}
-        </View>
+        </Pressable>
+
+        {showOwnTime && (
+          <Text style={bubbleStyles.timeOwn}>{formatMessageTime(message.createdAt)}</Text>
+        )}
 
         {/* Reactions */}
-        {!message.pending && (message.reactions.length > 0 || isMember) && (
+        {!message.pending && message.reactions.length > 0 && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -249,7 +298,7 @@ function MessageBubble({ message, groupId, isMember, isOwn, onAddReaction }: Mes
               <TouchableOpacity
                 key={r.emoji}
                 onPress={() => isMember && toggleReaction(groupId, message.id, r.emoji)}
-                style={[chipStyles.chip, r.userReacted && chipStyles.chipActive]}
+                style={[chipStyles.chip, isOwn && chipStyles.chipOwn, r.userReacted && (isOwn ? chipStyles.chipActiveOwn : chipStyles.chipActive)]}
                 activeOpacity={0.7}
               >
                 <Text style={chipStyles.emoji}>{r.emoji}</Text>
@@ -258,16 +307,6 @@ function MessageBubble({ message, groupId, isMember, isOwn, onAddReaction }: Mes
                 </Text>
               </TouchableOpacity>
             ))}
-            {isMember && (
-              <TouchableOpacity
-                onPress={() => onAddReaction(message.id)}
-                style={chipStyles.addBtn}
-                activeOpacity={0.7}
-              >
-                <Text style={chipStyles.addBtnEmoji}>🙂</Text>
-                <Icon name="add" size={12} color={D.textMuted} />
-              </TouchableOpacity>
-            )}
           </ScrollView>
         )}
       </View>
@@ -282,11 +321,20 @@ const bubbleStyles = StyleSheet.create({
     paddingVertical: 5,
     alignItems: 'flex-start',
   },
+  rowOwn: { justifyContent: 'flex-end' },
+  // Tighter vertical spacing for grouped messages
+  rowTop:    { paddingTop: 5, paddingBottom: 2 },
+  rowMiddle: { paddingTop: 2, paddingBottom: 2 },
+  rowBottom: { paddingTop: 2, paddingBottom: 5 },
   avatarCol: { marginRight: 10, marginTop: 2 },
+  // Invisible spacer keeps message text aligned when avatar is hidden
+  avatarSpacer: { width: 36, marginRight: 10 },
   contentCol: { flex: 1 },
+  contentColOwn: { alignItems: 'flex-end' },
   metaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 4 },
   senderName: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: D.text },
   time: { fontSize: Typography.xs, color: D.textMuted },
+  timeOwn: { fontSize: Typography.xs, color: D.textMuted, marginTop: 3 },
   bubble: {
     backgroundColor: D.bubble,
     borderRadius: Radius.lg,
@@ -294,12 +342,25 @@ const bubbleStyles = StyleSheet.create({
     paddingHorizontal: Spacing[3],
     paddingVertical: Spacing[2],
     alignSelf: 'flex-start',
-    maxWidth: '92%',
+    maxWidth: '80%',
     overflow: 'hidden',
   },
   bubbleOwn: {
     backgroundColor: 'rgba(26,43,74,0.08)',
+    alignSelf: 'flex-end',
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: 4,
   },
+  // Other-user group position overrides (spine = left side)
+  // top: restore tl, cut bl to hint continuation downward
+  bubblePosTopOther:    { borderTopLeftRadius: Radius.lg, borderBottomLeftRadius: 4 },
+  // middle: tl already 4 from base; cut bl too
+  bubblePosMiddleOther: { borderBottomLeftRadius: 4 },
+  // Own-message group position overrides (spine = right side)
+  // top: restore tr, cut br
+  bubblePosTopOwn:    { borderTopRightRadius: Radius.lg, borderBottomRightRadius: 4 },
+  // middle: tr already 4 from bubbleOwn; cut br too
+  bubblePosMiddleOwn: { borderBottomRightRadius: 4 },
   text: { fontSize: Typography.base, color: D.text, lineHeight: Typography.base * 1.45 },
   image: { width: 220, height: 220, borderRadius: Radius.md, marginBottom: 2 },
   pendingOverlay: {
@@ -310,41 +371,32 @@ const bubbleStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   caption: { marginTop: 4 },
-  reactionsScroll: { marginTop: 5 },
-  reactionsContent: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  reactionsScroll: { marginTop: 3 },
+  reactionsContent: { flexDirection: 'row', alignItems: 'center', gap: 3 },
 });
 
 const chipStyles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  chipActive: {
-    backgroundColor: 'rgba(26,43,74,0.08)',
-    borderColor: Colors.primary,
-  },
-  emoji: { fontSize: 13 },
-  count: { fontSize: Typography.xs, color: Colors.textSecondary, fontWeight: Typography.medium },
-  countActive: { color: Colors.primary },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
+    backgroundColor: D.bubble,           // same as other-user bubble
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  addBtnEmoji: { fontSize: 13 },
+  chipOwn: {
+    backgroundColor: 'rgba(26,43,74,0.08)', // same as own bubble
+    borderColor: 'rgba(26,43,74,0.14)',
+  },
+  // Active state: color only — borderWidth unchanged so layout never shifts
+  chipActive:    { borderColor: Colors.primary },
+  chipActiveOwn: { borderColor: 'rgba(26,43,74,0.45)' },
+  emoji: { fontSize: 13 },
+  count: { fontSize: 10, color: Colors.textSecondary, fontWeight: Typography.semibold, lineHeight: 15 },
+  countActive: { color: Colors.primary },
 });
 
 // ─── Members Modal ────────────────────────────────────────────────────────────
@@ -749,7 +801,6 @@ export function GroupMessageScreen() {
     if (group?.isMember) {
       fetchMessages(groupId).then(() => markGroupAsRead(groupId));
     }
-    return () => clearGroup(groupId);
   }, [groupId, group?.isMember]);
 
   // Update latest timestamp whenever messages change
@@ -809,13 +860,15 @@ export function GroupMessageScreen() {
       if ('type' in item && item.type === 'separator') {
         return <DateSeparator label={item.label} />;
       }
+      const msg = item as PositionedMessage;
       return (
         <MessageBubble
-          message={item as GroupMessage}
+          message={msg}
           groupId={groupId}
           isMember={group?.isMember ?? false}
-          isOwn={(item as GroupMessage).author.id === user?.id}
-          onAddReaction={setPickerMessageId}
+          isOwn={msg.author.id === user?.id}
+          position={msg._position ?? 'solo'}
+          onLongPress={setPickerMessageId}
         />
       );
     },

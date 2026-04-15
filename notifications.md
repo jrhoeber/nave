@@ -7,7 +7,7 @@ For message notifications
 
 Message UI updates
 - When the user has unread messages in a group, show the same indicator on the nav menu that's used on the friends option when a pending friend request. Use the exact same component and refactor it so it can be used across any nav option
-- When the user has unread messages in a group and they're on the group screen, show the count of unread messages on the group card. Show the count of unread messages up to 99. If there are more than 99, show 99+
+- When the user has unread messages in a group and they're on the group screen, show the count of unread messages on the group card. Show the count of unread messages up to 20. If there are more than 20, show 20+
 - Add a mute notifications option to the kebab menu on the group screen. If notifications are already muted for the group, show an unmute option instead
 
 For friend request notifications

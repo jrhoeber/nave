@@ -18,6 +18,25 @@ interface PrayerGroupCardProps {
   onUnmute?: (id: string) => void;
   isMuted?: boolean;
   unreadCount?: number;
+  lastMessageAt?: string;
+}
+
+function formatRelativeTime(iso: string): string {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diffMs = now - then;
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const date = new Date(iso);
+  const diffDays = Math.floor(diffMs / 86_400_000);
+  if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'short' });
+  if (date.getFullYear() === new Date().getFullYear()) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
 const CATEGORY_CONFIG: Record<PrayerGroupCategory, { label: string; icon: string; color: string }> = {
@@ -32,25 +51,21 @@ const CATEGORY_CONFIG: Record<PrayerGroupCategory, { label: string; icon: string
   general:        { label: 'General',         icon: 'chatbubbles-outline', color: Colors.textSecondary },
 };
 
-function UnreadBadge({ count }: { count: number }) {
-  const label = count > 99 ? '99+' : String(count);
-  return (
-    <View style={[styles.badge, label.length > 2 && styles.badgeWide]}>
-      <Text style={styles.badgeText}>{label}</Text>
-    </View>
-  );
+function UnreadDot() {
+  return <View style={styles.unreadDot} />;
 }
 
-export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDelete, onMute, onUnmute, isMuted = false, unreadCount = 0 }: PrayerGroupCardProps) {
+export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDelete, onMute, onUnmute, isMuted = false, unreadCount = 0, lastMessageAt }: PrayerGroupCardProps) {
   const cat = CATEGORY_CONFIG[group.category];
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isAdmin = group.admin.id === currentUserId;
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
-  const kebabRef = useRef<TouchableOpacity>(null);
+  const cardRef = useRef<TouchableOpacity>(null);
 
-  const handleKebabPress = () => {
-    kebabRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
+  const handleLongPress = () => {
+    if (!group.isMember) return;
+    cardRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
       const windowWidth = Dimensions.get('window').width;
       setMenuPos({ top: pageY + height + 4, right: windowWidth - pageX - width });
       setMenuOpen(true);
@@ -58,25 +73,17 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
   };
 
   return (
-    <TouchableOpacity onPress={() => onPress(group.id)} activeOpacity={0.97} style={styles.card} testID={`group-card-${group.id}`}>
-      {group.isMember && (
-        <View style={styles.kebabContainer} onStartShouldSetResponder={() => true}>
-          <TouchableOpacity
-            ref={kebabRef}
-            onPress={handleKebabPress}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Icon name="ellipsis-horizontal" size={18} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      )}
+    <TouchableOpacity ref={cardRef} onPress={() => onPress(group.id)} onLongPress={handleLongPress} delayLongPress={350} activeOpacity={0.97} style={styles.card} testID={`group-card-${group.id}`}>
 
       <View style={styles.row}>
         <Avatar name={group.name} size={42} uri={group.avatarUrl} />
         <View style={styles.info}>
           <View style={styles.titleRow}>
             <Text style={styles.name} numberOfLines={1}>{group.name}</Text>
-            {unreadCount > 0 && <UnreadBadge count={unreadCount} />}
+            {lastMessageAt && (
+              <Text style={styles.titleTime} numberOfLines={1}>• {formatRelativeTime(lastMessageAt)}</Text>
+            )}
+            {isMuted && <Icon name="notifications-off-outline" size={13} color={Colors.textSecondary} />}
           </View>
           <View style={styles.metaRow}>
             <View style={[styles.categoryBadge, { backgroundColor: cat.color + '18' }]}>
@@ -103,7 +110,11 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
             )}
           </View>
         </View>
-        {!group.isMember && (
+        {group.isMember ? (
+          <View style={styles.rightMeta}>
+            {unreadCount > 0 && <UnreadDot />}
+          </View>
+        ) : (
           <View style={styles.action} onStartShouldSetResponder={() => true}>
             <Button
               label={group.isPendingApproval ? 'Requested' : 'Join'}
@@ -204,7 +215,8 @@ const styles = StyleSheet.create({
   privatePill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: Spacing[2], paddingVertical: 2, borderRadius: Radius.full, backgroundColor: Colors.surfaceAlt },
   privatePillText: { fontSize: Typography.xs, color: Colors.textSecondary, fontWeight: Typography.medium },
   action: { flexShrink: 0 },
-  kebabContainer: { position: 'absolute', top: Spacing[3], right: Spacing[4], zIndex: 1 },
+  rightMeta: { flexShrink: 0, alignItems: 'flex-end', gap: Spacing[1] },
+  titleTime: { fontSize: Typography.xs, color: Colors.textSecondary, flexShrink: 0 },
   kebabMenu: {
     position: 'absolute',
     backgroundColor: Colors.surface,
@@ -218,7 +230,5 @@ const styles = StyleSheet.create({
   kebabItemText: { fontSize: Typography.sm, color: Colors.textPrimary },
   kebabItemDestructive: { color: Colors.error },
   kebabDivider: { height: 1, backgroundColor: Colors.border },
-  badge: { backgroundColor: Colors.error, borderRadius: Radius.full, minWidth: 18, height: 18, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center' },
-  badgeWide: { paddingHorizontal: 6 },
-  badgeText: { fontSize: 11, fontWeight: Typography.bold, color: '#fff', lineHeight: 14 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.accent },
 });

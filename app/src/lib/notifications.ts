@@ -10,7 +10,9 @@
  */
 
 import { Platform } from 'react-native';
-import { api } from './apiClient';
+import { api, mapGroupMessage } from './apiClient';
+import { useGroupChatStore } from '../store/groupChatStore';
+import { usePrayerStore } from '../store/prayerStore';
 
 // Lazy import so the app doesn't crash if Firebase isn't configured yet
 async function getModules() {
@@ -155,8 +157,22 @@ export async function setupNotificationHandlers(
       }
     };
 
-    // App in foreground — receive silently, do not auto-navigate
-    onMessage(messagingInstance, () => {});
+    // App in foreground — poll the affected group for new messages immediately
+    onMessage(messagingInstance, async (remoteMessage) => {
+      const data = remoteMessage?.data;
+      if (data?.type !== 'group_message' || !data.groupId) return;
+      const { mutedGroupIds } = usePrayerStore.getState();
+      if (mutedGroupIds.has(data.groupId)) return;
+      const { messagesByGroup, appendNewMessages } = useGroupChatStore.getState();
+      const messages = messagesByGroup[data.groupId];
+      if (!messages?.length) return;
+      try {
+        const result = await api.getGroupMessages(data.groupId, undefined, 20, messages[0].createdAt);
+        if (result.messages.length > 0) {
+          appendNewMessages(data.groupId, result.messages.map(mapGroupMessage));
+        }
+      } catch {}
+    });
 
     // App backgrounded — user tapped notification
     onNotificationOpenedApp(messagingInstance, handleMessage);
