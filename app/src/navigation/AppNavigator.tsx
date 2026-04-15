@@ -102,6 +102,25 @@ export function AppNavigator() {
     };
   }, []);
 
+  // Poll friend requests every 30s and on app foreground so the Friends tab
+  // badge stays current regardless of which tab is active.
+  useEffect(() => {
+    const { fetchFriends } = useFriendsStore.getState();
+    fetchFriends();
+
+    const interval = setInterval(() => {
+      if (AppState.currentState !== 'active') return;
+      useFriendsStore.getState().fetchFriends();
+    }, 30000);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') useFriendsStore.getState().fetchFriends();
+    });
+    return () => {
+      clearInterval(interval);
+      appStateSub.remove();
+    };
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={{
