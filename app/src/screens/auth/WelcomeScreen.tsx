@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'react-native';
@@ -22,7 +22,11 @@ export function WelcomeScreen() {
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <View style={[styles.container, { paddingTop: insets.top + Spacing[6], paddingBottom: insets.bottom + Spacing[6] }]}>
         <View style={styles.top}>
-          <Text style={styles.cross}>✝</Text>
+          <Image
+            source={require('../../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.appName}>Nave</Text>
           <Text style={styles.tagline}>
             Where Catholics gather, pray,{'\n'}and grow in faith together.
@@ -76,7 +80,7 @@ const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1, paddingHorizontal: Spacing[6], justifyContent: 'space-between' },
   top: { alignItems: 'center', gap: Spacing[3] },
-  cross: { fontSize: 44, color: Colors.accent },
+  logo: { width: 100, height: 100, marginBottom: Spacing[2] },
   appName: { fontSize: 64, fontWeight: Typography.extrabold, color: Colors.textInverse, letterSpacing: -2, lineHeight: 68 },
   tagline: { fontSize: Typography.md, color: 'rgba(255,255,255,0.82)', textAlign: 'center', lineHeight: Typography.md * 1.5 },
   features: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: Spacing[5], gap: Spacing[3] },

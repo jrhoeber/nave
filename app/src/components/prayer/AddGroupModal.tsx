@@ -111,8 +111,9 @@ export function AddGroupModal({ visible, onClose, onCreateGroup, onJoinGroup, on
   };
 
   const handleJoin = async (id: string) => {
-    await joinGroup(id);
-    // Refresh to reflect new membership status
+    const groupData = groups.find((g) => g.id === id);
+    await joinGroup(id, groupData);
+    // Refresh to reflect new membership status in modal list
     fetchGroups(search);
   };
 

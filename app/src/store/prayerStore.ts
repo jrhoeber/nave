@@ -8,7 +8,7 @@ interface PrayerState {
   isLoading: boolean;
   mutedGroupIds: Set<string>;
   fetchGroups: () => Promise<void>;
-  joinGroup: (groupId: string) => Promise<void>;
+  joinGroup: (groupId: string, groupData?: PrayerGroup) => Promise<void>;
   leaveGroup: (groupId: string) => Promise<void>;
   updateGroup: (groupId: string, data: { name?: string; description?: string; category?: PrayerGroup['category']; is_private?: boolean; meeting_schedule?: string }) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
@@ -37,14 +37,17 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
     }
   },
 
-  joinGroup: async (groupId: string) => {
-    const group = get().groups.find((g) => g.id === groupId);
-    // Optimistic update only if the group is already in the list
+  joinGroup: async (groupId: string, groupData?: PrayerGroup) => {
+    const existingGroup = get().groups.find((g) => g.id === groupId);
+    const group = existingGroup ?? groupData;
+    // Optimistic update — works whether the group was already in the list or newly discovered
     if (group) {
       set((state) => {
-        const updated = state.groups.map((g) =>
-          g.id === groupId ? { ...g, isMember: true, memberCount: g.memberCount + 1 } : g,
-        );
+        const alreadyInList = state.groups.some((g) => g.id === groupId);
+        const updatedGroup = { ...group, isMember: true, memberCount: group.memberCount + 1 };
+        const updated = alreadyInList
+          ? state.groups.map((g) => g.id === groupId ? updatedGroup : g)
+          : [...state.groups, updatedGroup];
         return { groups: updated, myGroups: updated.filter((g) => g.isMember) };
       });
     }
@@ -63,13 +66,15 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       }
     } catch {
       if (group) {
-        // Roll back on failure
+        // Roll back on failure — remove if we added it, or reset state if it was already there
         set((state) => {
-          const updated = state.groups.map((g) =>
-            g.id === groupId
-              ? { ...g, isMember: false, memberCount: Math.max(0, g.memberCount - 1) }
-              : g,
-          );
+          const updated = existingGroup
+            ? state.groups.map((g) =>
+                g.id === groupId
+                  ? { ...g, isMember: false, memberCount: Math.max(0, g.memberCount - 1) }
+                  : g,
+              )
+            : state.groups.filter((g) => g.id !== groupId);
           return { groups: updated, myGroups: updated.filter((g) => g.isMember) };
         });
       }
