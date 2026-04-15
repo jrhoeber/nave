@@ -104,3 +104,20 @@ def get_signed_url(object_name: str) -> str | None:
 def get_avatar_signed_url(object_name: str) -> str | None:
     """Generate a signed URL for an avatar GCS object."""
     return get_signed_url(object_name)
+
+
+def upload_parish_cover(file_bytes: bytes, parish_id: str, content_type: str) -> str:
+    """Upload a parish cover photo to GCS. Returns the GCS object name."""
+    from app.config import settings
+    from google.cloud import storage
+
+    ext = content_type.split("/")[-1]
+    if ext == "jpeg":
+        ext = "jpg"
+    object_name = f"parish-covers/{parish_id}.{ext}"
+
+    client = storage.Client()
+    blob = client.bucket(settings.gcs_bucket_name).blob(object_name)
+    blob.upload_from_string(file_bytes, content_type=content_type)
+    logger.info("Uploaded parish cover to gs://%s/%s", settings.gcs_bucket_name, object_name)
+    return object_name

@@ -85,11 +85,6 @@ export interface PrayerGroup {
 
 // ─── Communities (Parishes / Dioceses) ───────────────────────────────────────
 
-export interface MassScheduleEntry {
-  day: string;
-  times: string[];
-}
-
 export interface Parish {
   id: string;
   name: string;
@@ -102,7 +97,9 @@ export interface Parish {
   streetAddress?: string;
   postalCode?: string;
   established?: number;
-  massSchedule?: MassScheduleEntry[];
+  massSchedule?: string;
+  website?: string;
+  isParishAdmin?: boolean;
 }
 
 // ─── Parish Posts ─────────────────────────────────────────────────────────────
@@ -122,6 +119,7 @@ export interface ParishPost {
   author: ParishPostAuthor;
   content: string;
   status: 'Pending' | 'Posted' | 'Deleted' | 'Rejected';
+  isAnnouncement: boolean;
   createdAt: string;
   reactions: Record<ParishReactionType, number>;
   userReactions: ParishReactionType[];

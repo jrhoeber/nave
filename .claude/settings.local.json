@@ -42,7 +42,13 @@
       "Bash(grep -E \"^.*error:.*$\")",
       "Bash(python3 scripts/scrape_buffalo_parishes.py --pdf-url \"file:///Users/jordanhoeber/Downloads/DOB_CatholicDirectory.pdf\" --skip-places --skip-claude --output /tmp/draft.csv)",
       "Bash(python3:*)",
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "Bash(python -c \"from app.routers.parishes import router; print\\('OK'\\)\")",
+      "Bash(make logs:*)",
+      "Bash(curl -s -X POST http://localhost:8000/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@test.com\",\"password\":\"testtest\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/auth/login -H 'Content-Type: application/json' -d '{}')",
+      "Bash(curl -s -X POST http://localhost:8000/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"notanemail\",\"password\":\"test1234\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/auth/login -d '{\"email\":\"test@test.com\",\"password\":\"test1234\"}')"
     ]
   }
 }

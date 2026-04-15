@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -15,13 +15,21 @@ class ParishResponse(BaseModel):
     established: Optional[int] = None
     avatar_url: Optional[str] = None
     cover_photo_url: Optional[str] = None
-    mass_schedule: Optional[list[Any]] = None
+    mass_schedule: Optional[str] = None
+    website: Optional[str] = None
     member_count: int = 0
+    is_parish_admin: bool = False
     created_at: datetime
 
 
 class ParishesResponse(BaseModel):
     parishes: list[ParishResponse]
+
+
+class ParishUpdate(BaseModel):
+    website: Optional[str] = None
+    mass_schedule: Optional[str] = None
+    cover_photo_url: Optional[str] = None
 
 
 ParishPostStatus = Literal["Pending", "Posted", "Deleted", "Rejected"]
@@ -36,6 +44,7 @@ class ParishPostAuthor(BaseModel):
 
 class ParishPostCreate(BaseModel):
     content: str
+    is_announcement: bool = False
 
 
 class ParishPostUpdate(BaseModel):
@@ -48,6 +57,7 @@ class ParishPostResponse(BaseModel):
     author: ParishPostAuthor
     content: str
     status: ParishPostStatus
+    is_announcement: bool = False
     created_at: datetime
     reactions: dict[str, int] = {}
     user_reactions: list[str] = []

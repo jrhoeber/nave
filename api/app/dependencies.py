@@ -29,6 +29,16 @@ async def get_current_user(
     return dict(row)
 
 
+async def is_parish_admin(conn, user_id: str, parish_id: str) -> bool:
+    """Returns True if the given user is a parish admin for the given parish."""
+    row = await conn.fetchrow(
+        "SELECT 1 FROM parish_admins WHERE parish_id = $1 AND user_id = $2",
+        parish_id,
+        user_id,
+    )
+    return row is not None
+
+
 async def get_optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
     conn=Depends(get_db),

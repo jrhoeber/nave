@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, MassScheduleEntry, ParishPost, ParishPostAuthor, ParishReactionType, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -73,7 +73,9 @@ interface ApiParish {
   postal_code?: string;
   established?: number;
   cover_photo_url?: string;
-  mass_schedule?: MassScheduleEntry[];
+  mass_schedule?: string;
+  website?: string;
+  is_parish_admin?: boolean;
 }
 
 interface ApiParishPostAuthor {
@@ -89,6 +91,7 @@ interface ApiParishPost {
   author: ApiParishPostAuthor;
   content: string;
   status: 'Pending' | 'Posted' | 'Deleted' | 'Rejected';
+  is_announcement: boolean;
   created_at: string;
   reactions: Record<string, number>;
   user_reactions: string[];
@@ -190,6 +193,8 @@ export function mapParish(raw: ApiParish): Parish {
     established: raw.established,
     coverPhotoUrl: raw.cover_photo_url,
     massSchedule: raw.mass_schedule,
+    website: raw.website,
+    isParishAdmin: raw.is_parish_admin,
   };
 }
 
@@ -265,6 +270,7 @@ export function mapParishPost(raw: ApiParishPost): ParishPost {
     author,
     content: raw.content,
     status: raw.status,
+    isAnnouncement: raw.is_announcement ?? false,
     createdAt: raw.created_at,
     reactions: { ...defaultReactions, ...(raw.reactions ?? {}) } as Record<ParishReactionType, number>,
     userReactions: (raw.user_reactions ?? []) as ParishReactionType[],
@@ -522,10 +528,23 @@ export const api = {
     return apiFetch<ApiParishPostsResponse>(`/parishes/${parishId}/posts?${query}`);
   },
 
-  createParishPost(parishId: string, content: string) {
+  updateParish(parishId: string, data: { website?: string; mass_schedule?: string; cover_photo_url?: string }) {
+    return apiFetch<ApiParish>(`/parishes/${parishId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  uploadParishCoverPhoto(parishId: string, uri: string, type: string) {
+    const formData = new FormData();
+    formData.append('file', { uri, type, name: 'cover.jpg' } as unknown as Blob);
+    return apiUpload<{ cover_photo_url: string }>(`/parishes/${parishId}/cover-photo`, formData);
+  },
+
+  createParishPost(parishId: string, content: string, isAnnouncement = false) {
     return apiFetch<ApiParishPost>(`/parishes/${parishId}/posts`, {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, is_announcement: isAnnouncement }),
     });
   },
 

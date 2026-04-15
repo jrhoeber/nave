@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS parishes (
     established      INTEGER,
     avatar_url       TEXT,
     cover_photo_url  TEXT,
-    mass_schedule    JSONB,
+    mass_schedule    TEXT,
+    website          TEXT,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -103,10 +104,11 @@ CREATE TABLE IF NOT EXISTS parish_posts (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     parish_id  UUID NOT NULL REFERENCES parishes(id) ON DELETE CASCADE,
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content    TEXT NOT NULL,
-    status     TEXT NOT NULL DEFAULT 'Posted'
-                   CHECK (status IN ('Pending', 'Posted', 'Deleted', 'Rejected')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    content         TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'Posted'
+                        CHECK (status IN ('Pending', 'Posted', 'Deleted', 'Rejected')),
+    is_announcement BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_parish_posts_parish ON parish_posts (parish_id, created_at DESC);
@@ -124,6 +126,19 @@ CREATE TABLE IF NOT EXISTS parish_post_reactions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_parish_post_reactions_post ON parish_post_reactions (post_id);
+
+-- ============================================================
+-- PARISH ADMINS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS parish_admins (
+    parish_id  UUID NOT NULL REFERENCES parishes(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (parish_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_parish_admins_parish ON parish_admins (parish_id);
+CREATE INDEX IF NOT EXISTS idx_parish_admins_user   ON parish_admins (user_id);
 
 -- ============================================================
 -- GROUP MESSAGES

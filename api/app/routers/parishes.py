@@ -1,20 +1,11 @@
 import re
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
+from app.config import settings
 from app.database import get_db
-from app.dependencies import get_current_user
-from app.utils.storage import get_avatar_signed_url
-
-
-def _resolve_avatar(raw: str | None) -> str | None:
-    if not raw:
-        return None
-    if raw.startswith("http"):
-        return raw
-    return get_avatar_signed_url(raw)
+from app.dependencies import get_current_user, is_parish_admin
 from app.models.parish import (
     ParishPostAuthor,
     ParishPostCreate,
@@ -22,9 +13,18 @@ from app.models.parish import (
     ParishPostsResponse,
     ParishPostUpdate,
     ParishResponse,
+    ParishUpdate,
     ParishesResponse,
     ReactionResponse,
 )
+from app.utils.storage import (
+    _ALLOWED_CONTENT_TYPES,
+    _MAX_AVATAR_BYTES,
+    get_avatar_signed_url,
+    get_signed_url,
+    upload_parish_cover,
+)
+from pydantic import BaseModel
 
 REACTION_EMOJIS = ['👍', '🙏', '❤️']
 
@@ -52,7 +52,24 @@ def _normalize_query(q: str) -> str:
     return " ".join(normalized.split())  # collapse extra whitespace
 
 
-def _build_parish(row: dict) -> ParishResponse:
+def _resolve_avatar(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    if raw.startswith("http"):
+        return raw
+    return get_avatar_signed_url(raw)
+
+
+def _resolve_cover_photo(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    if raw.startswith("http"):
+        return raw
+    url = get_signed_url(raw)
+    return url or raw
+
+
+def _build_parish(row: dict, admin: bool = False) -> ParishResponse:
     return ParishResponse(
         id=str(row["id"]),
         name=row["name"],
@@ -63,9 +80,11 @@ def _build_parish(row: dict) -> ParishResponse:
         diocese=row["diocese"],
         established=row.get("established"),
         avatar_url=row.get("avatar_url"),
-        cover_photo_url=row.get("cover_photo_url"),
+        cover_photo_url=_resolve_cover_photo(row.get("cover_photo_url")),
         mass_schedule=row.get("mass_schedule"),
+        website=row.get("website"),
         member_count=row.get("member_count", 0),
+        is_parish_admin=admin,
         created_at=row["created_at"],
     )
 
@@ -151,7 +170,7 @@ async def search_parishes(
 @router.get("/{parish_id}", response_model=ParishResponse)
 async def get_parish(
     parish_id: str,
-    _: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
     row = await conn.fetchrow(
@@ -166,7 +185,75 @@ async def get_parish(
     )
     if row is None:
         raise HTTPException(status_code=404, detail="Parish not found")
-    return _build_parish(dict(row))
+    admin = await is_parish_admin(conn, str(current_user["id"]), parish_id)
+    return _build_parish(dict(row), admin=admin)
+
+
+@router.patch("/{parish_id}", response_model=ParishResponse)
+async def update_parish(
+    parish_id: str,
+    body: ParishUpdate,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    if not await is_parish_admin(conn, str(current_user["id"]), parish_id):
+        raise HTTPException(status_code=403, detail="Only parish admins can update the parish profile")
+
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if updates:
+        set_clauses = ", ".join(f"{col} = ${i + 2}" for i, col in enumerate(updates.keys()))
+        await conn.execute(
+            f"UPDATE parishes SET {set_clauses} WHERE id = $1",
+            parish_id,
+            *updates.values(),
+        )
+
+    row = await conn.fetchrow(
+        """
+        SELECT p.*, COUNT(u.id) AS member_count
+        FROM parishes p
+        LEFT JOIN users u ON u.parish_id = p.id
+        WHERE p.id = $1
+        GROUP BY p.id
+        """,
+        parish_id,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Parish not found")
+    return _build_parish(dict(row), admin=True)
+
+
+@router.post("/{parish_id}/cover-photo")
+async def upload_parish_cover_photo(
+    parish_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    if not await is_parish_admin(conn, str(current_user["id"]), parish_id):
+        raise HTTPException(status_code=403, detail="Only parish admins can update the cover photo")
+
+    if not settings.gcs_enabled:
+        raise HTTPException(status_code=501, detail="File uploads are not enabled")
+
+    content_type = file.content_type or "image/jpeg"
+    if content_type not in _ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"Unsupported image type: {content_type}")
+
+    file_bytes = await file.read()
+    if len(file_bytes) > _MAX_AVATAR_BYTES:
+        raise HTTPException(status_code=413, detail="Cover photo must be under 5 MB")
+
+    object_name = upload_parish_cover(file_bytes, parish_id, content_type)
+
+    await conn.execute(
+        "UPDATE parishes SET cover_photo_url = $1 WHERE id = $2",
+        object_name,
+        parish_id,
+    )
+
+    signed = get_signed_url(object_name)
+    return {"cover_photo_url": signed or object_name}
 
 
 @router.get("/{parish_id}/posts", response_model=ParishPostsResponse)
@@ -183,7 +270,7 @@ async def list_parish_posts(
             cursor_dt = cursor_dt.replace(tzinfo=timezone.utc)
         rows = await conn.fetch(
             """
-            SELECT pp.id, pp.parish_id, pp.content, pp.status, pp.created_at,
+            SELECT pp.id, pp.parish_id, pp.content, pp.status, pp.is_announcement, pp.created_at,
                    u.id AS user_id, u.username, u.display_name, u.avatar_url
             FROM parish_posts pp
             JOIN users u ON u.id = pp.user_id
@@ -200,7 +287,7 @@ async def list_parish_posts(
     else:
         rows = await conn.fetch(
             """
-            SELECT pp.id, pp.parish_id, pp.content, pp.status, pp.created_at,
+            SELECT pp.id, pp.parish_id, pp.content, pp.status, pp.is_announcement, pp.created_at,
                    u.id AS user_id, u.username, u.display_name, u.avatar_url
             FROM parish_posts pp
             JOIN users u ON u.id = pp.user_id
@@ -228,6 +315,7 @@ async def list_parish_posts(
             ),
             content=r["content"],
             status=r["status"],
+            is_announcement=r["is_announcement"],
             created_at=r["created_at"],
             reactions=reaction_data.get(str(r["id"]), {}).get("reactions", {e: 0 for e in REACTION_EMOJIS}),
             user_reactions=reaction_data.get(str(r["id"]), {}).get("user_reactions", []),
@@ -252,15 +340,20 @@ async def create_parish_post(
     if not parish_exists:
         raise HTTPException(status_code=404, detail="Parish not found")
 
+    if body.is_announcement:
+        if not await is_parish_admin(conn, str(current_user["id"]), parish_id):
+            raise HTTPException(status_code=403, detail="Only parish admins can post announcements")
+
     row = await conn.fetchrow(
         """
-        INSERT INTO parish_posts (parish_id, user_id, content, status)
-        VALUES ($1, $2, $3, 'Posted')
-        RETURNING id, parish_id, content, status, created_at
+        INSERT INTO parish_posts (parish_id, user_id, content, status, is_announcement)
+        VALUES ($1, $2, $3, 'Posted', $4)
+        RETURNING id, parish_id, content, status, is_announcement, created_at
         """,
         parish_id,
         current_user["id"],
         body.content,
+        body.is_announcement,
     )
 
     return ParishPostResponse(
@@ -274,6 +367,7 @@ async def create_parish_post(
         ),
         content=row["content"],
         status=row["status"],
+        is_announcement=row["is_announcement"],
         created_at=row["created_at"],
     )
 
@@ -291,7 +385,7 @@ async def update_parish_post(
         UPDATE parish_posts
         SET content = $1
         WHERE id = $2 AND parish_id = $3 AND user_id = $4 AND status = 'Posted'
-        RETURNING id, parish_id, content, status, created_at
+        RETURNING id, parish_id, content, status, is_announcement, created_at
         """,
         body.content,
         post_id,
@@ -312,6 +406,7 @@ async def update_parish_post(
         ),
         content=row["content"],
         status=row["status"],
+        is_announcement=row["is_announcement"],
         created_at=row["created_at"],
     )
 
@@ -323,18 +418,23 @@ async def delete_parish_post(
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    result = await conn.execute(
-        """
-        UPDATE parish_posts
-        SET status = 'Deleted'
-        WHERE id = $1 AND parish_id = $2 AND user_id = $3 AND status = 'Posted'
-        """,
+    post = await conn.fetchrow(
+        "SELECT user_id, status FROM parish_posts WHERE id = $1 AND parish_id = $2",
         post_id,
         parish_id,
-        current_user["id"],
     )
-    if result == "UPDATE 0":
+    if post is None or post["status"] != "Posted":
         raise HTTPException(status_code=404, detail="Post not found")
+
+    is_owner = str(post["user_id"]) == str(current_user["id"])
+    admin = await is_parish_admin(conn, str(current_user["id"]), parish_id)
+    if not is_owner and not admin:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this post")
+
+    await conn.execute(
+        "UPDATE parish_posts SET status = 'Deleted' WHERE id = $1",
+        post_id,
+    )
 
 
 @router.post("/{parish_id}/posts/{post_id}/reactions", response_model=ReactionResponse)

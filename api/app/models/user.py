@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
 
 
 class UserSignUp(BaseModel):
     username: str
     display_name: str
-    email: EmailStr
+    email: str
     password: str
     parish_id: Optional[str] = None
 
@@ -27,7 +27,7 @@ class UserSignUp(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 

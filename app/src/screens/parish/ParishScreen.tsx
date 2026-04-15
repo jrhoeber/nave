@@ -1,15 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Dimensions,
   FlatList,
   Image,
   KeyboardAvoidingView,
+  Linking,
   ListRenderItemInfo,
   Modal,
   Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -18,6 +22,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { Avatar } from '../../components/ui/Avatar';
 import { useAuthStore } from '../../store/authStore';
 import { api, mapParish, mapParishPost } from '../../lib/apiClient';
@@ -87,21 +92,9 @@ function ParishProfileModal({ parish, visible, onClose, onChangeParish }: {
                 <View style={profileStyles.sectionAccent} />
                 <Text style={profileStyles.sectionTitle}>Mass Schedule</Text>
               </View>
-              {parish.massSchedule && parish.massSchedule.length > 0 ? (
+              {parish.massSchedule ? (
                 <View style={profileStyles.scheduleCard}>
-                  {parish.massSchedule.map((entry, i) => (
-                    <View
-                      key={entry.day}
-                      style={[
-                        profileStyles.massRow,
-                        i === parish.massSchedule!.length - 1 && profileStyles.massRowLast,
-                      ]}
-                    >
-                      <Text style={profileStyles.massDay}>{entry.day}</Text>
-                      <View style={profileStyles.massDot} />
-                      <Text style={profileStyles.massTime}>{entry.times.join('  ·  ')}</Text>
-                    </View>
-                  ))}
+                  <Text style={profileStyles.massText}>{parish.massSchedule}</Text>
                 </View>
               ) : (
                 <View style={profileStyles.emptySchedule}>
@@ -110,6 +103,25 @@ function ParishProfileModal({ parish, visible, onClose, onChangeParish }: {
                 </View>
               )}
             </View>
+
+            {/* Website */}
+            {parish.website && (
+              <View style={profileStyles.section}>
+                <View style={profileStyles.sectionHeader}>
+                  <View style={profileStyles.sectionAccent} />
+                  <Text style={profileStyles.sectionTitle}>Website</Text>
+                </View>
+                <TouchableOpacity
+                  style={profileStyles.websiteRow}
+                  onPress={() => parish.website && Linking.openURL(parish.website)}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="globe-outline" size={16} color={Colors.primary} />
+                  <Text style={profileStyles.websiteText} numberOfLines={1}>{parish.website}</Text>
+                  <Icon name="open-outline" size={14} color={Colors.textLight} />
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Change Parish */}
             <TouchableOpacity style={profileStyles.changeBtn} onPress={onChangeParish} activeOpacity={0.7}>
@@ -126,21 +138,24 @@ function ParishProfileModal({ parish, visible, onClose, onChangeParish }: {
 
 // ─── Compose modal ────────────────────────────────────────────────────────────
 
-function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPost }: {
+function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPost, isParishAdmin }: {
   parishId: string;
   visible: boolean;
   onClose: () => void;
   onCreated: (post: ParishPost) => void;
   onUpdated: (post: ParishPost) => void;
   editPost?: ParishPost;
+  isParishAdmin: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const [content, setContent] = useState('');
+  const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setContent(editPost?.content ?? '');
+    setIsAnnouncement(false);
   }, [editPost, visible]);
 
   const handleSubmit = async () => {
@@ -152,7 +167,7 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
         const raw = await api.updateParishPost(parishId, editPost.id, trimmed);
         onUpdated(mapParishPost(raw));
       } else {
-        const raw = await api.createParishPost(parishId, trimmed);
+        const raw = await api.createParishPost(parishId, trimmed, isAnnouncement);
         onCreated(mapParishPost(raw));
       }
       onClose();
@@ -196,24 +211,46 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
 
           <View style={composeStyles.divider} />
 
-          {/* Author row */}
-          <View style={composeStyles.authorRow}>
-            <Avatar name={user?.displayName ?? ''} uri={user?.avatarUrl} size={40} />
-            <Text style={composeStyles.authorName}>{user?.displayName}</Text>
-          </View>
+          {/* Announcement toggle — only for new posts by admins */}
+          {isParishAdmin && !editPost && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[composeStyles.announcementRow, isAnnouncement && composeStyles.announcementRowActive]}
+              onPress={() => setIsAnnouncement(v => !v)}
+            >
+              <View style={composeStyles.announcementLeft}>
+                <MCIcon name="church" size={15} color={isAnnouncement ? Colors.accent : Colors.textSecondary} />
+                <Text style={[composeStyles.announcementLabel, isAnnouncement && composeStyles.announcementLabelActive]}>
+                  Parish Announcement
+                </Text>
+              </View>
+              <Switch
+                value={isAnnouncement}
+                onValueChange={setIsAnnouncement}
+                trackColor={{ false: Colors.border, true: Colors.accent + '80' }}
+                thumbColor={isAnnouncement ? Colors.accent : Colors.textLight}
+              />
+            </TouchableOpacity>
+          )}
 
-          {/* Text input */}
-          <TextInput
-            style={composeStyles.input}
-            placeholder="Share something with your parish…"
-            placeholderTextColor={Colors.textLight}
-            value={content}
-            onChangeText={setContent}
-            multiline
-            autoFocus
-            maxLength={1000}
-            textAlignVertical="top"
-          />
+          {/* Compose area — avatar + name + input unified */}
+          <View style={composeStyles.composeArea}>
+            <Avatar name={user?.displayName ?? ''} uri={user?.avatarUrl} size={42} />
+            <View style={composeStyles.composeRight}>
+              <Text style={composeStyles.authorName}>{user?.displayName}</Text>
+              <TextInput
+                style={composeStyles.input}
+                placeholder="Share something with your parish…"
+                placeholderTextColor={Colors.textLight}
+                value={content}
+                onChangeText={setContent}
+                multiline
+                autoFocus
+                maxLength={1000}
+                textAlignVertical="top"
+              />
+            </View>
+          </View>
 
         </View>
       </KeyboardAvoidingView>
@@ -277,9 +314,10 @@ function ReactionBar({ post, onToggleReaction }: {
   );
 }
 
-function PostCard({ post, currentUserId, isMenuOpen, onMenuOpen, onMenuClose, onEdit, onDelete, onToggleReaction }: {
+function PostCard({ post, currentUserId, isParishAdmin, isMenuOpen, onMenuOpen, onMenuClose, onEdit, onDelete, onToggleReaction }: {
   post: ParishPost;
   currentUserId?: string;
+  isParishAdmin: boolean;
   isMenuOpen: boolean;
   onMenuOpen: () => void;
   onMenuClose: () => void;
@@ -288,6 +326,7 @@ function PostCard({ post, currentUserId, isMenuOpen, onMenuOpen, onMenuClose, on
   onToggleReaction: (postId: string, reaction: ParishReactionType) => void;
 }) {
   const isOwner = currentUserId === post.author.id;
+  const canManage = isOwner || isParishAdmin;
 
   const relativeTime = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
@@ -300,13 +339,19 @@ function PostCard({ post, currentUserId, isMenuOpen, onMenuOpen, onMenuClose, on
 
   return (
     <View style={styles.postCard}>
+      {post.isAnnouncement && (
+        <View style={styles.announcementBadge}>
+          <MCIcon name="church" size={11} color={Colors.accent} />
+          <Text style={styles.announcementBadgeText}>PARISH ANNOUNCEMENT</Text>
+        </View>
+      )}
       <View style={styles.postHeader}>
         <Avatar name={post.author.displayName} size={36} uri={post.author.avatarUrl} />
         <View style={styles.postMeta}>
           <Text style={styles.postAuthor}>{post.author.displayName}</Text>
           <Text style={styles.postTime}>{relativeTime(post.createdAt)}</Text>
         </View>
-        {isOwner && (
+        {canManage && (
           <View style={{ alignSelf: 'flex-start' }}>
             <TouchableOpacity
               onPress={isMenuOpen ? onMenuClose : onMenuOpen}
@@ -316,14 +361,18 @@ function PostCard({ post, currentUserId, isMenuOpen, onMenuOpen, onMenuClose, on
             </TouchableOpacity>
             {isMenuOpen && (
               <View style={styles.kebabMenu}>
-                <TouchableOpacity
-                  style={styles.kebabItem}
-                  onPress={() => { onMenuClose(); onEdit(post); }}
-                >
-                  <Icon name="pencil-outline" size={15} color={Colors.textPrimary} />
-                  <Text style={styles.kebabItemText}>Edit</Text>
-                </TouchableOpacity>
-                <View style={styles.kebabDivider} />
+                {isOwner && (
+                  <>
+                    <TouchableOpacity
+                      style={styles.kebabItem}
+                      onPress={() => { onMenuClose(); onEdit(post); }}
+                    >
+                      <Icon name="pencil-outline" size={15} color={Colors.textPrimary} />
+                      <Text style={styles.kebabItemText}>Edit</Text>
+                    </TouchableOpacity>
+                    <View style={styles.kebabDivider} />
+                  </>
+                )}
                 <TouchableOpacity
                   style={styles.kebabItem}
                   onPress={() => { onMenuClose(); onDelete(post); }}
@@ -342,6 +391,166 @@ function PostCard({ post, currentUserId, isMenuOpen, onMenuOpen, onMenuClose, on
   );
 }
 
+// ─── Manage parish modal (admin only) ────────────────────────────────────────
+
+function ManageParishModal({ parish, visible, onClose, onUpdated }: {
+  parish: Parish | null;
+  visible: boolean;
+  onClose: () => void;
+  onUpdated: (updated: Parish) => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const [website, setWebsite] = useState('');
+  const [massSchedule, setMassSchedule] = useState('');
+  const [savingWebsite, setSavingWebsite] = useState(false);
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [localCoverUri, setLocalCoverUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (parish) {
+      setWebsite(parish.website ?? '');
+      setMassSchedule(parish.massSchedule ?? '');
+      setLocalCoverUri(null);
+    }
+  }, [parish, visible]);
+
+  const handlePickCoverPhoto = async () => {
+    if (!parish) return;
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, maxWidth: 1600, maxHeight: 900 });
+    if (result.didCancel || !result.assets?.[0]?.uri) return;
+    const asset = result.assets[0];
+    setUploadingCover(true);
+    try {
+      const data = await api.uploadParishCoverPhoto(parish.id, asset.uri!, asset.type ?? 'image/jpeg');
+      setLocalCoverUri(asset.uri!);
+      onUpdated({ ...parish, coverPhotoUrl: data.cover_photo_url });
+    } catch {
+      Alert.alert('Error', 'Failed to upload cover photo. Please try again.');
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleSaveWebsite = async () => {
+    if (!parish) return;
+    setSavingWebsite(true);
+    try {
+      const raw = await api.updateParish(parish.id, { website: website.trim() || undefined });
+      onUpdated(mapParish(raw));
+    } catch {
+      Alert.alert('Error', 'Failed to save website.');
+    } finally {
+      setSavingWebsite(false);
+    }
+  };
+
+  const handleSaveSchedule = async () => {
+    if (!parish) return;
+    setSavingSchedule(true);
+    try {
+      const raw = await api.updateParish(parish.id, { mass_schedule: massSchedule.trim() || undefined });
+      onUpdated(mapParish(raw));
+    } catch {
+      Alert.alert('Error', 'Failed to save mass schedule.');
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={manageStyles.container}>
+        <View style={[manageStyles.header, { paddingTop: insets.top || Spacing[4] }]}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={manageStyles.cancel}>Done</Text>
+          </TouchableOpacity>
+          <Text style={manageStyles.title}>Manage Parish</Text>
+          <View style={{ width: 48 }} />
+        </View>
+        <View style={manageStyles.headerDivider} />
+
+        <ScrollView contentContainerStyle={manageStyles.scroll} keyboardShouldPersistTaps="handled">
+
+          {/* Cover Photo */}
+          <View style={manageStyles.section}>
+            <Text style={manageStyles.sectionTitle}>Cover Photo</Text>
+            <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={manageStyles.coverPhotoBtn}>
+              {uploadingCover ? (
+                <ActivityIndicator color={Colors.textInverse} />
+              ) : (localCoverUri ?? parish?.coverPhotoUrl) ? (
+                <>
+                  <Image source={{ uri: localCoverUri ?? parish!.coverPhotoUrl! }} style={manageStyles.coverPhotoPreview} resizeMode="cover" />
+                  <View style={manageStyles.coverPhotoOverlay}>
+                    <Icon name="camera-outline" size={22} color="#fff" />
+                    <Text style={manageStyles.coverPhotoOverlayText}>Change Photo</Text>
+                  </View>
+                </>
+              ) : (
+                <View style={manageStyles.coverPhotoEmpty}>
+                  <Icon name="camera-outline" size={28} color={Colors.primary} />
+                  <Text style={manageStyles.coverPhotoEmptyText}>Add Cover Photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Website */}
+          <View style={manageStyles.section}>
+            <Text style={manageStyles.sectionTitle}>Website</Text>
+            <TextInput
+              style={manageStyles.input}
+              value={website}
+              onChangeText={setWebsite}
+              placeholder="https://example.com"
+              placeholderTextColor={Colors.textLight}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+            <TouchableOpacity
+              style={[manageStyles.saveBtn, savingWebsite && manageStyles.saveBtnDisabled]}
+              onPress={handleSaveWebsite}
+              disabled={savingWebsite}
+              activeOpacity={0.8}
+            >
+              {savingWebsite
+                ? <ActivityIndicator size="small" color={Colors.textInverse} />
+                : <Text style={manageStyles.saveBtnText}>Save Website</Text>
+              }
+            </TouchableOpacity>
+          </View>
+
+          {/* Mass Schedule */}
+          <View style={manageStyles.section}>
+            <Text style={manageStyles.sectionTitle}>Mass Schedule</Text>
+            <TextInput
+              style={manageStyles.textarea}
+              value={massSchedule}
+              onChangeText={setMassSchedule}
+              placeholder={"Sunday: 8:00 AM, 10:30 AM\nDaily: 7:00 AM"}
+              placeholderTextColor={Colors.textLight}
+              multiline
+              textAlignVertical="top"
+            />
+            <TouchableOpacity
+              style={[manageStyles.saveBtn, savingSchedule && manageStyles.saveBtnDisabled]}
+              onPress={handleSaveSchedule}
+              disabled={savingSchedule}
+              activeOpacity={0.8}
+            >
+              {savingSchedule
+                ? <ActivityIndicator size="small" color={Colors.textInverse} />
+                : <Text style={manageStyles.saveBtnText}>Save Schedule</Text>
+              }
+            </TouchableOpacity>
+          </View>
+
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Parish feed view ─────────────────────────────────────────────────────────
 
 function ParishFeed({ parishId, parishName, onChangeParish }: {
@@ -353,9 +562,11 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [profileVisible, setProfileVisible] = useState(false);
   const [composeVisible, setComposeVisible] = useState(false);
+  const [manageVisible, setManageVisible] = useState(false);
   const [editingPost, setEditingPost] = useState<ParishPost | undefined>();
   const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
   const [parish, setParish] = useState<Parish | null>(null);
+  const isParishAdmin = parish?.isParishAdmin ?? false;
 
   const [posts, setPosts] = useState<ParishPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -491,16 +702,23 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
             <Text style={styles.parishEstablished}>Est. {parish.established}</Text>
           )}
         </View>
-        <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Icon name="information-circle-outline" size={24} color={Colors.textSecondary} />
-        </TouchableOpacity>
+        <View style={styles.parishHeaderActions}>
+          {isParishAdmin && (
+            <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="settings-outline" size={22} color={Colors.primary} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Icon name="information-circle-outline" size={24} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={styles.divider} />
       {loadingPosts && (
         <ActivityIndicator color={Colors.primary} style={styles.initialLoader} />
       )}
     </View>
-  ), [parish, parishName, loadingPosts]);
+  ), [parish, parishName, loadingPosts, isParishAdmin]);
 
   const ListFooter = useCallback(() => loadingMore ? (
     <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />
@@ -517,6 +735,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     <PostCard
       post={item}
       currentUserId={currentUserId}
+      isParishAdmin={isParishAdmin}
       isMenuOpen={openMenuPostId === item.id}
       onMenuOpen={() => setOpenMenuPostId(item.id)}
       onMenuClose={() => setOpenMenuPostId(null)}
@@ -568,9 +787,17 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         parishId={parishId}
         visible={composeVisible}
         editPost={editingPost}
+        isParishAdmin={isParishAdmin}
         onClose={() => { setComposeVisible(false); setEditingPost(undefined); }}
         onCreated={(post) => setPosts((prev) => [post, ...prev])}
         onUpdated={(updated) => setPosts((prev) => prev.map((p) => p.id === updated.id ? updated : p))}
+      />
+
+      <ManageParishModal
+        parish={parish}
+        visible={manageVisible}
+        onClose={() => setManageVisible(false)}
+        onUpdated={(updated) => setParish(updated)}
       />
     </View>
   );
@@ -746,6 +973,11 @@ const styles = StyleSheet.create({
     gap: Spacing[3],
   },
   parishIdentityText: { flex: 1 },
+  parishHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+  },
   parishName: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
   parishEstablished: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium, marginTop: 2 },
   divider: { height: 1, backgroundColor: Colors.border, marginHorizontal: Spacing[5] },
@@ -761,6 +993,23 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing[4],
     marginTop: Spacing[3],
     ...Shadows.sm,
+  },
+  announcementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: Spacing[3],
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.accent + '20',
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing[3],
+    paddingVertical: 3,
+  },
+  announcementBadgeText: {
+    fontSize: 10,
+    fontWeight: Typography.bold,
+    color: Colors.accent,
+    letterSpacing: 0.8,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing[3], gap: Spacing[3] },
   postMeta: { flex: 1 },
@@ -1040,36 +1289,14 @@ const profileStyles = StyleSheet.create({
     borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
-    overflow: 'hidden',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
     ...Shadows.sm,
   },
-  massRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-    gap: Spacing[3],
-  },
-  massRowLast: { borderBottomWidth: 0 },
-  massDay: {
+  massText: {
     fontSize: Typography.base,
-    fontWeight: Typography.medium,
     color: Colors.textPrimary,
-    flex: 1,
-  },
-  massDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.accent + '80',
-  },
-  massTime: {
-    fontSize: Typography.base,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-    textAlign: 'right',
+    lineHeight: 22,
   },
   emptySchedule: {
     flexDirection: 'row',
@@ -1081,6 +1308,25 @@ const profileStyles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.textLight,
     fontStyle: 'italic',
+  },
+
+  // ── Website ───────────────────────────────────────────────────────────────
+  websiteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+    paddingVertical: Spacing[3],
+    paddingHorizontal: Spacing[4],
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  websiteText: {
+    flex: 1,
+    fontSize: Typography.base,
+    color: Colors.primary,
+    fontWeight: Typography.medium,
   },
 
   // ── Change Parish ─────────────────────────────────────────────────────────
@@ -1143,23 +1389,171 @@ const composeStyles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.border,
   },
-  authorRow: {
+  announcementRow: {
+    width: Dimensions.get('window').width - Spacing[4] * 2,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[3],
+    justifyContent: 'space-between',
+    marginTop: Spacing[5],
+    marginBottom: Spacing[2],
+    paddingLeft: Spacing[3],
+    paddingRight: Spacing[6],
+    paddingVertical: Spacing[2],
+    backgroundColor: Colors.surface ?? Colors.background,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  announcementRowActive: {
+    backgroundColor: Colors.accent + '12',
+    borderColor: Colors.accent + '40',
+  },
+  announcementLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+  },
+  announcementLabel: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    fontWeight: Typography.medium,
+  },
+  announcementLabelActive: {
+    color: Colors.accent,
+    fontWeight: Typography.semibold,
+  },
+  composeArea: {
+    flexDirection: 'row',
+    flex: 1,
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[4],
+    paddingTop: Spacing[4],
+    gap: Spacing[3],
+  },
+  composeRight: {
+    flex: 1,
   },
   authorName: {
     fontSize: Typography.base,
     fontWeight: Typography.semibold,
     color: Colors.textPrimary,
+    marginBottom: Spacing[1],
   },
   input: {
     flex: 1,
     fontSize: Typography.base,
     color: Colors.textPrimary,
+  },
+});
+
+// ─── Manage parish modal styles ───────────────────────────────────────────────
+
+const manageStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing[4],
-    lineHeight: Typography.base * 1.6,
+    paddingBottom: Spacing[3],
+  },
+  headerDivider: { height: 1, backgroundColor: Colors.border },
+  cancel: {
+    fontSize: Typography.base,
+    color: Colors.primary,
+    fontWeight: Typography.medium,
+    width: 48,
+  },
+  title: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+  },
+  scroll: {
+    padding: Spacing[5],
+    gap: Spacing[2],
+    paddingBottom: Spacing[12],
+  },
+  section: {
+    marginBottom: Spacing[7],
+    gap: Spacing[3],
+  },
+  sectionTitle: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.semibold,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: Spacing[1],
+  },
+  input: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+  },
+  textarea: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    minHeight: 120,
+  },
+  saveBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing[3],
+    alignItems: 'center',
+  },
+  saveBtnDisabled: {
+    opacity: 0.55,
+  },
+  saveBtnText: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.semibold,
+    color: Colors.textInverse,
+  },
+  coverPhotoBtn: {
+    height: 160,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  coverPhotoPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  coverPhotoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing[2],
+  },
+  coverPhotoOverlayText: {
+    color: '#fff',
+    fontSize: Typography.sm,
+    fontWeight: Typography.semibold,
+  },
+  coverPhotoEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing[2],
+  },
+  coverPhotoEmptyText: {
+    fontSize: Typography.sm,
+    color: Colors.primary,
+    fontWeight: Typography.medium,
   },
 });

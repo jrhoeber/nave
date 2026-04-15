@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 import asyncpg
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.config import settings
@@ -69,6 +70,17 @@ async def log_requests(request: Request, call_next):
 
 
 # ─── Exception handlers ───────────────────────────────────────────────────────
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.warning(
+        "Validation error on %s %s: %s",
+        request.method,
+        request.url.path,
+        exc.errors(),
+    )
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
