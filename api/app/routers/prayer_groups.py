@@ -316,6 +316,40 @@ async def list_group_members(
     return {"members": members}
 
 
+@router.post("/{group_id}/members/{user_id}", response_model=dict)
+async def add_member(
+    group_id: str,
+    user_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT admin_id, is_private FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+
+    existing = await conn.fetchrow(
+        "SELECT status FROM prayer_group_members WHERE group_id = $1 AND user_id = $2",
+        group_id,
+        user_id,
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Already {existing['status']}")
+
+    is_admin = str(pg["admin_id"]) == str(current_user["id"])
+    if pg["is_private"] and not is_admin:
+        new_status = "pending"
+    else:
+        new_status = "member"
+
+    await conn.execute(
+        "INSERT INTO prayer_group_members (group_id, user_id, status) VALUES ($1, $2, $3)",
+        group_id,
+        user_id,
+        new_status,
+    )
+    return {"status": new_status}
+
+
 @router.post("/{group_id}/members/{user_id}/approve", response_model=dict)
 async def approve_member(
     group_id: str,

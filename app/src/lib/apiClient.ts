@@ -527,6 +527,10 @@ export const api = {
     return apiFetch<{ success: boolean }>(`/prayer-groups/${groupId}/members/${userId}`, { method: 'DELETE' });
   },
 
+  addMember(groupId: string, userId: string) {
+    return apiFetch<{ status: 'member' | 'pending' }>(`/prayer-groups/${groupId}/members/${userId}`, { method: 'POST' });
+  },
+
   // Parishes
   searchParishes(q: string) {
     return apiFetch<{ parishes: ApiParish[] }>(`/parishes/search?q=${encodeURIComponent(q)}&limit=10`);

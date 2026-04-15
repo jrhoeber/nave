@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { EditPrayerGroupModal } from '../../components/prayer/EditPrayerGroupModal';
+import { AddToGroupModal } from '../../components/prayer/AddToGroupModal';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../lib/apiClient';
@@ -149,6 +150,7 @@ export function GroupProfileScreen() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [memberCount, setMemberCount] = useState(group?.memberCount ?? 0);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [addMemberModalVisible, setAddMemberModalVisible] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
@@ -438,9 +440,18 @@ export function GroupProfileScreen() {
 
         {/* ── Members ── */}
         <View style={styles.membersSection}>
-          <Text style={styles.membersSectionTitle}>
-            Members ({memberCount})
-          </Text>
+          <View style={styles.membersSectionHeader}>
+            <Text style={styles.membersSectionTitle}>
+              Members ({memberCount})
+            </Text>
+            <TouchableOpacity
+              onPress={() => setAddMemberModalVisible(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.addMemberBtn}
+            >
+              <Icon name="person-add-outline" size={18} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
 
           {membersLoading ? (
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing[4] }} />
@@ -468,6 +479,17 @@ export function GroupProfileScreen() {
           onClose={() => setEditModalVisible(false)}
         />
       )}
+
+      <AddToGroupModal
+        visible={addMemberModalVisible}
+        onClose={() => setAddMemberModalVisible(false)}
+        groupId={groupId}
+        existingMembers={members}
+        onMemberAdded={(newMember) => {
+          setMembers((prev) => [...prev, { ...newMember, joinedAt: new Date().toISOString() }]);
+          setMemberCount((c) => c + 1);
+        }}
+      />
     </View>
   );
 }
@@ -691,15 +713,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
+  membersSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing[4],
+    paddingTop: Spacing[4],
+    paddingBottom: Spacing[2],
+  },
   membersSectionTitle: {
     fontSize: Typography.sm,
     fontWeight: Typography.semibold,
     color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    paddingHorizontal: Spacing[4],
-    paddingTop: Spacing[4],
-    paddingBottom: Spacing[2],
+  },
+  addMemberBtn: {
+    padding: 2,
   },
   emptyText: {
     fontSize: Typography.base,
