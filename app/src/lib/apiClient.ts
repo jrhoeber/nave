@@ -471,6 +471,10 @@ export const api = {
     return apiFetch<ApiGroupsResponse>(`/prayer-groups?${params}`);
   },
 
+  getGroup(groupId: string) {
+    return apiFetch<ApiPrayerGroup>(`/prayer-groups/${groupId}`);
+  },
+
   joinGroup(groupId: string) {
     return apiFetch<{ status: 'pending' | 'member' }>(`/prayer-groups/${groupId}/join`, { method: 'POST' });
   },
@@ -521,6 +525,14 @@ export const api = {
 
   removeGroupAvatar(groupId: string) {
     return apiFetch<ApiPrayerGroup>(`/prayer-groups/${groupId}/avatar`, { method: 'DELETE' });
+  },
+
+  getPendingMembers(groupId: string) {
+    return apiFetch<{ members: Array<{ id: string; username: string; display_name: string; avatar_url?: string; requested_at: string }> }>(`/prayer-groups/${groupId}/members/pending`);
+  },
+
+  approveMember(groupId: string, userId: string) {
+    return apiFetch<{ status: string }>(`/prayer-groups/${groupId}/members/${userId}/approve`, { method: 'POST' });
   },
 
   removeMember(groupId: string, userId: string) {

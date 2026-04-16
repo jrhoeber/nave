@@ -688,13 +688,25 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 
   const ListHeader = useCallback(() => (
     <View>
-      {parish?.coverPhotoUrl ? (
-        <Image source={{ uri: parish.coverPhotoUrl }} style={styles.coverPhoto} resizeMode="cover" />
-      ) : (
-        <View style={styles.coverPhotoPlaceholder}>
-          <MCIcon name="church" size={48} color={Colors.primary + '60'} />
+      <View style={{ height: 180 + insets.top }}>
+        {parish?.coverPhotoUrl ? (
+          <Image source={{ uri: parish.coverPhotoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, styles.coverPhotoPlaceholder]}>
+            <MCIcon name="church" size={48} color={Colors.primary + '60'} />
+          </View>
+        )}
+        <View style={[styles.coverPhotoActions, { top: insets.top + Spacing[3] }]}>
+          {isParishAdmin && (
+            <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
+              <Icon name="settings-outline" size={20} color={Colors.textInverse} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
+            <Icon name="information-circle-outline" size={22} color={Colors.textInverse} />
+          </TouchableOpacity>
         </View>
-      )}
+      </View>
       <View style={styles.parishIdentity}>
         <View style={styles.parishIdentityText}>
           <Text style={styles.parishName} numberOfLines={2}>{parishName}</Text>
@@ -702,23 +714,13 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
             <Text style={styles.parishEstablished}>Est. {parish.established}</Text>
           )}
         </View>
-        <View style={styles.parishHeaderActions}>
-          {isParishAdmin && (
-            <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="settings-outline" size={22} color={Colors.primary} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Icon name="information-circle-outline" size={24} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
       </View>
       <View style={styles.divider} />
       {loadingPosts && (
         <ActivityIndicator color={Colors.primary} style={styles.initialLoader} />
       )}
     </View>
-  ), [parish, parishName, loadingPosts, isParishAdmin]);
+  ), [parish, parishName, loadingPosts, isParishAdmin, insets.top]);
 
   const ListFooter = useCallback(() => loadingMore ? (
     <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />
@@ -747,8 +749,8 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   const keyExtractor = (item: ParishPost) => item.id;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <FlatList
         data={posts}
@@ -953,14 +955,23 @@ export function ParishScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
-  coverPhoto: {
-    width: '100%',
-    height: 180,
-  },
   coverPhotoPlaceholder: {
-    width: '100%',
-    height: 180,
     backgroundColor: Colors.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverPhotoActions: {
+    position: 'absolute',
+    right: Spacing[4],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+  },
+  coverPhotoActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -973,11 +984,6 @@ const styles = StyleSheet.create({
     gap: Spacing[3],
   },
   parishIdentityText: { flex: 1 },
-  parishHeaderActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[3],
-  },
   parishName: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
   parishEstablished: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium, marginTop: 2 },
   divider: { height: 1, backgroundColor: Colors.border, marginHorizontal: Spacing[5] },

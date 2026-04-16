@@ -14,14 +14,10 @@ import { useAuthStore } from '../../store/authStore';
 type Visibility = 'private' | 'parish';
 
 const CATEGORIES: { value: PrayerGroupCategory; label: string; icon: string }[] = [
-  { value: 'rosary', label: 'Rosary', icon: '📿' },
-  { value: 'scripture_study', label: 'Scripture Study', icon: '📖' },
+  { value: 'scripture_study', label: 'Bible Study', icon: '📖' },
   { value: 'mens_group', label: "Men's Group", icon: '🛡️' },
   { value: 'womens_group', label: "Women's Group", icon: '🌸' },
-  { value: 'youth', label: 'Youth', icon: '😊' },
   { value: 'young_adults', label: 'Young Adults', icon: '🙌' },
-  { value: 'families', label: 'Families', icon: '🏠' },
-  { value: 'devotional', label: 'Devotional', icon: '❤️' },
   { value: 'general', label: 'General', icon: '💬' },
 ];
 

@@ -18,7 +18,7 @@ import { EditPrayerGroupModal } from '../../components/prayer/EditPrayerGroupMod
 import { AddToGroupModal } from '../../components/prayer/AddToGroupModal';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useAuthStore } from '../../store/authStore';
-import { api } from '../../lib/apiClient';
+import { api, mapPrayerGroup } from '../../lib/apiClient';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { GroupProfileRouteProp, RootNavigationProp } from '../../types/navigation';
 
@@ -138,20 +138,39 @@ export function GroupProfileScreen() {
   const route = useRoute<GroupProfileRouteProp>();
   const groupId = route.params.id;
 
-  const { groups, leaveGroup, deleteGroup, muteGroup, unmuteGroup, mutedGroupIds, uploadGroupAvatar, removeGroupAvatar } =
+  const { groups, joinGroup, leaveGroup, deleteGroup, muteGroup, unmuteGroup, mutedGroupIds, uploadGroupAvatar, removeGroupAvatar } =
     usePrayerStore();
   const user = useAuthStore((s) => s.user);
 
-  const group = groups.find((g) => g.id === groupId);
+  const storeGroup = groups.find((g) => g.id === groupId);
+  const [fetchedGroup, setFetchedGroup] = useState<typeof storeGroup | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+
+  const group = storeGroup ?? fetchedGroup ?? undefined;
   const isAdmin = !!user && !!group && user.id === group.admin.id;
   const isMuted = mutedGroupIds.has(groupId);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [memberCount, setMemberCount] = useState(group?.memberCount ?? 0);
+  const [pendingMembers, setPendingMembers] = useState<Member[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [addMemberModalVisible, setAddMemberModalVisible] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [joining, setJoining] = useState(false);
+
+  useEffect(() => {
+    if (!storeGroup) {
+      api.getGroup(groupId)
+        .then((data) => setFetchedGroup(mapPrayerGroup(data)))
+        .catch(() => setFetchError(true));
+    }
+  }, [groupId, storeGroup]);
+
+  useEffect(() => {
+    if (group) setMemberCount(group.memberCount);
+  }, [group?.memberCount]);
 
   useEffect(() => {
     setMembersLoading(true);
@@ -171,6 +190,24 @@ export function GroupProfileScreen() {
       .catch(() => {})
       .finally(() => setMembersLoading(false));
   }, [groupId]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    setPendingLoading(true);
+    api
+      .getPendingMembers(groupId)
+      .then((data) => {
+        setPendingMembers(data.members.map((m) => ({
+          id: m.id,
+          username: m.username,
+          displayName: m.display_name,
+          avatarUrl: m.avatar_url?.startsWith('http') ? m.avatar_url : undefined,
+          joinedAt: m.requested_at,
+        })));
+      })
+      .catch(() => {})
+      .finally(() => setPendingLoading(false));
+  }, [groupId, isAdmin]);
 
   const handleMuteToggle = async () => {
     if (isMuted) {
@@ -287,13 +324,53 @@ export function GroupProfileScreen() {
     );
   };
 
+  const handleApproveMember = async (member: Member) => {
+    try {
+      await api.approveMember(groupId, member.id);
+      setPendingMembers((prev) => prev.filter((m) => m.id !== member.id));
+      setMembers((prev) => [...prev, member]);
+      setMemberCount((c) => c + 1);
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'Could not approve request.');
+    }
+  };
+
+  const handleRejectMember = (member: Member) => {
+    Alert.alert(
+      'Decline Request',
+      `Decline ${member.displayName}'s request to join?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.removeMember(groupId, member.id);
+              setPendingMembers((prev) => prev.filter((m) => m.id !== member.id));
+            } catch (e: any) {
+              Alert.alert('Error', e.message ?? 'Could not decline request.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (!group) {
+    if (fetchError) {
+      return (
+        <View style={[styles.centered, { paddingTop: insets.top }]}>
+          <Text style={styles.notFoundText}>Group not found.</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: Spacing[3] }}>
+            <Text style={{ color: Colors.primary, fontSize: Typography.base }}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.notFoundText}>Group not found.</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: Spacing[3] }}>
-          <Text style={{ color: Colors.primary, fontSize: Typography.base }}>Go Back</Text>
-        </TouchableOpacity>
+        <ActivityIndicator color={Colors.primary} />
       </View>
     );
   }
@@ -406,37 +483,111 @@ export function GroupProfileScreen() {
         ) : null}
 
         {/* ── Actions ── */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleMuteToggle} activeOpacity={0.7}>
-            <Icon
-              name={isMuted ? 'notifications-off-outline' : 'notifications-outline'}
-              size={20}
-              color={Colors.primary}
-            />
-            <Text style={styles.actionBtnLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => Alert.alert('Coming Soon', 'Sharing will be available in a future update.')}
-            activeOpacity={0.7}
-          >
-            <Icon name="share-outline" size={20} color={Colors.primary} />
-            <Text style={styles.actionBtnLabel}>Share</Text>
-          </TouchableOpacity>
-
-          {isAdmin ? (
-            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={handleDelete} activeOpacity={0.7}>
-              <Icon name="trash-outline" size={20} color={Colors.error} />
-              <Text style={[styles.actionBtnLabel, styles.actionBtnLabelDanger]}>Delete</Text>
+        {group.isMember ? (
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={styles.actionBtn} onPress={handleMuteToggle} activeOpacity={0.7}>
+              <Icon
+                name={isMuted ? 'notifications-off-outline' : 'notifications-outline'}
+                size={20}
+                color={Colors.primary}
+              />
+              <Text style={styles.actionBtnLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={handleLeave} activeOpacity={0.7}>
-              <Icon name="exit-outline" size={20} color={Colors.error} />
-              <Text style={[styles.actionBtnLabel, styles.actionBtnLabelDanger]}>Leave</Text>
+
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => Alert.alert('Coming Soon', 'Sharing will be available in a future update.')}
+              activeOpacity={0.7}
+            >
+              <Icon name="share-outline" size={20} color={Colors.primary} />
+              <Text style={styles.actionBtnLabel}>Share</Text>
             </TouchableOpacity>
-          )}
-        </View>
+
+            {isAdmin ? (
+              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={handleDelete} activeOpacity={0.7}>
+                <Icon name="trash-outline" size={20} color={Colors.error} />
+                <Text style={[styles.actionBtnLabel, styles.actionBtnLabelDanger]}>Delete</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={handleLeave} activeOpacity={0.7}>
+                <Icon name="exit-outline" size={20} color={Colors.error} />
+                <Text style={[styles.actionBtnLabel, styles.actionBtnLabelDanger]}>Leave</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnJoin, group.isPendingApproval && styles.actionBtnPending]}
+              onPress={async () => {
+                if (group.isPendingApproval || joining) return;
+                setJoining(true);
+                try {
+                  await joinGroup(group.id, group);
+                } catch (e: any) {
+                  Alert.alert('Error', e.message ?? 'Could not join group.');
+                } finally {
+                  setJoining(false);
+                }
+              }}
+              disabled={group.isPendingApproval || joining}
+              activeOpacity={0.7}
+            >
+              {joining ? (
+                <ActivityIndicator size="small" color={Colors.textInverse} />
+              ) : (
+                <Icon name={group.isPendingApproval ? 'time-outline' : 'person-add-outline'} size={20} color={group.isPendingApproval ? Colors.textSecondary : Colors.textInverse} />
+              )}
+              <Text style={[styles.actionBtnLabel, !group.isPendingApproval && styles.actionBtnLabelJoin]}>
+                {group.isPendingApproval ? 'Requested' : 'Join Group'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── Pending Requests ── */}
+        {isAdmin && (pendingLoading || pendingMembers.length > 0) && (
+          <View style={styles.membersSection}>
+            <View style={styles.membersSectionHeader}>
+              <Text style={styles.membersSectionTitle}>
+                Requests{pendingMembers.length > 0 ? ` (${pendingMembers.length})` : ''}
+              </Text>
+            </View>
+            {pendingLoading ? (
+              <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing[4] }} />
+            ) : pendingMembers.length === 0 ? (
+              <Text style={styles.emptyText}>No pending requests.</Text>
+            ) : (
+              pendingMembers.map((member, index) => (
+                <View key={member.id}>
+                  <View style={memberStyles.row}>
+                    <Avatar name={member.displayName} uri={member.avatarUrl} size={44} />
+                    <View style={memberStyles.info}>
+                      <Text style={memberStyles.displayName} numberOfLines={1}>{member.displayName}</Text>
+                      <Text style={memberStyles.username}>@{member.username}</Text>
+                    </View>
+                    <View style={styles.pendingActions}>
+                      <TouchableOpacity
+                        style={styles.pendingApproveBtn}
+                        onPress={() => handleApproveMember(member)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Icon name="checkmark" size={16} color={Colors.textInverse} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleRejectMember(member)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Icon name="close" size={20} color={Colors.textLight} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  {index < pendingMembers.length - 1 && <View style={memberStyles.separator} />}
+                </View>
+              ))
+            )}
+          </View>
+        )}
 
         {/* ── Members ── */}
         <View style={styles.membersSection}>
@@ -706,6 +857,19 @@ const styles = StyleSheet.create({
   actionBtnLabelDanger: {
     color: Colors.error,
   },
+  actionBtnJoin: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+    flex: 0,
+    paddingHorizontal: Spacing[6],
+  },
+  actionBtnPending: {
+    backgroundColor: 'transparent',
+    borderColor: Colors.border,
+  },
+  actionBtnLabelJoin: {
+    color: Colors.textInverse,
+  },
 
   // Members
   membersSection: {
@@ -730,6 +894,19 @@ const styles = StyleSheet.create({
   },
   addMemberBtn: {
     padding: 2,
+  },
+  pendingActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+  },
+  pendingApproveBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     fontSize: Typography.base,

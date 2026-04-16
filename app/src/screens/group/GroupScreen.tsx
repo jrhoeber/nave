@@ -131,7 +131,7 @@ export function GroupScreen() {
         onClose={() => setAddModalVisible(false)}
         onCreateGroup={() => navigation.navigate('CreateGroup')}
         onJoinGroup={(id) => { setAddModalVisible(false); fetchGroups(); }}
-        onOpenGroup={(id) => navigation.navigate('GroupMessage', { id })}
+        onOpenGroup={(id) => navigation.navigate('GroupProfile', { id })}
       />
     </View>
   );

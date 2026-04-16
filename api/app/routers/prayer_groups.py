@@ -316,6 +316,40 @@ async def list_group_members(
     return {"members": members}
 
 
+@router.get("/{group_id}/members/pending", response_model=dict)
+async def list_pending_members(
+    group_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT admin_id FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if str(pg["admin_id"]) != str(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Only the group admin can view pending requests")
+    rows = await conn.fetch(
+        """
+        SELECT u.id, u.username, u.display_name, u.avatar_url, pgm.joined_at
+        FROM prayer_group_members pgm
+        JOIN users u ON u.id = pgm.user_id
+        WHERE pgm.group_id = $1 AND pgm.status = 'pending'
+        ORDER BY pgm.joined_at ASC
+        """,
+        group_id,
+    )
+    members = [
+        {
+            "id": str(r["id"]),
+            "username": r["username"],
+            "display_name": r["display_name"],
+            "avatar_url": r["avatar_url"],
+            "requested_at": r["joined_at"].isoformat(),
+        }
+        for r in rows
+    ]
+    return {"members": members}
+
+
 @router.post("/{group_id}/members/{user_id}", response_model=dict)
 async def add_member(
     group_id: str,

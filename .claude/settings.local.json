@@ -55,7 +55,8 @@
       "Bash(node -e \"const fs=require\\('fs'\\); console.log\\(fs.existsSync\\('/usr/local/lib/node_modules/sharp'\\) || fs.existsSync\\('/opt/homebrew/lib/node_modules/sharp'\\)\\)\")",
       "Bash(mv \"logo@1x.png\" logo.png)",
       "Bash(mv \"logo@2x.png\" logo@2x_bak.png)",
-      "Bash(mv \"logo@3x.png\" logo@3x_bak.png)"
+      "Bash(mv \"logo@3x.png\" logo@3x_bak.png)",
+      "Bash(sips -g hasAlpha /Users/jordanhoeber/wksp/nave/app/ios/Nave/Images.xcassets/AppIcon.appiconset/Icon-1024.png /Users/jordanhoeber/wksp/nave/app/ios/Nave/Images.xcassets/AppIcon.appiconset/Icon-180.png /Users/jordanhoeber/wksp/nave/app/ios/Nave/Images.xcassets/AppIcon.appiconset/Icon-120.png)"
     ]
   }
 }

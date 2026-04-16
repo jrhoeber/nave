@@ -166,11 +166,11 @@ export function AddToGroupModal({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.toolbar}>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
+          <View style={{ width: 36 }} />
           <Text style={styles.toolbarTitle}>Add Member</Text>
-          <View style={{ width: 60 }} />
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.closeBtn}>
+            <Icon name="close" size={18} color={Colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.searchContainer}>
@@ -226,8 +226,8 @@ export function AddToGroupModal({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing[4], paddingVertical: Spacing[3], borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface },
-  cancelText: { fontSize: Typography.base, color: Colors.textSecondary, width: 60 },
   toolbarTitle: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, margin: Spacing[4], borderRadius: Radius.md, paddingHorizontal: Spacing[3], borderWidth: 1.5, borderColor: Colors.border, gap: Spacing[2] },
   searchInput: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary, paddingVertical: Spacing[3] },
   loader: { marginTop: Spacing[4] },
