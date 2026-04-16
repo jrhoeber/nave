@@ -568,17 +568,16 @@ export function GroupProfileScreen() {
                     </View>
                     <View style={styles.pendingActions}>
                       <TouchableOpacity
-                        style={styles.pendingApproveBtn}
-                        onPress={() => handleApproveMember(member)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Icon name="checkmark" size={16} color={Colors.textInverse} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
                         onPress={() => handleRejectMember(member)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        <Icon name="close" size={20} color={Colors.textLight} />
+                        <Text style={styles.pendingDeclineText}>Decline</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleApproveMember(member)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.pendingApproveText}>Accept</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -898,15 +897,17 @@ const styles = StyleSheet.create({
   pendingActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[3],
+    gap: Spacing[4],
   },
-  pendingApproveBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: Colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
+  pendingApproveText: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.semibold,
+    color: Colors.primary,
+  },
+  pendingDeclineText: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.medium,
+    color: Colors.textLight,
   },
   emptyText: {
     fontSize: Typography.base,
