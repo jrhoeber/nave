@@ -16,7 +16,7 @@ _signed_url_cache: dict[str, tuple[str, float]] = {}
 _ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _MAX_AVATAR_BYTES = 5 * 1024 * 1024   # 5 MB
 _MAX_MESSAGE_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
-_AVATAR_MAX_PX = 128
+_AVATAR_MAX_PX = 512
 
 
 def upload_avatar(file_bytes: bytes, user_id: str, content_type: str) -> str:
