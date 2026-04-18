@@ -118,6 +118,7 @@
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
 				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
 				38EC906416CF9CB3D2F63EF0 /* [CP-User] [RNFB] Core Configuration */,
+				E9C963CAD6DFC662141AE79C /* Copy Hermes dSYMs */,
 			);
 			buildRules = (
 			);
@@ -259,6 +260,24 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Nave/Pods-Nave-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		E9C963CAD6DFC662141AE79C /* Copy Hermes dSYMs */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Hermes dSYMs";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "HERMES_DSYM=\"${PODS_ROOT}/hermes-engine/destroot/Library/Frameworks/universal/hermes.xcframework/ios-arm64/hermes.framework.dSYM\"\nif [ -d \"${HERMES_DSYM}\" ]; then\n  cp -r \"${HERMES_DSYM}\" \"${DWARF_DSYM_FOLDER_PATH}\"\nfi\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -302,7 +321,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
@@ -334,7 +353,7 @@
 				PRODUCT_NAME = Nave;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;

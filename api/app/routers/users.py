@@ -162,6 +162,41 @@ async def upload_my_avatar(
     return _build_user_response(dict(row))
 
 
+@router.delete("/me", status_code=204)
+async def delete_my_account(
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    user_id = current_user["id"]
+    async with conn.transaction():
+        # For each group this user admins, reassign or delete
+        admin_groups = await conn.fetch(
+            "SELECT id FROM prayer_groups WHERE admin_id = $1", user_id
+        )
+        for row in admin_groups:
+            group_id = row["id"]
+            next_admin = await conn.fetchrow(
+                """
+                SELECT user_id FROM prayer_group_members
+                WHERE group_id = $1 AND user_id <> $2 AND status = 'member'
+                ORDER BY joined_at ASC
+                LIMIT 1
+                """,
+                group_id, user_id,
+            )
+            if next_admin:
+                await conn.execute(
+                    "UPDATE prayer_groups SET admin_id = $1 WHERE id = $2",
+                    next_admin["user_id"], group_id,
+                )
+            else:
+                await conn.execute(
+                    "DELETE FROM prayer_groups WHERE id = $1", group_id
+                )
+        # Delete user — all other FKs cascade
+        await conn.execute("DELETE FROM users WHERE id = $1", user_id)
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: str,

@@ -738,4 +738,8 @@ export const api = {
     formData.append('file', { uri, type, name: 'avatar.jpg' } as unknown as Blob);
     return apiUpload<ApiUser>('/users/me/avatar', formData);
   },
+
+  deleteAccount() {
+    return apiFetch<void>('/users/me', { method: 'DELETE' });
+  },
 };

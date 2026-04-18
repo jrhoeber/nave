@@ -5,11 +5,10 @@ import {
   Dimensions,
   FlatList,
   Image,
-  KeyboardAvoidingView,
+  Keyboard,
   Linking,
   ListRenderItemInfo,
   Modal,
-  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -152,6 +151,13 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
   const [content, setContent] = useState('');
   const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   useEffect(() => {
     setContent(editPost?.content ?? '');
@@ -185,13 +191,10 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <View style={{ flex: 1 }}>
         <View style={[composeStyles.container, { paddingTop: insets.top || Spacing[4] }]}>
 
-          {/* Header */}
+          {/* Header — fixed */}
           <View style={composeStyles.header}>
             <TouchableOpacity onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={composeStyles.cancel}>Cancel</Text>
@@ -211,49 +214,58 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
 
           <View style={composeStyles.divider} />
 
-          {/* Announcement toggle — only for new posts by admins */}
-          {isParishAdmin && !editPost && (
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[composeStyles.announcementRow, isAnnouncement && composeStyles.announcementRowActive]}
-              onPress={() => setIsAnnouncement(v => !v)}
-            >
-              <View style={composeStyles.announcementLeft}>
-                <MCIcon name="church" size={15} color={isAnnouncement ? Colors.accent : Colors.textSecondary} />
-                <Text style={[composeStyles.announcementLabel, isAnnouncement && composeStyles.announcementLabelActive]}>
-                  Parish Announcement
-                </Text>
-              </View>
-              <Switch
-                value={isAnnouncement}
-                onValueChange={setIsAnnouncement}
-                trackColor={{ false: Colors.border, true: Colors.accent + '80' }}
-                thumbColor={isAnnouncement ? Colors.accent : Colors.textLight}
-              />
-            </TouchableOpacity>
-          )}
+          {/* Scrollable compose area */}
+          <ScrollView
+            style={{ flex: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: keyboardHeight }}
+          >
+            {/* Announcement toggle — only for new posts by admins */}
+            {isParishAdmin && !editPost && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[composeStyles.announcementRow, isAnnouncement && composeStyles.announcementRowActive]}
+                onPress={() => setIsAnnouncement(v => !v)}
+              >
+                <View style={composeStyles.announcementLeft}>
+                  <MCIcon name="church" size={15} color={isAnnouncement ? Colors.accent : Colors.textSecondary} />
+                  <Text style={[composeStyles.announcementLabel, isAnnouncement && composeStyles.announcementLabelActive]}>
+                    Parish Announcement
+                  </Text>
+                </View>
+                <Switch
+                  value={isAnnouncement}
+                  onValueChange={setIsAnnouncement}
+                  trackColor={{ false: Colors.border, true: Colors.accent + '80' }}
+                  thumbColor={isAnnouncement ? Colors.accent : Colors.textLight}
+                />
+              </TouchableOpacity>
+            )}
 
-          {/* Compose area — avatar + name + input unified */}
-          <View style={composeStyles.composeArea}>
-            <Avatar name={user?.displayName ?? ''} uri={user?.avatarUrl} size={42} />
-            <View style={composeStyles.composeRight}>
-              <Text style={composeStyles.authorName}>{user?.displayName}</Text>
-              <TextInput
-                style={composeStyles.input}
-                placeholder="Share something with your parish…"
-                placeholderTextColor={Colors.textLight}
-                value={content}
-                onChangeText={setContent}
-                multiline
-                autoFocus
-                maxLength={1000}
-                textAlignVertical="top"
-              />
+            {/* Compose area — avatar + name + input unified */}
+            <View style={composeStyles.composeArea}>
+              <Avatar name={user?.displayName ?? ''} uri={user?.avatarUrl} size={42} />
+              <View style={composeStyles.composeRight}>
+                <Text style={composeStyles.authorName}>{user?.displayName}</Text>
+                <TextInput
+                  style={composeStyles.input}
+                  placeholder="Share something with your parish…"
+                  placeholderTextColor={Colors.textLight}
+                  value={content}
+                  onChangeText={setContent}
+                  multiline
+                  scrollEnabled={false}
+                  autoFocus
+                  maxLength={1000}
+                  textAlignVertical="top"
+                />
+              </View>
             </View>
-          </View>
+          </ScrollView>
 
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -406,6 +418,13 @@ function ManageParishModal({ parish, visible, onClose, onUpdated }: {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [localCoverUri, setLocalCoverUri] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   useEffect(() => {
     if (parish) {
@@ -470,7 +489,7 @@ function ManageParishModal({ parish, visible, onClose, onUpdated }: {
         </View>
         <View style={manageStyles.headerDivider} />
 
-        <ScrollView contentContainerStyle={manageStyles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[manageStyles.scroll, keyboardHeight > 0 && { paddingBottom: keyboardHeight }]} keyboardShouldPersistTaps="handled">
 
           {/* Cover Photo */}
           <View style={manageStyles.section}>
@@ -1431,9 +1450,9 @@ const composeStyles = StyleSheet.create({
   },
   composeArea: {
     flexDirection: 'row',
-    flex: 1,
     paddingHorizontal: Spacing[4],
     paddingTop: Spacing[4],
+    paddingBottom: Spacing[4],
     gap: Spacing[3],
   },
   composeRight: {
@@ -1446,7 +1465,7 @@ const composeStyles = StyleSheet.create({
     marginBottom: Spacing[1],
   },
   input: {
-    flex: 1,
+    minHeight: 120,
     fontSize: Typography.base,
     color: Colors.textPrimary,
   },

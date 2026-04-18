@@ -36,6 +36,21 @@ target 'Nave' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Copy Hermes dSYMs into the archive so App Store Connect validation passes
+    app_project = Xcodeproj::Project.open("#{installer.sandbox.root}/../Nave.xcodeproj")
+    app_project.targets.each do |target|
+      next unless target.name == 'Nave'
+      next if target.shell_script_build_phases.any? { |p| p.name == 'Copy Hermes dSYMs' }
+      phase = target.new_shell_script_build_phase('Copy Hermes dSYMs')
+      phase.shell_script = <<~SCRIPT
+        HERMES_DSYM="${PODS_ROOT}/hermes-engine/destroot/Library/Frameworks/universal/hermes.xcframework/ios-arm64/hermes.framework.dSYM"
+        if [ -d "${HERMES_DSYM}" ]; then
+          cp -r "${HERMES_DSYM}" "${DWARF_DSYM_FOLDER_PATH}"
+        fi
+      SCRIPT
+    end
+    app_project.save
     # Patch fmt/base.h to disable consteval on Apple Clang (broken in Xcode 26+)
     fmt_base = "#{installer.sandbox.root}/fmt/include/fmt/base.h"
     if File.exist?(fmt_base)

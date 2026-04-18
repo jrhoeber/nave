@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, SafeAreaView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, SafeAreaView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Button } from '../ui/Button';
 import { useAuthStore } from '../../store/authStore';
@@ -24,6 +24,7 @@ export function SettingsModal({ visible, onClose }: Props) {
   const [notifExpanded, setNotifExpanded] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (visible && !prefs) {
@@ -34,6 +35,43 @@ export function SettingsModal({ visible, onClose }: Props) {
         .finally(() => setLoading(false));
     }
   }, [visible]);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This will permanently remove all your data and cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Final Confirmation',
+              'This action is irreversible. Your account, posts, and messages will be deleted forever.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDeletingAccount(true);
+                    try {
+                      await api.deleteAccount();
+                      await logout();
+                    } catch {
+                      setDeletingAccount(false);
+                      Alert.alert('Error', 'Failed to delete account. Please try again.');
+                    }
+                  },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
 
   const updatePref = async (patch: Partial<NotificationPrefs>) => {
     if (!prefs) return;
@@ -145,6 +183,16 @@ export function SettingsModal({ visible, onClose }: Props) {
             textStyle={styles.signOutText}
             testID="settings-sign-out-btn"
           />
+          <Button
+            label={deletingAccount ? 'Deleting…' : 'Delete Account'}
+            variant="danger"
+            size="md"
+            fullWidth
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+            style={styles.deleteAccountBtn}
+            testID="settings-delete-account-btn"
+          />
         </View>
       </SafeAreaView>
     </Modal>
@@ -204,4 +252,5 @@ const styles = StyleSheet.create({
   signOutSection: { marginHorizontal: Spacing[4], marginTop: Spacing[4] },
   signOutBtn: { borderColor: Colors.error },
   signOutText: { color: Colors.error },
+  deleteAccountBtn: { marginTop: Spacing[3] },
 });
