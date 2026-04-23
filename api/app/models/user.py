@@ -1,34 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 
-class UserSignUp(BaseModel):
-    username: str
-    display_name: str
-    email: str
-    password: str
-    parish_id: Optional[str] = None
-
-    @field_validator("password")
-    @classmethod
-    def password_min_length(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters")
-        return v
-
-    @field_validator("username")
-    @classmethod
-    def username_format(cls, v: str) -> str:
-        if not v.replace("_", "").replace(".", "").isalnum():
-            raise ValueError("Username may only contain letters, numbers, underscores, and dots")
-        return v.lower()
-
-
-class UserLogin(BaseModel):
-    email: str
-    password: str
+class FirebaseAuthRequest(BaseModel):
+    id_token: str
 
 
 class UserUpdate(BaseModel):
@@ -38,6 +15,7 @@ class UserUpdate(BaseModel):
     parish_id: Optional[str] = None
     diocese: Optional[str] = None
     location: Optional[str] = None
+    birthday: Optional[date] = None
 
 
 class UserResponse(BaseModel):
@@ -50,13 +28,15 @@ class UserResponse(BaseModel):
     parish: Optional[str] = None   # parish name, joined from parishes table
     diocese: Optional[str] = None
     location: Optional[str] = None
+    birthday: Optional[date] = None
     prayer_group_count: int = 0
     created_at: datetime
     is_friend: bool = False
-    is_pending_friend: bool = False  # True when current user sent a pending request
+    is_pending_friend: bool = False
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+    is_new_user: bool = False

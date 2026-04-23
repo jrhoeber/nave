@@ -3,6 +3,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../store/authStore';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
+import { ProfileSetupScreen } from '../screens/auth/ProfileSetupScreen';
+import { ParishSetupScreen } from '../screens/auth/ParishSetupScreen';
 import { PostDetailScreen } from '../screens/shared/PostDetailScreen';
 import { UserProfileScreen } from '../screens/shared/UserProfileScreen';
 import { GroupMessageScreen } from '../screens/group/GroupMessageScreen';
@@ -14,12 +16,20 @@ import type { RootStackParamList } from '../types/navigation';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { isAuthenticated, user } = useAuthStore((s) => ({ isAuthenticated: s.isAuthenticated, user: s.user }));
+
+  const needsProfileSetup = isAuthenticated && !user?.birthday;
+  const needsParishSetup = isAuthenticated && !!user?.birthday && !user?.parishId;
+  const isReady = isAuthenticated && !!user?.birthday && !!user?.parishId;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated ? (
         <Stack.Screen name="Auth" component={AuthNavigator} />
+      ) : needsProfileSetup ? (
+        <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+      ) : needsParishSetup ? (
+        <Stack.Screen name="ParishSetup" component={ParishSetupScreen} />
       ) : (
         <>
           <Stack.Screen name="App" component={AppNavigator} />

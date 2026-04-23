@@ -4,6 +4,8 @@ import type { CompositeNavigationProp, RouteProp } from '@react-navigation/nativ
 
 export type RootStackParamList = {
   Auth: undefined;
+  ProfileSetup: undefined;
+  ParishSetup: undefined;
   App: undefined;
   PostDetail: { id: string };
   UserProfile: { id: string };
@@ -15,8 +17,6 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Welcome: undefined;
-  Login: undefined;
-  SignUp: undefined;
 };
 
 export type AppTabParamList = {

@@ -10,6 +10,7 @@ export interface User {
   parish?: string;   // parish name, for display
   diocese?: string;
   location?: string;
+  birthday?: string; // ISO date string YYYY-MM-DD; null until profile setup is complete
   friendCount: number;
   prayerGroupCount: number;
   createdAt: string;

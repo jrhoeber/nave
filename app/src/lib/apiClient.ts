@@ -14,6 +14,7 @@ interface ApiUser {
   parish?: string;   // parish name, joined from parishes table
   diocese?: string;
   location?: string;
+  birthday?: string;
   friend_count: number;
   prayer_group_count: number;
   post_count: number;
@@ -166,6 +167,7 @@ interface ApiFriendSearchResult {
 interface ApiTokenResponse {
   access_token: string;
   user: ApiUser;
+  is_new_user: boolean;
 }
 
 interface ApiFeedResponse {
@@ -209,6 +211,7 @@ export function mapUser(raw: ApiUser): User {
     parish: raw.parish,
     diocese: raw.diocese,
     location: raw.location,
+    birthday: raw.birthday,
     friendCount: raw.friend_count,
     prayerGroupCount: raw.prayer_group_count,
     createdAt: raw.created_at,
@@ -413,23 +416,10 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
 
 export const api = {
   // Auth
-  login(email: string, password: string) {
-    return apiFetch<ApiTokenResponse>('/auth/login', {
+  firebaseAuth(idToken: string) {
+    return apiFetch<ApiTokenResponse>('/auth/firebase', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-  },
-
-  signup(data: {
-    username: string;
-    display_name: string;
-    email: string;
-    password: string;
-    parish_id?: string;
-  }) {
-    return apiFetch<ApiTokenResponse>('/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ id_token: idToken }),
     });
   },
 
@@ -726,7 +716,7 @@ export const api = {
     return apiFetch<ApiUser>(`/users/${id}`);
   },
 
-  updateProfile(data: { display_name?: string; parish_id?: string; bio?: string; location?: string; avatar_url?: string }) {
+  updateProfile(data: { display_name?: string; parish_id?: string; bio?: string; location?: string; avatar_url?: string; birthday?: string }) {
     return apiFetch<ApiUser>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
