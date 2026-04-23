@@ -68,7 +68,7 @@ npm run type-check               # TypeScript check (no emit)
 - `main.py` — FastAPI app, CORS, lifespan (connection pool init/teardown)
 - `config.py` — Pydantic Settings (reads from `.env`)
 - `database.py` — asyncpg connection pool helper
-- `auth.py` — JWT creation/verification, bcrypt password hashing
+- `auth.py` — JWT creation/verification (bcrypt removed; auth now uses Firebase)
 - `dependencies.py` — `get_current_user` dependency for protected routes
 - `routers/` — One file per domain: `auth`, `users`, `feed`, `posts`, `prayer_groups`, `friends`, `parishes`, `notifications`
 - `models/` — Pydantic request/response schemas
@@ -91,7 +91,9 @@ Core tables: `users` (includes `push_notifications_enabled`, `notify_group_messa
 
 ### Auth flow
 
-JWT Bearer tokens, 30-day expiry. App stores token in Zustand `authStore` → all API calls include `Authorization: Bearer <token>` header.
+Firebase Auth (Google + Apple sign-in). After social sign-in, the Firebase ID token is exchanged at `POST /auth/firebase` for an app JWT (30-day expiry). App stores JWT in Zustand `authStore` → all API calls include `Authorization: Bearer <token>` header.
+
+New users go through a setup flow: ProfileSetup (name, birthday, bio) → ParishSetup (required). Users under 13 are blocked at ProfileSetup. Routing in RootNavigator: no birthday → ProfileSetup; no parishId → ParishSetup; complete → AppNavigator.
 
 ### Deployment
 
@@ -119,13 +121,13 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `main.py` | App entry point; lifespan (pool init/teardown), CORS, logging middleware, exception handlers, router registration |
 | `config.py` | Pydantic Settings; `DATABASE_URL`, `SECRET_KEY`, `GCS_BUCKET_NAME` — read from `.env` / `.env.local` |
 | `database.py` | `get_db()` dependency that yields an asyncpg connection from the pool |
-| `auth.py` | `hash_password()`, `verify_password()` (bcrypt), `create_token()`, `decode_token()` (JWT HS256) |
+| `auth.py` | `create_access_token()`, `decode_access_token()` (JWT HS256) |
 | `dependencies.py` | `get_current_user()` (required auth) and `get_optional_user()` (optional auth) FastAPI dependencies |
 
 #### Routers (`/api/app/routers/`)
 | File | Endpoints |
 |------|-----------|
-| `auth.py` | `POST /auth/signup`, `POST /auth/login` — creates user, returns JWT + user data |
+| `auth.py` | `POST /auth/firebase` — verify Firebase ID token, create/link user, return JWT; `GET /auth/me` |
 | `users.py` | User search, get/update profile, upload avatar (GCS signed URLs) |
 | `prayer_groups.py` | List/create/update/delete groups, join/leave, member list, approve/remove members, `POST/DELETE /{id}/avatar` for group avatar upload |
 | `group_messages.py` | `GET/POST /prayer-groups/{id}/messages` (supports `?after=` for polling), `DELETE` message, `POST` reaction toggle; sends FCM push on new message |
@@ -136,7 +138,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 #### Models (`/api/app/models/`)
 | File | Schemas |
 |------|---------|
-| `user.py` | `UserSignUp`, `UserLogin`, `UserUpdate`, `UserResponse`, `TokenResponse` |
+| `user.py` | `FirebaseAuthRequest`, `UserUpdate` (includes `birthday`), `UserResponse` (includes `birthday`), `TokenResponse` (includes `is_new_user`) |
 | `parish.py` | `ParishResponse`, `ParishesResponse` |
 | `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `rosary`, `scripture_study`, `mens_group`, `womens_group`, `youth`, etc. |
 | `group_message.py` | `GroupMessageCreate`, `GroupMessageResponse`, `GroupMessagesResponse`, `AddReactionBody` |
@@ -147,7 +149,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 |------|---------|
 | `storage.py` | `upload_avatar()`, `upload_group_avatar()`, `get_signed_url()` — Google Cloud Storage integration; signed URLs cached 55 min |
 | `queries.py` | `USER_STATS_COLS`, `USER_STATS_JOIN` — reusable user stats query fragments |
-| `push.py` | `send_push_notifications()` — Firebase Admin SDK FCM multicast helper; cleans up invalid tokens |
+| `firebase.py` | `verify_firebase_token()`, `get_messaging()` — shared Firebase Admin SDK init; used by auth router and push helper |
+| `push.py` | `send_push_notifications()` — FCM multicast helper; cleans up invalid tokens |
 
 #### Database & Infra
 | File | Purpose |
@@ -168,14 +171,14 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | File | Purpose |
 |------|---------|
 | `App.tsx` | Root component; manages auth loading, splash screen, hands off to RootNavigator |
-| `navigation/RootNavigator.tsx` | Auth ↔ App stack switch; defines modal screens (PostDetail, UserProfile, GroupMessage, Compose, CreateGroup) |
-| `navigation/AuthNavigator.tsx` | Welcome → Login / SignUp stack |
+| `navigation/RootNavigator.tsx` | Auth / Setup / App routing; checks `birthday` and `parishId` to route new users through setup flow |
+| `navigation/AuthNavigator.tsx` | Welcome screen only (social sign-in) |
 | `navigation/AppNavigator.tsx` | Bottom tabs: Community (Parish), Feed, Prayer, Friends, Profile |
 
 #### State (Zustand stores, `/app/src/store/`)
 | File | State |
 |------|-------|
-| `authStore.ts` | User, token, login/signup/logout/profile update; persisted via AsyncStorage |
+| `authStore.ts` | User, token, `signInWithFirebase`/logout/profile update; persisted via AsyncStorage |
 | `feedStore.ts` | Posts list, pagination, like/unlike + pray/unpray with optimistic updates |
 | `prayerStore.ts` | All groups + user's groups; join/leave with optimistic updates |
 | `groupChatStore.ts` | Per-group message lists, pagination, send/delete/react with optimistic updates; `getTotalUnreadCount()`, `appendNewMessages()` for polling |
@@ -197,9 +200,9 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 #### Screens (`/app/src/screens/`)
 | File | Screen |
 |------|--------|
-| `auth/WelcomeScreen.tsx` | Landing / onboarding |
-| `auth/LoginScreen.tsx` | Email + password login |
-| `auth/SignUpScreen.tsx` | Registration (email, username, password, display name, parish) |
+| `auth/WelcomeScreen.tsx` | Landing: Google + Apple sign-in buttons; initiates Firebase Auth flow |
+| `auth/ProfileSetupScreen.tsx` | New-user setup: full name, birthday (13+ gate), bio — routed to from RootNavigator when `birthday` is null |
+| `auth/ParishSetupScreen.tsx` | Parish selection (required to complete sign-up) — routed to when `parishId` is null |
 | `group/GroupScreen.tsx` | Prayer group discovery list; loads mute status per group |
 | `group/GroupMessageScreen.tsx` | Group chat: inverted message list, emoji reactions, message input; 3-second polling for new messages when focused; tapping group name navigates to GroupProfile |
 | `group/GroupProfileScreen.tsx` | Group profile: avatar (admin-uploadable), name, category, parish, info, mute/share/leave/delete actions, member list with admin remove |

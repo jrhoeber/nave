@@ -11,20 +11,11 @@ interface AuthState {
   isAuthenticated: boolean;
   avatarReady: boolean;
 
-  login: (email: string, password: string) => Promise<void>;
-  signup: (data: SignupData) => Promise<void>;
+  signInWithFirebase: (idToken: string) => Promise<{ isNewUser: boolean }>;
   logout: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
   updateUser: (patch: Partial<User>) => Promise<void>;
   setAvatarReady: () => void;
-}
-
-interface SignupData {
-  email: string;
-  password: string;
-  displayName: string;
-  username: string;
-  parishId?: string;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -49,10 +40,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // ignore
     } finally {
-      // Unblock the app immediately with cached data — don't wait for the network.
       set({ isLoading: false });
     }
-    // Background: fetch fresh user data and warm the image cache.
+    // Background: fetch fresh user data
     try {
       const fresh = await api.getMe();
       const freshUser = mapUser(fresh);
@@ -65,30 +55,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  login: async (email: string, password: string) => {
-    const data = await api.login(email, password);
+  signInWithFirebase: async (idToken: string) => {
+    const data = await api.firebaseAuth(idToken);
     const user = mapUser(data.user);
     const token = data.access_token;
     await AsyncStorage.setItem('auth_token', token);
     await AsyncStorage.setItem('auth_user', JSON.stringify(user));
     set({ user, token, isAuthenticated: true, avatarReady: false });
     if (user.avatarUrl) Image.prefetch(user.avatarUrl);
-  },
-
-  signup: async (data: SignupData) => {
-    const response = await api.signup({
-      username: data.username,
-      display_name: data.displayName,
-      email: data.email,
-      password: data.password,
-      parish_id: data.parishId,
-    });
-    const user = mapUser(response.user);
-    const token = response.access_token;
-    await AsyncStorage.setItem('auth_token', token);
-    await AsyncStorage.setItem('auth_user', JSON.stringify(user));
-    set({ user, token, isAuthenticated: true, avatarReady: false });
-    if (user.avatarUrl) Image.prefetch(user.avatarUrl);
+    return { isNewUser: data.is_new_user };
   },
 
   logout: async () => {

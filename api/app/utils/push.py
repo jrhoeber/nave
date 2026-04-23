@@ -1,36 +1,7 @@
 """Firebase Cloud Messaging push notification helper."""
-
 import logging
-from typing import Any
 
 logger = logging.getLogger("nave.push")
-
-_firebase_initialized = False
-
-
-def _get_messaging():
-    """Lazy-initialize Firebase Admin SDK and return the messaging client."""
-    global _firebase_initialized
-    import firebase_admin
-    from firebase_admin import credentials, messaging
-
-    if not _firebase_initialized:
-        from app.config import settings
-        if not settings.firebase_service_account_json:
-            logger.warning("FIREBASE_SERVICE_ACCOUNT_JSON not set — push notifications disabled")
-            return None
-        try:
-            import json
-            cred_data = json.loads(settings.firebase_service_account_json)
-            cred = credentials.Certificate(cred_data)
-            firebase_admin.initialize_app(cred)
-            _firebase_initialized = True
-            logger.info("Firebase Admin SDK initialized")
-        except Exception:
-            logger.exception("Failed to initialize Firebase Admin SDK")
-            return None
-
-    return messaging
 
 
 async def send_push_notifications(
@@ -47,7 +18,8 @@ async def send_push_notifications(
     if not tokens:
         return
 
-    messaging = _get_messaging()
+    from app.utils.firebase import get_messaging
+    messaging = get_messaging()
     if messaging is None:
         return
 
