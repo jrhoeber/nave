@@ -11,6 +11,7 @@ import { GroupMessageScreen } from '../screens/group/GroupMessageScreen';
 import { GroupProfileScreen } from '../screens/group/GroupProfileScreen';
 import { ComposeScreen } from '../screens/shared/ComposeScreen';
 import { CreateGroupScreen } from '../screens/group/CreateGroupScreen';
+import { BlockedUsersScreen } from '../screens/profile/BlockedUsersScreen';
 import type { RootStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -47,6 +48,7 @@ export function RootNavigator() {
           />
           <Stack.Screen name="Compose" component={ComposeScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ presentation: 'modal' }} />
+          <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={{ animation: 'slide_from_right' }} />
         </>
       )}
     </Stack.Navigator>

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import auth, friends, group_messages, notifications, parishes, prayer_groups, users
+from app.routers import auth, blocks, friends, group_messages, notifications, parishes, prayer_groups, users
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -137,6 +137,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.include_router(auth.router,            prefix="/auth",            tags=["auth"])
 app.include_router(users.router,           prefix="/users",           tags=["users"])
+app.include_router(blocks.router,          prefix="/blocks",          tags=["blocks"])
 app.include_router(friends.router,         prefix="/friends",         tags=["friends"])
 app.include_router(prayer_groups.router,   prefix="/prayer-groups",   tags=["prayer-groups"])
 app.include_router(group_messages.router,  prefix="/prayer-groups",   tags=["group-messages"])

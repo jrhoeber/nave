@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProfileView, AvatarRing, profileStyles } from '../../components/profile/ProfileView';
 import { useFriendsStore } from '../../store/friendsStore';
+import { useBlocksStore } from '../../store/blocksStore';
 import { api, mapUser } from '../../lib/apiClient';
 import { Colors, Spacing } from '../../theme';
 import type { User } from '../../types';
@@ -15,6 +16,7 @@ export function UserProfileScreen() {
   const navigation = useNavigation();
   const route = useRoute<UserProfileRouteProp>();
   const { friends, removeFriend } = useFriendsStore();
+  const { blockUser } = useBlocksStore();
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,39 @@ export function UserProfileScreen() {
     }
   };
 
+  const handleBlockUser = () => {
+    Alert.alert(
+      `Block ${user?.displayName ?? 'User'}`,
+      'They won\'t be able to see your profile or send you friend requests.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await blockUser(route.params.id);
+              navigation.goBack();
+            } catch {
+              Alert.alert('Error', 'Could not block user. Please try again.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleKebabPress = () => {
+    Alert.alert(
+      user?.displayName ?? 'User',
+      undefined,
+      [
+        { text: 'Block User', style: 'destructive', onPress: handleBlockUser },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
   const actionIcon = isFriend ? 'person-remove-outline' : 'person-add-outline';
   const actionLabel = isFriend ? 'Remove Friend' : isPending ? 'Pending' : 'Add Friend';
   const actionColor = isFriend ? Colors.error : Colors.accent;
@@ -96,13 +131,22 @@ export function UserProfileScreen() {
       user={user}
       paddingTop={insets.top + Spacing[4]}
       headerSlot={
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={[profileStyles.heroBtn, { alignSelf: 'flex-start' }]}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Icon name="chevron-back" size={24} color={Colors.accentLight} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={profileStyles.heroBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="chevron-back" size={24} color={Colors.accentLight} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleKebabPress}
+            style={profileStyles.heroBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="ellipsis-horizontal" size={24} color={Colors.accentLight} />
+          </TouchableOpacity>
+        </View>
       }
       avatarSlot={<AvatarRing uri={user.avatarUrl} name={user.displayName} />}
       actionSlot={

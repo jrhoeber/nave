@@ -17,9 +17,10 @@ interface NotificationPrefs {
 interface Props {
   visible: boolean;
   onClose: () => void;
+  onBlockedUsersPress?: () => void;
 }
 
-export function SettingsModal({ visible, onClose }: Props) {
+export function SettingsModal({ visible, onClose, onBlockedUsersPress }: Props) {
   const { logout } = useAuthStore();
   const [notifExpanded, setNotifExpanded] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
@@ -164,6 +165,7 @@ export function SettingsModal({ visible, onClose }: Props) {
               key={label}
               style={[styles.menuItem, i === NON_NOTIFICATION_ITEMS.length - 1 && styles.menuItemLast]}
               activeOpacity={0.7}
+              onPress={label === 'Blocked Users' ? onBlockedUsersPress : undefined}
             >
               <Text style={styles.menuLabel}>{label}</Text>
               <Icon name="chevron-forward" size={16} color={Colors.textLight} />

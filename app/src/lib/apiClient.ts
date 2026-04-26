@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult, BlockedUser } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -162,6 +162,14 @@ interface ApiFriendSearchResult {
   friendship_id?: string;
   friendship_status?: 'pending' | 'accepted' | 'rejected';
   is_requester?: boolean;
+}
+
+interface ApiBlockedUser {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string;
+  blocked_at: string;
 }
 
 interface ApiTokenResponse {
@@ -327,6 +335,16 @@ export function mapFriendship(raw: ApiFriendship): Friendship {
     isRequester: raw.is_requester,
     createdAt: raw.created_at,
     user: mapFriendUser(raw.user),
+  };
+}
+
+export function mapBlockedUser(raw: ApiBlockedUser): BlockedUser {
+  return {
+    id: raw.id,
+    username: raw.username,
+    displayName: raw.display_name,
+    avatarUrl: raw.avatar_url?.startsWith('http') ? raw.avatar_url : undefined,
+    blockedAt: raw.blocked_at,
   };
 }
 
@@ -663,6 +681,22 @@ export const api = {
 
   removeFriendship(friendshipId: string) {
     return apiFetch<void>(`/friends/${friendshipId}`, { method: 'DELETE' });
+  },
+
+  // Blocks
+  blockUser(blockedId: string) {
+    return apiFetch<{ message: string }>('/blocks', {
+      method: 'POST',
+      body: JSON.stringify({ blocked_id: blockedId }),
+    });
+  },
+
+  unblockUser(blockedId: string) {
+    return apiFetch<void>(`/blocks/${blockedId}`, { method: 'DELETE' });
+  },
+
+  getBlockedUsers() {
+    return apiFetch<{ blocked_users: ApiBlockedUser[] }>('/blocks');
   },
 
   // Notifications

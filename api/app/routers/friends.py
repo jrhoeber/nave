@@ -84,6 +84,11 @@ async def search_for_friends(
         )
         WHERE u.id != $2
           AND (u.username ILIKE $1 OR u.display_name ILIKE $1 OR u.email ILIKE $1)
+          AND NOT EXISTS (
+              SELECT 1 FROM user_blocks
+              WHERE (blocker_id = $2 AND blocked_id = u.id)
+                 OR (blocker_id = u.id AND blocked_id = $2)
+          )
         ORDER BY u.display_name
         LIMIT $3
         """,
@@ -121,6 +126,18 @@ async def send_friend_request(
 
     addressee = await conn.fetchrow("SELECT id FROM users WHERE id = $1", body.addressee_id)
     if not addressee:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    block = await conn.fetchrow(
+        """
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $1 AND blocked_id = $2)
+           OR (blocker_id = $2 AND blocked_id = $1)
+        """,
+        current_user["id"],
+        body.addressee_id,
+    )
+    if block:
         raise HTTPException(status_code=404, detail="User not found")
 
     existing = await conn.fetchrow(

@@ -133,7 +133,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `prayer_groups.py` | List/create/update/delete groups, join/leave, member list, approve/remove members, `POST/DELETE /{id}/avatar` for group avatar upload |
 | `group_messages.py` | `GET/POST /prayer-groups/{id}/messages` (supports `?after=` for polling), `DELETE` message, `POST` reaction toggle; sends FCM push on new message |
 | `parishes.py` | Fuzzy parish search (trigram + abbreviation expansion), parish member list |
-| `friends.py` | `GET /friends`, `GET /friends/requests/incoming`, `GET /friends/search`, `POST /friends/requests` (sends FCM push), `PATCH /friends/requests/{id}`, `DELETE /friends/{id}` |
+| `friends.py` | `GET /friends`, `GET /friends/requests/incoming`, `GET /friends/search`, `POST /friends/requests` (sends FCM push), `PATCH /friends/requests/{id}`, `DELETE /friends/{id}`; search and send-request filter blocked users |
+| `blocks.py` | `POST /blocks`, `DELETE /blocks/{blocked_id}`, `GET /blocks` — block/unblock users; POST atomically removes friendship |
 | `notifications.py` | `POST/DELETE /notifications/device-token`, `GET/PATCH /notifications/preferences`, `POST/DELETE/GET /notifications/prayer-groups/{id}/mute` |
 
 #### Models (`/api/app/models/`)
@@ -144,6 +145,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `rosary`, `scripture_study`, `mens_group`, `womens_group`, `youth`, etc. |
 | `group_message.py` | `GroupMessageCreate`, `GroupMessageResponse`, `GroupMessagesResponse`, `AddReactionBody` |
 | `friendship.py` | `FriendRequestCreate`, `FriendRequestUpdate` |
+| `block.py` | `BlockCreate` |
 
 #### Utils (`/api/app/utils/`)
 | File | Purpose |
@@ -184,6 +186,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `prayerStore.ts` | All groups + user's groups; join/leave with optimistic updates |
 | `groupChatStore.ts` | Per-group message lists, pagination, send/delete/react with optimistic updates; `getTotalUnreadCount()`, `appendNewMessages()` for polling |
 | `friendsStore.ts` | Friends list + incoming requests; accept/reject/remove with optimistic updates |
+| `blocksStore.ts` | Blocked users list; block/unblock with optimistic removal |
 
 #### API Layer (`/app/src/lib/`)
 | File | Purpose |
@@ -195,7 +198,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 #### Types (`/app/src/types/`)
 | File | Contents |
 |------|---------|
-| `index.ts` | `User`, `Post`, `PostType`, `Comment`, `PrayerGroup`, `PrayerGroupCategory`, `Parish`, `GroupMessage`, `MessageReaction` interfaces |
+| `index.ts` | `User`, `Post`, `PostType`, `Comment`, `PrayerGroup`, `PrayerGroupCategory`, `Parish`, `GroupMessage`, `MessageReaction`, `BlockedUser` interfaces |
 | `navigation.ts` | Stack param lists for type-safe `navigation.navigate()` calls |
 
 #### Screens (`/app/src/screens/`)
@@ -213,7 +216,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `profile/ProfileScreen.tsx` | Own profile with edit |
 | `shared/ComposeScreen.tsx` | Modal: create new post |
 | `shared/PostDetailScreen.tsx` | Full post + comments |
-| `shared/UserProfileScreen.tsx` | Other users' profiles |
+| `shared/UserProfileScreen.tsx` | Other users' profiles; kebab menu (ellipsis-horizontal) to block user |
+| `profile/BlockedUsersScreen.tsx` | List of blocked users with unblock action; navigated to from SettingsModal |
 
 #### UI Components (`/app/src/components/`)
 | File | Purpose |

@@ -186,6 +186,16 @@ export interface FriendSearchResult {
   isRequester?: boolean;
 }
 
+// ─── Blocks ──────────────────────────────────────────────────────────────────
+
+export interface BlockedUser {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+  blockedAt: string;
+}
+
 // ─── Notification Preferences ────────────────────────────────────────────────
 
 export interface NotificationPreferences {

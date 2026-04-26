@@ -13,6 +13,7 @@ export type RootStackParamList = {
   GroupProfile: { id: string };
   Compose: { postType?: string } | undefined;
   CreateGroup: undefined;
+  BlockedUsers: undefined;
 };
 
 export type AuthStackParamList = {

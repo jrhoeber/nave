@@ -83,7 +83,14 @@ export function ProfileScreen() {
       }
       footerSlot={
         <>
-          <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
+          <SettingsModal
+            visible={settingsVisible}
+            onClose={() => setSettingsVisible(false)}
+            onBlockedUsersPress={() => {
+              setSettingsVisible(false);
+              setTimeout(() => navigation.navigate('BlockedUsers'), 300);
+            }}
+          />
           <EditProfileModal visible={editProfileVisible} onClose={() => setEditProfileVisible(false)} />
         </>
       }

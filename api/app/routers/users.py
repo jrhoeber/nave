@@ -218,6 +218,18 @@ async def get_user(
     if row is None:
         raise HTTPException(status_code=404, detail="User not found")
 
+    block = await conn.fetchrow(
+        """
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = $1 AND blocked_id = $2)
+           OR (blocker_id = $2 AND blocked_id = $1)
+        """,
+        current_user["id"],
+        user_id,
+    )
+    if block:
+        raise HTTPException(status_code=404, detail="User not found")
+
     response = _build_user_response(dict(row))
 
     friendship = await conn.fetchrow(
