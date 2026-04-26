@@ -6,6 +6,8 @@ Nave is a mobile app for Catholics who want to pray and stay connected with othe
 
 The name "Nave" refers to the central body of a Catholic church — the space where the faithful gather — reflecting the app's purpose of bringing people together in community and prayer.
 
+IMPORTANT: Nave is owned an operated by a company called Cornerstone Dev LLC. Nave is not the name of the company, just the name of one of the applications the company owns. 
+
 ---
 
 ## Who is Nave For?

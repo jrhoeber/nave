@@ -56,14 +56,15 @@ export function SignInPage() {
   const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
   const [error, setError] = useState('');
 
-  /** Exchange a Firebase ID token for a Nave app JWT */
+  /** Exchange a Firebase ID token for a Nave app JWT. */
   const exchangeToken = async (firebaseIdToken: string): Promise<void> => {
     const res = await fetch(`${API_BASE}/auth/firebase`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_token: firebaseIdToken }),
+      body: JSON.stringify({ id_token: firebaseIdToken, source: 'web' }),
     });
     if (!res.ok) {
+      await auth.signOut();
       const body = await res.json().catch(() => ({}));
       throw new Error(body.detail ?? 'Authentication failed. Please try again.');
     }

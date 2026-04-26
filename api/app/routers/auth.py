@@ -117,6 +117,12 @@ async def firebase_auth(body: FirebaseAuthRequest, conn=Depends(get_db)):
             row = dict(row)
             row["firebase_uid"] = firebase_uid
 
+    if row is None and body.source == "web":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No account found. Download the Nave app to create an account.",
+        )
+
     if row is None:
         # Create new user
         is_new_user = True

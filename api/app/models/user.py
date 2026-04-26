@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class FirebaseAuthRequest(BaseModel):
     id_token: str
+    source: str = "app"  # "app" | "web"
 
 
 class UserUpdate(BaseModel):
