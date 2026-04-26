@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-nave-bg text-nave-primary font-body;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm
+      bg-nave-accent text-nave-primary-dark
+      hover:bg-nave-accent-light transition-all duration-200
+      focus:outline-none focus:ring-2 focus:ring-nave-accent/50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
+      border border-nave-accent/30 text-nave-accent
+      hover:bg-nave-accent/10 transition-all duration-200;
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #c9a84c 0%, #e8c97a 50%, #c9a84c 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-gradient {
+    background: linear-gradient(160deg, #0f1a2e 0%, #1a2b4a 50%, #2d4270 100%);
+  }
+
+  .dark-gradient {
+    background: linear-gradient(160deg, #1a2b4a 0%, #0f1a2e 100%);
+  }
+
+  /* Entrance animations — elements start hidden, JS-free reveal via opacity-0 + animate-fade-up */
+  .reveal {
+    opacity: 0;
+    animation: fadeUp 0.8s ease-out forwards;
+  }
+
+  .reveal-delay-1 { animation-delay: 0.1s; }
+  .reveal-delay-2 { animation-delay: 0.2s; }
+  .reveal-delay-3 { animation-delay: 0.3s; }
+  .reveal-delay-4 { animation-delay: 0.5s; }
+}

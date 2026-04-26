@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import asyncpg
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
@@ -38,6 +39,22 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="NaveAPI", version="0.1.0", lifespan=lifespan)
+
+
+# ─── CORS ─────────────────────────────────────────────────────────────────────
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://naveapp.co",
+        "https://www.naveapp.co",
+        "http://localhost:5173",   # Vite dev server
+        "http://localhost:4173",   # Vite preview
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ─── Request logging middleware ───────────────────────────────────────────────

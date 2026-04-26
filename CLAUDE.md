@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Nave** is a Catholic prayer community mobile app. It consists of:
 - **`/api`** — FastAPI (Python 3.12) backend with async PostgreSQL (asyncpg)
 - **`/app`** — React Native (TypeScript) mobile app for iOS/Android
+- **`/web`** — React + Vite + TypeScript web app (landing page + admin console)
 
 ## API Development
 
