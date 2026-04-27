@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { useAuthStore } from '../../store/authStore';
+import { api, ApiError } from '../../lib/apiClient';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { ComposeRouteProp } from '../../types/navigation';
 import type { PostType } from '../../types';
@@ -31,6 +32,27 @@ export function ComposeScreen() {
   const user = useAuthStore((s) => s.user);
   const [content, setContent] = useState('');
   const [postType, setPostType] = useState<PostType>((route.params?.postType as PostType) ?? 'general');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<{ message: string; isModerated: boolean } | null>(null);
+
+  const handlePost = async () => {
+    const trimmed = content.trim();
+    if (!trimmed || !user?.parishId || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.createParishPost(user.parishId, trimmed);
+      navigation.goBack();
+    } catch (err) {
+      const isModerated = err instanceof ApiError && err.code === 'moderation_blocked';
+      const message = err instanceof Error ? err.message : 'Failed to submit post. Please try again.';
+      setError({ message, isModerated });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const canPost = content.trim().length > 0 && !submitting;
 
   return (
     <KeyboardAvoidingView style={[styles.container, { paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -40,11 +62,19 @@ export function ComposeScreen() {
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
         <Text style={styles.toolbarTitle}>New Post</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} disabled={!content.trim()}
-          style={[styles.postBtn, content.trim() && styles.postBtnActive]}>
-          <Text style={[styles.postBtnText, content.trim() && styles.postBtnTextActive]}>Post</Text>
+        <TouchableOpacity onPress={handlePost} disabled={!canPost}
+          style={[styles.postBtn, canPost && styles.postBtnActive]}>
+          <Text style={[styles.postBtnText, canPost && styles.postBtnTextActive]}>
+            {submitting ? 'Posting…' : 'Post'}
+          </Text>
         </TouchableOpacity>
       </View>
+
+      {error && (
+        <View style={[styles.errorBanner, error.isModerated && styles.errorBannerModerated]}>
+          <Text style={[styles.errorText, error.isModerated && styles.errorTextModerated]}>{error.message}</Text>
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.authorRow}>
@@ -54,8 +84,9 @@ export function ComposeScreen() {
             <Text style={styles.authorParish}>{user?.parish ?? 'Catholic'}</Text>
           </View>
         </View>
-        <TextInput value={content} onChangeText={setContent} placeholder={PLACEHOLDER[postType]}
-          placeholderTextColor={Colors.textLight} multiline style={styles.input} autoFocus maxLength={1000} />
+        <TextInput value={content} onChangeText={(t) => { setContent(t); if (error) setError(null); }}
+          placeholder={PLACEHOLDER[postType]} placeholderTextColor={Colors.textLight}
+          multiline style={styles.input} autoFocus maxLength={1000} />
         <Text style={styles.charCount}>{content.length}/1000</Text>
       </ScrollView>
 
@@ -84,6 +115,10 @@ const styles = StyleSheet.create({
   postBtnActive: { backgroundColor: Colors.primary },
   postBtnText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textLight },
   postBtnTextActive: { color: Colors.textInverse },
+  errorBanner: { backgroundColor: 'rgba(220, 38, 38, 0.08)', borderBottomWidth: 1, borderBottomColor: 'rgba(220, 38, 38, 0.2)', paddingHorizontal: Spacing[4], paddingVertical: Spacing[3] },
+  errorBannerModerated: { backgroundColor: 'rgba(217, 119, 6, 0.08)', borderBottomColor: 'rgba(217, 119, 6, 0.2)' },
+  errorText: { fontSize: Typography.sm, color: Colors.error, lineHeight: Typography.sm * Typography.relaxed },
+  errorTextModerated: { color: Colors.warning },
   scroll: { padding: Spacing[4], flexGrow: 1 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[4] },
   authorName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },

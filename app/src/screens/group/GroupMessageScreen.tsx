@@ -30,7 +30,7 @@ import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { GroupMessage } from '../../types';
 import { GROUP_REACTION_EMOJIS } from '../../types';
 import type { GroupMessageRouteProp, RootNavigationProp } from '../../types/navigation';
-import { api, mapGroupMessage } from '../../lib/apiClient';
+import { api, ApiError, mapGroupMessage } from '../../lib/apiClient';
 
 // ─── Chat palette (maps to app theme) ─────────────────────────────────────────
 
@@ -433,13 +433,19 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
       if (photo) {
         await sendImageMessage(groupId, photo.uri, photo.type, trimmed || undefined);
       } else {
-        await sendMessage(groupId, trimmed);
+        const { pendingReview } = await sendMessage(groupId, trimmed);
+        if (pendingReview) {
+          Alert.alert('Message Under Review', 'Your message is being reviewed and will appear shortly.');
+        }
       }
-    } catch {
-      // restore draft on failure
-      setText(trimmed);
-      if (photo) setDraftPhoto(photo);
-      Alert.alert('Error', 'Failed to send message. Please try again.');
+    } catch (err) {
+      const isModerated = err instanceof ApiError && err.code === 'moderation_blocked';
+      const message = err instanceof Error ? err.message : 'Failed to send message. Please try again.';
+      if (!isModerated) {
+        setText(trimmed);
+        if (photo) setDraftPhoto(photo);
+      }
+      Alert.alert(isModerated ? 'Message Not Sent' : 'Error', message);
     } finally {
       setSending(false);
     }

@@ -137,6 +137,7 @@ async def list_messages(
             FROM group_messages gm
             JOIN users u ON u.id = gm.user_id
             WHERE gm.group_id = $1 AND gm.created_at > $2
+              AND (gm.moderation_status IS NULL OR gm.moderation_status = 'approved')
             ORDER BY gm.created_at ASC
             LIMIT $3
             """,
@@ -159,6 +160,7 @@ async def list_messages(
         FROM group_messages gm
         JOIN users u ON u.id = gm.user_id
         WHERE gm.group_id = $1 AND gm.created_at < $2
+          AND (gm.moderation_status IS NULL OR gm.moderation_status = 'approved')
         ORDER BY gm.created_at DESC
         LIMIT $3
         """,
@@ -211,23 +213,98 @@ async def send_message(
 ):
     await _require_member(conn, group_id, str(current_user["id"]))
 
-    row = await conn.fetchrow(
-        """
-        INSERT INTO group_messages (group_id, user_id, content, image_url)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, group_id, user_id, content, image_url, created_at
-        """,
-        group_id,
-        current_user["id"],
-        body.content,
-        body.image_url,
-    )
+    # ── Content moderation (text messages only; images are out of scope) ───────
+    mod_status: Optional[str] = None
+    mod_crisis: bool = False
+    mod_crisis_resources: list = []
+    mod_layer1: Optional[dict] = None
+    mod_layer2: Optional[dict] = None
+
+    if body.content:
+        from app.moderation.moderate import moderate_content
+
+        mod = await moderate_content(
+            text=body.content,
+            context_type="comment",
+            user_id=str(current_user["id"]),
+        )
+        mod_layer1 = mod.layer1_result
+        mod_layer2 = mod.layer2_result
+
+        if mod.action == "block":
+            try:
+                from app.moderation.review_queue import add_to_queue
+                await add_to_queue(
+                    conn,
+                    user_id=str(current_user["id"]),
+                    content=body.content,
+                    context_type="group_message",
+                    final_action="block",
+                    layer1_result=mod_layer1,
+                    layer2_result=mod_layer2,
+                )
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "moderation_blocked",
+                    "message": "This content can't be posted in our community. If you believe this is a mistake, please contact us.",
+                },
+            )
+        if mod.action == "queue":
+            mod_status = "pending"
+        mod_crisis = mod.crisis
+        mod_crisis_resources = mod.crisis_resources
+
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            """
+            INSERT INTO group_messages (group_id, user_id, content, image_url, moderation_status)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, group_id, user_id, content, image_url, moderation_status, created_at
+            """,
+            group_id,
+            current_user["id"],
+            body.content,
+            body.image_url,
+            mod_status,
+        )
+
+        if mod_status == "pending":
+            from app.moderation.review_queue import add_to_queue
+            await add_to_queue(
+                conn,
+                user_id=str(current_user["id"]),
+                content=body.content,
+                context_type="group_message",
+                content_id=str(row["id"]),
+                final_action="queue",
+                layer1_result=mod_layer1,
+                layer2_result=mod_layer2,
+            )
+
     user_row = await conn.fetchrow(
         "SELECT username, display_name, avatar_url FROM users WHERE id = $1",
         current_user["id"],
     )
     merged = {**dict(row), **dict(user_row)}
     response = _build_message(merged, {})
+
+    # Queued messages: skip push notifications, return pending notice
+    if mod_status == "pending":
+        payload = response.model_dump(mode="json")
+        payload["_moderation"] = {"status": "pending_review", "crisis": mod_crisis}
+        if mod_crisis and mod_crisis_resources:
+            payload["_moderation"]["crisis_resources"] = mod_crisis_resources
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=201, content=payload)
+
+    if mod_crisis and mod_crisis_resources:
+        payload = response.model_dump(mode="json")
+        payload["_moderation"] = {"status": "allowed", "crisis": True, "crisis_resources": mod_crisis_resources}
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=201, content=payload)
 
     # Fire push notifications to eligible group members (non-blocking best-effort)
     try:

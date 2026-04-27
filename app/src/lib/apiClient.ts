@@ -372,6 +372,17 @@ export function registerUnauthorizedHandler(handler: () => void) {
 
 // ─── HTTP client ──────────────────────────────────────────────────────────────
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await AsyncStorage.getItem('auth_token');
   const headers: Record<string, string> = {
@@ -390,13 +401,17 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
       throw new Error('Session expired');
     }
     let detail = `HTTP ${response.status}`;
+    let code: string | undefined;
     try {
       const body = await response.json();
-      if (body?.detail) {
-        detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
+      if (typeof body?.detail === 'string') {
+        detail = body.detail;
+      } else if (typeof body?.detail === 'object' && body.detail !== null) {
+        detail = body.detail.message ?? JSON.stringify(body.detail);
+        code = body.detail.code;
       }
     } catch {}
-    throw new Error(detail);
+    throw new ApiError(response.status, detail, code);
   }
 
   if (response.status === 204) return undefined as T;
@@ -424,7 +439,7 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
         detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
       }
     } catch {}
-    throw new Error(detail);
+    throw new ApiError(response.status, detail);
   }
 
   return response.json() as Promise<T>;

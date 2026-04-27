@@ -1,17 +1,14 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 
 export type RootStackParamList = {
   Auth: undefined;
   ProfileSetup: undefined;
   ParishSetup: undefined;
   App: undefined;
-  PostDetail: { id: string };
   UserProfile: { id: string };
   GroupMessage: { id: string };
   GroupProfile: { id: string };
-  Compose: { postType?: string } | undefined;
   CreateGroup: undefined;
   BlockedUsers: undefined;
 };
@@ -31,8 +28,6 @@ export type AppTabParamList = {
 export type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export type AuthNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
-export type PostDetailRouteProp = RouteProp<RootStackParamList, 'PostDetail'>;
 export type UserProfileRouteProp = RouteProp<RootStackParamList, 'UserProfile'>;
 export type GroupMessageRouteProp = RouteProp<RootStackParamList, 'GroupMessage'>;
 export type GroupProfileRouteProp = RouteProp<RootStackParamList, 'GroupProfile'>;
-export type ComposeRouteProp = RouteProp<RootStackParamList, 'Compose'>;

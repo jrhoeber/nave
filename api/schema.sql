@@ -143,6 +143,16 @@ CREATE INDEX IF NOT EXISTS idx_parish_admins_parish ON parish_admins (parish_id)
 CREATE INDEX IF NOT EXISTS idx_parish_admins_user   ON parish_admins (user_id);
 
 -- ============================================================
+-- APP ADMINS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS app_admins (
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    granted_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id)
+);
+
+-- ============================================================
 -- GROUP MESSAGES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS group_messages (
@@ -151,12 +161,14 @@ CREATE TABLE IF NOT EXISTS group_messages (
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content    TEXT CHECK (char_length(content) <= 2000),
     image_url  TEXT,
+    moderation_status TEXT CHECK (moderation_status IN ('pending', 'approved', 'rejected')) DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT group_messages_content_or_image CHECK (content IS NOT NULL OR image_url IS NOT NULL)
 );
 
 CREATE INDEX IF NOT EXISTS idx_gm_group_created ON group_messages (group_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_gm_user          ON group_messages (user_id);
+CREATE INDEX IF NOT EXISTS idx_gm_moderation_status ON group_messages (moderation_status) WHERE moderation_status IS NOT NULL;
 
 -- ============================================================
 -- GROUP MESSAGE REACTIONS

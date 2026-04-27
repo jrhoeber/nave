@@ -21,7 +21,7 @@ interface GroupChatState {
 
   fetchMessages: (groupId: string) => Promise<void>;
   loadMoreMessages: (groupId: string) => Promise<void>;
-  sendMessage: (groupId: string, content: string) => Promise<void>;
+  sendMessage: (groupId: string, content: string) => Promise<{ pendingReview: boolean }>;
   sendImageMessage: (groupId: string, uri: string, type: string, caption?: string) => Promise<void>;
   deleteMessage: (groupId: string, messageId: string) => Promise<void>;
   toggleReaction: (groupId: string, messageId: string, emoji: string) => Promise<void>;
@@ -109,24 +109,37 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     }));
 
     try {
-      const raw = await api.sendGroupMessage(groupId, content);
-      const message = mapGroupMessage(raw);
-      set((s) => ({
-        messagesByGroup: {
-          ...s.messagesByGroup,
-          [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
-            m.id === tempId ? message : m,
-          ),
-        },
-      }));
-    } catch {
+      const raw = await api.sendGroupMessage(groupId, content) as Awaited<ReturnType<typeof api.sendGroupMessage>> & { _moderation?: { status: string } };
+      const pendingReview = raw._moderation?.status === 'pending_review';
+
+      if (pendingReview) {
+        // Remove the optimistic message — it won't appear until an admin approves it
+        set((s) => ({
+          messagesByGroup: {
+            ...s.messagesByGroup,
+            [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId),
+          },
+        }));
+      } else {
+        const message = mapGroupMessage(raw);
+        set((s) => ({
+          messagesByGroup: {
+            ...s.messagesByGroup,
+            [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
+              m.id === tempId ? message : m,
+            ),
+          },
+        }));
+      }
+      return { pendingReview };
+    } catch (err) {
       set((s) => ({
         messagesByGroup: {
           ...s.messagesByGroup,
           [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId),
         },
       }));
-      throw new Error('Failed to send message');
+      throw err;
     }
   },
 

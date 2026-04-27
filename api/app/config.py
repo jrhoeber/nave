@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     # JSON string of the Firebase service account key. If empty, push notifications are disabled.
     firebase_service_account_json: str = ""
 
+    # Content moderation
+    anthropic_api_key: str = ""
+    openai_api_key: str = ""
+    moderation_enabled: bool = True
+    moderation_log_level: str = "INFO"
     model_config = {"env_file": ".env"}
 
 

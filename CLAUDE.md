@@ -105,6 +105,9 @@ GitHub Actions (`.github/workflows/deploy-api.yml`) builds and deploys the API t
 API config via `.env` / `.env.local` in `api/`:
 - `DATABASE_URL` — asyncpg-compatible PostgreSQL URL
 - `SECRET_KEY` — JWT signing key
+- `ANTHROPIC_API_KEY` — Claude Haiku moderation (Layer 2)
+- `OPENAI_API_KEY` — OpenAI Moderation API (Layer 1)
+- `MODERATION_ENABLED` — toggle moderation on/off (default: true)
 
 Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; Android emulator uses `10.0.2.2:8000`).
 
@@ -120,7 +123,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | File | Purpose |
 |------|---------|
 | `main.py` | App entry point; lifespan (pool init/teardown), CORS, logging middleware, exception handlers, router registration |
-| `config.py` | Pydantic Settings; `DATABASE_URL`, `SECRET_KEY`, `GCS_BUCKET_NAME` — read from `.env` / `.env.local` |
+| `config.py` | Pydantic Settings; `DATABASE_URL`, `SECRET_KEY`, `GCS_BUCKET_NAME`, moderation keys — read from `.env` / `.env.local` |
 | `database.py` | `get_db()` dependency that yields an asyncpg connection from the pool |
 | `auth.py` | `create_access_token()`, `decode_access_token()` (JWT HS256) |
 | `dependencies.py` | `get_current_user()` (required auth) and `get_optional_user()` (optional auth) FastAPI dependencies |
@@ -136,6 +139,18 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `friends.py` | `GET /friends`, `GET /friends/requests/incoming`, `GET /friends/search`, `POST /friends/requests` (sends FCM push), `PATCH /friends/requests/{id}`, `DELETE /friends/{id}`; search and send-request filter blocked users |
 | `blocks.py` | `POST /blocks`, `DELETE /blocks/{blocked_id}`, `GET /blocks` — block/unblock users; POST atomically removes friendship |
 | `notifications.py` | `POST/DELETE /notifications/device-token`, `GET/PATCH /notifications/preferences`, `POST/DELETE/GET /notifications/prayer-groups/{id}/mute` |
+| `admin.py` | `GET /admin/moderation/queue`, `PATCH /admin/moderation/queue/{id}` — admin review of flagged content; restricted to users in `app_admins` table |
+
+#### Moderation (`/api/app/moderation/`)
+| File | Purpose |
+|------|---------|
+| `moderate.py` | Orchestrator: `moderate_content()` runs Layer 1 + Layer 2 and returns `{action, reasoning, crisis, crisis_resources}` |
+| `openai_prefilter.py` | Layer 1: `check_openai_moderation()` — OpenAI `omni-moderation-latest` with tunable thresholds |
+| `claude_moderator.py` | Layer 2: `evaluate_with_claude()` — Claude Haiku 4.5 with prompt-cached policy |
+| `review_queue.py` | Postgres queue: `add_to_queue()`, `get_pending()`, `mark_reviewed()` — writes to `moderation_queue` table |
+| `crisis_resources.py` | Returns crisis resource list (988, Catholic Charities, diocese, parish priest) |
+| `policy.md` | System prompt for Claude Haiku — defines allowed/blocked/review categories |
+| `README.md` | Architecture, cost estimates, policy update guide, admin runbook |
 
 #### Models (`/api/app/models/`)
 | File | Schemas |

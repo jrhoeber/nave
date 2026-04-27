@@ -344,19 +344,69 @@ async def create_parish_post(
         if not await is_parish_admin(conn, str(current_user["id"]), parish_id):
             raise HTTPException(status_code=403, detail="Only parish admins can post announcements")
 
-    row = await conn.fetchrow(
-        """
-        INSERT INTO parish_posts (parish_id, user_id, content, status, is_announcement)
-        VALUES ($1, $2, $3, 'Posted', $4)
-        RETURNING id, parish_id, content, status, is_announcement, created_at
-        """,
-        parish_id,
-        current_user["id"],
-        body.content,
-        body.is_announcement,
+    # ── Content moderation ───────────────────────────────────────────────────
+    from app.moderation.moderate import moderate_content
+
+    mod = await moderate_content(
+        text=body.content,
+        context_type="post",
+        user_id=str(current_user["id"]),
     )
 
-    return ParishPostResponse(
+    if mod.action == "block":
+        # Log blocked attempts to the queue for audit purposes
+        try:
+            from app.moderation.review_queue import add_to_queue
+            await add_to_queue(
+                conn,
+                user_id=str(current_user["id"]),
+                content=body.content,
+                context_type="post",
+                final_action="block",
+                layer1_result=mod.layer1_result,
+                layer2_result=mod.layer2_result,
+            )
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "moderation_blocked",
+                "message": "This content can't be posted in our community. If you believe this is a mistake, please contact us.",
+            },
+        )
+
+    # 'Pending' posts are hidden from feeds until approved; 'Posted' are live.
+    initial_status = "Pending" if mod.action == "queue" else "Posted"
+
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            """
+            INSERT INTO parish_posts (parish_id, user_id, content, status, is_announcement)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, parish_id, content, status, is_announcement, created_at
+            """,
+            parish_id,
+            current_user["id"],
+            body.content,
+            initial_status,
+            body.is_announcement,
+        )
+
+        if mod.action == "queue":
+            from app.moderation.review_queue import add_to_queue
+            await add_to_queue(
+                conn,
+                user_id=str(current_user["id"]),
+                content=body.content,
+                context_type="post",
+                content_id=str(row["id"]),
+                final_action="queue",
+                layer1_result=mod.layer1_result,
+                layer2_result=mod.layer2_result,
+            )
+
+    response = ParishPostResponse(
         id=str(row["id"]),
         parish_id=str(row["parish_id"]),
         author=ParishPostAuthor(
@@ -370,6 +420,22 @@ async def create_parish_post(
         is_announcement=row["is_announcement"],
         created_at=row["created_at"],
     )
+
+    if mod.action == "queue":
+        from fastapi.responses import JSONResponse
+        payload = response.model_dump(mode="json")
+        payload["_moderation"] = {"status": "pending_review", "crisis": mod.crisis}
+        if mod.crisis and mod.crisis_resources:
+            payload["_moderation"]["crisis_resources"] = mod.crisis_resources
+        return JSONResponse(status_code=201, content=payload)
+
+    if mod.crisis and mod.crisis_resources:
+        from fastapi.responses import JSONResponse
+        payload = response.model_dump(mode="json")
+        payload["_moderation"] = {"status": "allowed", "crisis": True, "crisis_resources": mod.crisis_resources}
+        return JSONResponse(status_code=201, content=payload)
+
+    return response
 
 
 @router.patch("/{parish_id}/posts/{post_id}", response_model=ParishPostResponse)

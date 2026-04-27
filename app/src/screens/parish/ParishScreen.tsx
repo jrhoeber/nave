@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Avatar } from '../../components/ui/Avatar';
 import { useAuthStore } from '../../store/authStore';
-import { api, mapParish, mapParishPost } from '../../lib/apiClient';
+import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { Parish, ParishPost, ParishReactionType } from '../../types';
 
@@ -152,6 +152,7 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
   const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardWillShow', (e) => setKeyboardHeight(e.endCoordinates.height));
@@ -162,23 +163,29 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
   useEffect(() => {
     setContent(editPost?.content ?? '');
     setIsAnnouncement(false);
+    setError(null);
   }, [editPost, visible]);
 
   const handleSubmit = async () => {
     const trimmed = content.trim();
     if (!trimmed || submitting) return;
     setSubmitting(true);
+    setError(null);
     try {
       if (editPost) {
         const raw = await api.updateParishPost(parishId, editPost.id, trimmed);
         onUpdated(mapParishPost(raw));
+        onClose();
       } else {
-        const raw = await api.createParishPost(parishId, trimmed, isAnnouncement);
-        onCreated(mapParishPost(raw));
+        const raw = await api.createParishPost(parishId, trimmed, isAnnouncement) as { _moderation?: { status: string } };
+        if (raw._moderation?.status !== 'pending_review') {
+          onCreated(mapParishPost(raw as Parameters<typeof mapParishPost>[0]));
+        }
+        onClose();
       }
-      onClose();
-    } catch {
-      // ignore — keep modal open so user can retry
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to submit post. Please try again.';
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -213,6 +220,12 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
           </View>
 
           <View style={composeStyles.divider} />
+
+          {error && (
+            <View style={composeStyles.errorBanner}>
+              <Text style={composeStyles.errorText}>{error}</Text>
+            </View>
+          )}
 
           {/* Scrollable compose area */}
           <ScrollView
@@ -253,7 +266,7 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
                   placeholder="Share something with your parish…"
                   placeholderTextColor={Colors.textLight}
                   value={content}
-                  onChangeText={setContent}
+                  onChangeText={(t) => { setContent(t); if (error) setError(null); }}
                   multiline
                   scrollEnabled={false}
                   autoFocus
@@ -1409,6 +1422,18 @@ const composeStyles = StyleSheet.create({
     fontSize: Typography.sm,
     fontWeight: Typography.semibold,
     color: Colors.textInverse,
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(217, 119, 6, 0.08)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(217, 119, 6, 0.25)',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+  },
+  errorText: {
+    fontSize: Typography.sm,
+    color: Colors.warning,
+    lineHeight: Typography.sm * 1.5,
   },
   divider: {
     height: 1,

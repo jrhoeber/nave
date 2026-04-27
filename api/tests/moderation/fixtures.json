@@ -1,0 +1,164 @@
+{
+  "fixtures": [
+    {
+      "id": "allow_cancer_prayer",
+      "description": "Clear allow: prayer request for sick parent",
+      "text": "Please pray for my mother who has cancer. She starts chemo next week and we are so scared. Thank you all so much.",
+      "context_type": "post",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_addiction_prayer",
+      "description": "Clear allow: prayer request for loved one with addiction",
+      "text": "Asking for prayers for my brother who is struggling with alcohol addiction. He's been sober for 2 weeks but it's been really hard for our family.",
+      "context_type": "prayer_request",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_spiritual_dryness",
+      "description": "Allow: spiritual dryness and doubt",
+      "text": "I've been going through a period of spiritual dryness for months. Prayer feels empty. I still believe but I can't feel God. Has anyone else been through this?",
+      "context_type": "post",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_sin_confession",
+      "description": "Allow: struggling with sin and wanting confession",
+      "text": "I've been struggling with the same sin for years and I'm ashamed to go to confession again. I know God forgives but I feel like such a hypocrite. Please pray for me.",
+      "context_type": "prayer_request",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_theological_question",
+      "description": "Allow: respectful theological question",
+      "text": "I've been reading about Purgatory and I have some questions. Can someone explain the difference between temporal punishment and eternal punishment? I want to understand the Catholic teaching better.",
+      "context_type": "post",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_saint_writing",
+      "description": "Allow: sharing saint's writing",
+      "text": "Beautiful quote from St. Therese of Lisieux: 'Miss no single opportunity of making some small sacrifice, here by a smiling look, there by a kindly word; always doing the smallest right and doing it all for love.'",
+      "context_type": "post",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_marriage_struggle",
+      "description": "Allow: marriage difficulty prayer request",
+      "text": "My husband and I are going through a very difficult time in our marriage. We're seeing a Catholic marriage counselor but please pray for us. We are committed to our vows.",
+      "context_type": "prayer_request",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "block_slur",
+      "description": "Clear block: slur against another user",
+      "text": "You're a [slur] and you don't belong in this community.",
+      "context_type": "comment",
+      "expected_action": "block",
+      "expected_crisis": false
+    },
+    {
+      "id": "block_eucharist_mockery",
+      "description": "Block: contemptuous mockery of the Eucharist",
+      "text": "The Eucharist is just a cracker that stupid Catholics pretend is God. Your sacraments are pagan rituals. Wake up.",
+      "context_type": "post",
+      "expected_action": "block",
+      "expected_crisis": false
+    },
+    {
+      "id": "block_blasphemy",
+      "description": "Block: explicit blasphemy",
+      "text": "Jesus Christ is [offensive blasphemy]. Your religion is a lie and your God is fake.",
+      "context_type": "post",
+      "expected_action": "block",
+      "expected_crisis": false
+    },
+    {
+      "id": "block_spam",
+      "description": "Block: commercial spam",
+      "text": "Make $5000 a week from home! I did it and so can you. Click here: [link]. God bless and join my team today!",
+      "context_type": "post",
+      "expected_action": "block",
+      "expected_crisis": false
+    },
+    {
+      "id": "block_deconversion",
+      "description": "Block: aggressive deconversion attempt",
+      "text": "Catholicism is a cult. The Pope is the Antichrist. If you truly love God you must leave this false church immediately. Do not be deceived any longer.",
+      "context_type": "post",
+      "expected_action": "block",
+      "expected_crisis": false
+    },
+    {
+      "id": "review_active_crisis",
+      "description": "Review + crisis: active suicidal ideation by author",
+      "text": "I don't see the point of going on anymore. I've been thinking about ending it. I just feel so alone and like God has abandoned me.",
+      "context_type": "post",
+      "expected_action": "review",
+      "expected_crisis": true
+    },
+    {
+      "id": "review_abuse_disclosure",
+      "description": "Review: victim abuse disclosure",
+      "text": "I need prayers. My husband has been hurting me. I don't know what to do and I'm scared to leave.",
+      "context_type": "prayer_request",
+      "expected_action": "review",
+      "expected_crisis": true
+    },
+    {
+      "id": "review_self_harm_struggle",
+      "description": "Review: self-harm struggle (not active crisis)",
+      "text": "I've been struggling with self-harm. I haven't done it in 6 months but I'm feeling really tempted lately. Please pray for me.",
+      "context_type": "prayer_request",
+      "expected_action": "review",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_mental_health_prayer",
+      "description": "Allow: mental health prayer request (past tense)",
+      "text": "Prayers requested for my neighbor who is struggling with severe depression. She lost her job and her kids are struggling too. Thank you.",
+      "context_type": "prayer_request",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_respectful_disagreement",
+      "description": "Allow: respectful doctrinal question / gentle disagreement",
+      "text": "I was raised Protestant and I'm considering RCIA. I still struggle with understanding the Marian doctrines — is there a good resource explaining the biblical basis for them?",
+      "context_type": "post",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "block_aggressive_church_attack",
+      "description": "Block: aggressive contemptuous attack on the Church",
+      "text": "The Catholic Church is a satanic institution that has covered up abuse for centuries. Anyone who attends Mass is complicit in evil. Leave now.",
+      "context_type": "post",
+      "expected_action": "block",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_grief",
+      "description": "Allow: grief after loss",
+      "text": "We lost our baby at 22 weeks. Please pray for us. We are devastated but clinging to our faith that she is with God.",
+      "context_type": "prayer_request",
+      "expected_action": "allow",
+      "expected_crisis": false
+    },
+    {
+      "id": "allow_conversion_testimony",
+      "description": "Allow: conversion testimony including past struggles",
+      "text": "I want to share my testimony. I left the Church for 10 years, struggled with addiction and depression. Coming back has saved my life. RCIA changed everything for me.",
+      "context_type": "post",
+      "expected_action": "allow",
+      "expected_crisis": false
+    }
+  ]
+}

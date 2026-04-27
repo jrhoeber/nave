@@ -5,11 +5,9 @@ import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { ProfileSetupScreen } from '../screens/auth/ProfileSetupScreen';
 import { ParishSetupScreen } from '../screens/auth/ParishSetupScreen';
-import { PostDetailScreen } from '../screens/shared/PostDetailScreen';
 import { UserProfileScreen } from '../screens/shared/UserProfileScreen';
 import { GroupMessageScreen } from '../screens/group/GroupMessageScreen';
 import { GroupProfileScreen } from '../screens/group/GroupProfileScreen';
-import { ComposeScreen } from '../screens/shared/ComposeScreen';
 import { CreateGroupScreen } from '../screens/group/CreateGroupScreen';
 import { BlockedUsersScreen } from '../screens/profile/BlockedUsersScreen';
 import type { RootStackParamList } from '../types/navigation';
@@ -34,7 +32,6 @@ export function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="App" component={AppNavigator} />
-          <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="GroupMessage"
@@ -46,7 +43,6 @@ export function RootNavigator() {
             component={GroupProfileScreen}
             options={{ animation: 'slide_from_right' }}
           />
-          <Stack.Screen name="Compose" component={ComposeScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={{ animation: 'slide_from_right' }} />
         </>

@@ -12,3 +12,5 @@ psycopg2-binary>=2.9.9
 google-cloud-storage==2.19.0
 firebase-admin==6.5.0
 Pillow
+anthropic>=0.40.0
+openai>=1.50.0
