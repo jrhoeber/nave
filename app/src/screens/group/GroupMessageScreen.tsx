@@ -215,9 +215,10 @@ interface MessageBubbleProps {
   isOwn: boolean;
   position: MessagePosition;
   onLongPress: (messageId: string) => void;
+  onAvatarPress: (userId: string) => void;
 }
 
-function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPress }: MessageBubbleProps) {
+function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPress, onAvatarPress }: MessageBubbleProps) {
   const { toggleReaction } = useGroupChatStore();
 
   // Avatar appears beside the bottom (newest) message in a group, or a solo message.
@@ -239,7 +240,7 @@ function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPres
       {/* Avatar / spacer column for other-user messages */}
       {!isOwn && (
         showAvatar
-          ? <View style={bubbleStyles.avatarCol}><Avatar name={message.author.displayName} uri={message.author.avatarUrl} size={36} /></View>
+          ? <TouchableOpacity style={bubbleStyles.avatarCol} onPress={() => onAvatarPress(message.author.id)} activeOpacity={0.7}><Avatar name={message.author.displayName} uri={message.author.avatarUrl} size={36} /></TouchableOpacity>
           : <View style={bubbleStyles.avatarSpacer} />
       )}
 
@@ -742,10 +743,11 @@ export function GroupMessageScreen() {
           isOwn={msg.author.id === user?.id}
           position={msg._position ?? 'solo'}
           onLongPress={(msgId) => handleLongPress(msgId, msg.author.id)}
+          onAvatarPress={(userId) => navigation.navigate('UserProfile', { id: userId })}
         />
       );
     },
-    [groupId, group?.isMember, user?.id, handleLongPress],
+    [groupId, group?.isMember, user?.id, handleLongPress, navigation],
   );
 
   if (!group) {
