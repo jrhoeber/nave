@@ -3,10 +3,12 @@ import { AuthProvider } from './context/AuthContext';
 import { LandingPage } from './pages/LandingPage';
 import { SignInPage } from './pages/SignInPage';
 import { AdminPage } from './pages/AdminPage';
+import { ManagePage } from './pages/ManagePage';
 import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { ManageParishesPage } from './pages/ManageParishesPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute } from './components/AdminRoute';
 
 export default function App() {
   return (
@@ -16,27 +18,35 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route
-            path="/admin"
+            path="/manage"
             element={
               <ProtectedRoute>
-                <AdminPage />
+                <ManagePage />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/moderation"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <ModerationQueuePage />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/parishes"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <ManageParishesPage />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route path="/privacy" element={<ComingSoonPage title="Privacy Policy" />} />

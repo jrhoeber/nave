@@ -145,10 +145,14 @@ async def firebase_auth(body: FirebaseAuthRequest, conn=Depends(get_db)):
         row.update({"friend_count": 0, "prayer_group_count": 0, "post_count": 0, "parish_name": None})
 
     token = create_access_token(str(row["id"]))
+    is_admin = bool(await conn.fetchval(
+        "SELECT 1 FROM app_admins WHERE user_id = $1", row["id"]
+    ))
     return TokenResponse(
         access_token=token,
         user=_build_user_response(dict(row)),
         is_new_user=is_new_user,
+        is_admin=is_admin,
     )
 
 

@@ -52,12 +52,12 @@ function Spinner({ dark = false }: { dark?: boolean }) {
 
 export function SignInPage() {
   const navigate = useNavigate();
-  const { setToken } = useAuth();
+  const { setToken, setIsAdmin } = useAuth();
   const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
   const [error, setError] = useState('');
 
-  /** Exchange a Firebase ID token for a Nave app JWT. */
-  const exchangeToken = async (firebaseIdToken: string): Promise<void> => {
+  /** Exchange a Firebase ID token for a Nave app JWT. Returns true if user is admin. */
+  const exchangeToken = async (firebaseIdToken: string): Promise<boolean> => {
     const res = await fetch(`${API_BASE}/auth/firebase`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -71,6 +71,8 @@ export function SignInPage() {
     const data = await res.json();
     setToken(data.access_token);
     localStorage.setItem(JWT_KEY, data.access_token);
+    setIsAdmin(!!data.is_admin);
+    return !!data.is_admin;
   };
 
   const handleGoogleSignIn = async () => {
@@ -79,8 +81,8 @@ export function SignInPage() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
-      await exchangeToken(idToken);
-      navigate('/admin');
+      const admin = await exchangeToken(idToken);
+      navigate(admin ? '/admin' : '/manage');
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       // Ignore user-cancelled popup
@@ -103,8 +105,8 @@ export function SignInPage() {
       // Apple provider configured in Firebase console > Authentication
       const result = await signInWithPopup(auth, appleProvider);
       const idToken = await result.user.getIdToken();
-      await exchangeToken(idToken);
-      navigate('/admin');
+      const admin = await exchangeToken(idToken);
+      navigate(admin ? '/admin' : '/manage');
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       if (

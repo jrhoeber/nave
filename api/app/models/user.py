@@ -41,3 +41,4 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user: UserResponse
     is_new_user: bool = False
+    is_admin: bool = False
