@@ -59,7 +59,8 @@
       "Bash(sips -g hasAlpha /Users/jordanhoeber/wksp/nave/app/ios/Nave/Images.xcassets/AppIcon.appiconset/Icon-1024.png /Users/jordanhoeber/wksp/nave/app/ios/Nave/Images.xcassets/AppIcon.appiconset/Icon-180.png /Users/jordanhoeber/wksp/nave/app/ios/Nave/Images.xcassets/AppIcon.appiconset/Icon-120.png)",
       "Bash(grep -E \"\\\\.py$|^d\")",
       "Bash(grep:*)",
-      "Bash(python -c \"from app.routers.admin_parishes import router; print\\('OK'\\)\")"
+      "Bash(python -c \"from app.routers.admin_parishes import router; print\\('OK'\\)\")",
+      "Bash(node:*)"
     ]
   }
 }

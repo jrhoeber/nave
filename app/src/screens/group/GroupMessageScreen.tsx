@@ -20,13 +20,14 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useGroupChatStore } from '../../store/groupChatStore';
 import { useAuthStore } from '../../store/authStore';
-import { Colors, Radius, Spacing, Typography } from '../../theme';
+import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { GroupMessage } from '../../types';
 import { GROUP_REACTION_EMOJIS } from '../../types';
 import type { GroupMessageRouteProp, RootNavigationProp } from '../../types/navigation';
@@ -150,60 +151,207 @@ const sepStyles = StyleSheet.create({
   label: { fontSize: Typography.xs, color: D.textMuted, fontWeight: Typography.medium },
 });
 
-// ─── Emoji Picker Modal ───────────────────────────────────────────────────────
+// ─── Message Context Menu ────────────────────────────────────────────────────
 
-interface EmojiPickerProps {
+interface MessageContextMenuProps {
   visible: boolean;
-  messageId: string;
+  message: GroupMessage | null;
   groupId: string;
+  isOwnMessage: boolean;
   onDismiss: () => void;
+  onReport: (messageId: string) => void;
+  onDelete: (messageId: string) => void;
 }
 
-function EmojiPicker({ visible, messageId, groupId, onDismiss }: EmojiPickerProps) {
+function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss, onReport, onDelete }: MessageContextMenuProps) {
   const { toggleReaction } = useGroupChatStore();
 
   const handleEmoji = useCallback(async (emoji: string) => {
+    if (!message) return;
     onDismiss();
-    await toggleReaction(groupId, messageId, emoji);
-  }, [groupId, messageId, toggleReaction, onDismiss]);
+    await toggleReaction(groupId, message.id, emoji);
+  }, [groupId, message, toggleReaction, onDismiss]);
+
+  const handleCopy = useCallback(() => {
+    if (!message?.content) return;
+    Clipboard.setString(message.content);
+    onDismiss();
+  }, [message, onDismiss]);
+
+  const handleReport = useCallback(() => {
+    if (!message) return;
+    onDismiss();
+    onReport(message.id);
+  }, [message, onDismiss, onReport]);
+
+  const handleDelete = useCallback(() => {
+    if (!message) return;
+    onDismiss();
+    onDelete(message.id);
+  }, [message, onDismiss, onDelete]);
+
+  if (!message) return null;
+
+  const menuItems: Array<{ label: string; icon: string; onPress: () => void; destructive?: boolean }> = [];
+
+  if (message.content) {
+    menuItems.push({ label: 'Copy', icon: 'copy-outline', onPress: handleCopy });
+  }
+  if (isOwnMessage) {
+    menuItems.push({ label: 'Delete', icon: 'trash-outline', onPress: handleDelete, destructive: true });
+  } else {
+    menuItems.push({ label: 'Report', icon: '', onPress: handleReport });
+  }
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <Pressable style={pickerStyles.overlay} onPress={onDismiss}>
-        <View style={pickerStyles.container}>
-          {GROUP_REACTION_EMOJIS.map((emoji) => (
-            <TouchableOpacity
-              key={emoji}
-              onPress={() => handleEmoji(emoji)}
-              style={pickerStyles.emojiBtn}
-              activeOpacity={0.7}
-            >
-              <Text style={pickerStyles.emoji}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
+      <Pressable style={ctxStyles.overlay} onPress={onDismiss}>
+        <View style={ctxStyles.content} onStartShouldSetResponder={() => true}>
+          {/* Reaction bar */}
+          <View style={ctxStyles.reactionBar}>
+            {GROUP_REACTION_EMOJIS.map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                onPress={() => handleEmoji(emoji)}
+                style={ctxStyles.emojiBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={ctxStyles.emoji}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Message preview */}
+          <View style={ctxStyles.messagePreview}>
+            <View style={ctxStyles.messageHeader}>
+              <Avatar name={message.author.displayName} uri={message.author.avatarUrl} size={32} />
+              <Text style={ctxStyles.authorName}>{message.author.displayName}</Text>
+              <Text style={ctxStyles.messageTime}>{formatMessageTime(message.createdAt)}</Text>
+            </View>
+            {message.imageUrl && (
+              <Image source={{ uri: message.imageUrl }} style={ctxStyles.messageImage} resizeMode="cover" />
+            )}
+            {message.content ? (
+              <Text style={ctxStyles.messageText}>{message.content}</Text>
+            ) : null}
+          </View>
+
+          {/* Action menu */}
+          <View style={ctxStyles.menuContainer}>
+            {menuItems.map((item, idx) => (
+              <TouchableOpacity
+                key={item.label}
+                style={[
+                  ctxStyles.menuItem,
+                  idx < menuItems.length - 1 && ctxStyles.menuItemBorder,
+                ]}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <Text style={[ctxStyles.menuLabel, item.destructive && ctxStyles.menuLabelDestructive]}>
+                  {item.label}
+                </Text>
+                {item.icon ? (
+                  <Icon
+                    name={item.icon}
+                    size={20}
+                    color={item.destructive ? Colors.error : Colors.textSecondary}
+                  />
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </Pressable>
     </Modal>
   );
 }
 
-const pickerStyles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: D.overlay },
-  container: {
+const ctxStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: D.overlay,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing[4],
+  },
+  content: {
+    gap: Spacing[2],
+  },
+  // Reaction bar
+  reactionBar: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
-    gap: Spacing[2],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing[3],
+    paddingVertical: Spacing[2],
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 2,
+    ...Shadows.md,
   },
   emojiBtn: { padding: Spacing[2] },
-  emoji: { fontSize: 30 },
+  emoji: { fontSize: 26 },
+  // Message preview
+  messagePreview: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    ...Shadows.md,
+  },
+  messageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+    marginBottom: Spacing[2],
+  },
+  authorName: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.bold,
+    color: Colors.textPrimary,
+  },
+  messageTime: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+  },
+  messageImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: Radius.md,
+    marginBottom: Spacing[2],
+  },
+  messageText: {
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    lineHeight: Typography.base * 1.5,
+  },
+  // Action menu
+  menuContainer: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    alignSelf: 'flex-start',
+    minWidth: 240,
+    ...Shadows.md,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+  },
+  menuItemBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  menuLabel: {
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+  },
+  menuLabelDestructive: {
+    color: Colors.error,
+  },
 });
 
 // ─── Message Bubble ───────────────────────────────────────────────────────────
@@ -609,7 +757,7 @@ export function GroupMessageScreen() {
   const isLoading = loadingByGroup[groupId] ?? false;
   const hasMore = hasMoreByGroup[groupId] ?? false;
 
-  const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
+  const [contextMessage, setContextMessage] = useState<GroupMessage | null>(null);
 
   // Track the latest message timestamp for polling
   const latestMessageTimestampRef = useRef<string | null>(null);
@@ -712,22 +860,28 @@ export function GroupMessageScreen() {
     );
   }, []);
 
-  const handleLongPress = useCallback((messageId: string, authorId: string) => {
-    if (authorId === user?.id) {
-      // Own message: go straight to emoji picker
-      setPickerMessageId(messageId);
-      return;
-    }
-    Alert.alert(
-      '',
-      undefined,
-      [
-        { text: 'React', onPress: () => setPickerMessageId(messageId) },
-        { text: 'Report', style: 'destructive', onPress: () => handleReportMessage(messageId) },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
-  }, [user?.id, handleReportMessage]);
+  const handleDeleteMessage = useCallback((messageId: string) => {
+    Alert.alert('Delete Message', 'Are you sure you want to delete this message?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const { deleteMessage } = useGroupChatStore.getState();
+            await deleteMessage(groupId, messageId);
+          } catch {
+            Alert.alert('Error', 'Could not delete message.');
+          }
+        },
+      },
+    ]);
+  }, [groupId]);
+
+  const handleLongPress = useCallback((messageId: string, _authorId: string) => {
+    const msg = messages.find((m) => m.id === messageId);
+    if (msg) setContextMessage(msg);
+  }, [messages]);
 
   const renderItem = useCallback(
     ({ item }: { item: RenderItem }) => {
@@ -843,15 +997,16 @@ export function GroupMessageScreen() {
         />
       )}
 
-      {/* ── Emoji picker ── */}
-      {pickerMessageId && (
-        <EmojiPicker
-          visible={!!pickerMessageId}
-          messageId={pickerMessageId}
-          groupId={groupId}
-          onDismiss={() => setPickerMessageId(null)}
-        />
-      )}
+      {/* ── Message context menu ── */}
+      <MessageContextMenu
+        visible={!!contextMessage}
+        message={contextMessage}
+        groupId={groupId}
+        isOwnMessage={contextMessage?.author.id === user?.id}
+        onDismiss={() => setContextMessage(null)}
+        onReport={handleReportMessage}
+        onDelete={handleDeleteMessage}
+      />
 
     </KeyboardAvoidingView>
   );

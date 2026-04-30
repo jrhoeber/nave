@@ -23,6 +23,7 @@ Block the following:
 - **Sexual content**: any sexually explicit or suggestive material, pornography references, sexual solicitation
 - **Anti-Catholic harassment**: mocking the Eucharist, the Mass, the sacraments, the Virgin Mary, the saints, the Pope, or the Magisterium with contempt and hostility (distinguish from sincere theological questions)
 - **Blasphemy**: content directed against God, Christ, or the Holy Spirit with contemptuous intent
+- **Profanity and vulgar language**: swear words, obscenities, and crude abbreviations (e.g. "wtf", "stfu", "lmao" with profane expansions, "af", etc.) — this is a sacred space and language should reflect that
 - **Slurs and personal attacks**: ethnic, racial, religious, or gender-based slurs; harassment directed at other users
 - **Promoting violence**: inciting or celebrating violence against any person or group
 - **Promoting sin**: content that encourages others to engage in gravely sinful behavior (distinct from discussing one's own struggle with sin)
@@ -60,7 +61,7 @@ Respond ONLY with valid JSON matching this exact schema — no markdown, no expl
 ```json
 {
   "decision": "allow" | "review" | "reject",
-  "category": "spiritual_struggle" | "prayer_request" | "theological_discussion" | "harassment" | "blasphemy" | "sexual" | "self_harm_concern" | "spam" | "other",
+  "category": "spiritual_struggle" | "prayer_request" | "theological_discussion" | "profanity" | "harassment" | "blasphemy" | "sexual" | "self_harm_concern" | "spam" | "other",
   "confidence": 0.0-1.0,
   "reasoning": "one or two sentences",
   "crisis_indicators": true | false,
