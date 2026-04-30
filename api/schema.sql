@@ -268,6 +268,35 @@ CREATE INDEX IF NOT EXISTS idx_mq_status_created
     WHERE status = 'pending';
 
 -- ============================================================
+-- USER REPORTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS user_reports (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reporter_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content_type   TEXT NOT NULL CHECK (content_type IN ('post', 'group_message')),
+    content_id     UUID NOT NULL,
+    reason         TEXT NOT NULL CHECK (reason IN (
+                       'spam', 'harassment', 'hate_speech',
+                       'inappropriate', 'misinformation', 'other'
+                   )),
+    notes          TEXT,
+    status         TEXT NOT NULL DEFAULT 'pending'
+                       CHECK (status IN ('pending', 'reviewed', 'dismissed')),
+    reviewer_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at    TIMESTAMPTZ,
+    reviewer_notes TEXT,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (reporter_id, content_type, content_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_reports_status
+    ON user_reports (status, created_at)
+    WHERE status = 'pending';
+
+CREATE INDEX IF NOT EXISTS idx_user_reports_content
+    ON user_reports (content_type, content_id);
+
+-- ============================================================
 -- USER STATS VIEW
 -- ============================================================
 CREATE OR REPLACE VIEW user_stats AS

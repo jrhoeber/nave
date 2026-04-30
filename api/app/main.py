@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import admin, admin_parishes, auth, blocks, friends, group_messages, notifications, parishes, prayer_groups, users
+from app.routers import admin, admin_parishes, admin_reports, auth, blocks, friends, group_messages, notifications, parishes, prayer_groups, reports, users
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -143,8 +143,10 @@ app.include_router(prayer_groups.router,   prefix="/prayer-groups",   tags=["pra
 app.include_router(group_messages.router,  prefix="/prayer-groups",   tags=["group-messages"])
 app.include_router(parishes.router,        prefix="/parishes",        tags=["parishes"])
 app.include_router(notifications.router,   prefix="/notifications",   tags=["notifications"])
+app.include_router(reports.router,          prefix="/reports",          tags=["reports"])
 app.include_router(admin.router,           prefix="/admin/moderation", tags=["admin"])
 app.include_router(admin_parishes.router,  prefix="/admin/parishes",   tags=["admin"])
+app.include_router(admin_reports.router,   prefix="/admin/reports",    tags=["admin"])
 
 
 @app.get("/health", tags=["health"])

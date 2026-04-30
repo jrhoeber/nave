@@ -339,7 +339,7 @@ function ReactionBar({ post, onToggleReaction }: {
   );
 }
 
-function PostCard({ post, currentUserId, isParishAdmin, isMenuOpen, onMenuOpen, onMenuClose, onEdit, onDelete, onToggleReaction }: {
+function PostCard({ post, currentUserId, isParishAdmin, isMenuOpen, onMenuOpen, onMenuClose, onEdit, onDelete, onReport, onToggleReaction }: {
   post: ParishPost;
   currentUserId?: string;
   isParishAdmin: boolean;
@@ -348,6 +348,7 @@ function PostCard({ post, currentUserId, isParishAdmin, isMenuOpen, onMenuOpen, 
   onMenuClose: () => void;
   onEdit: (post: ParishPost) => void;
   onDelete: (post: ParishPost) => void;
+  onReport: (post: ParishPost) => void;
   onToggleReaction: (postId: string, reaction: ParishReactionType) => void;
 }) {
   const isOwner = currentUserId === post.author.id;
@@ -376,7 +377,7 @@ function PostCard({ post, currentUserId, isParishAdmin, isMenuOpen, onMenuOpen, 
           <Text style={styles.postAuthor}>{post.author.displayName}</Text>
           <Text style={styles.postTime}>{relativeTime(post.createdAt)}</Text>
         </View>
-        {canManage && (
+        {!isOwner || canManage ? (
           <View style={{ alignSelf: 'flex-start' }}>
             <TouchableOpacity
               onPress={isMenuOpen ? onMenuClose : onMenuOpen}
@@ -398,17 +399,31 @@ function PostCard({ post, currentUserId, isParishAdmin, isMenuOpen, onMenuOpen, 
                     <View style={styles.kebabDivider} />
                   </>
                 )}
-                <TouchableOpacity
-                  style={styles.kebabItem}
-                  onPress={() => { onMenuClose(); onDelete(post); }}
-                >
-                  <Icon name="trash-outline" size={15} color={Colors.error} />
-                  <Text style={[styles.kebabItemText, styles.kebabItemDelete]}>Delete</Text>
-                </TouchableOpacity>
+                {canManage && (
+                  <>
+                    <TouchableOpacity
+                      style={styles.kebabItem}
+                      onPress={() => { onMenuClose(); onDelete(post); }}
+                    >
+                      <Icon name="trash-outline" size={15} color={Colors.error} />
+                      <Text style={[styles.kebabItemText, styles.kebabItemDelete]}>Delete</Text>
+                    </TouchableOpacity>
+                    {!isOwner && <View style={styles.kebabDivider} />}
+                  </>
+                )}
+                {!isOwner && (
+                  <TouchableOpacity
+                    style={styles.kebabItem}
+                    onPress={() => { onMenuClose(); onReport(post); }}
+                  >
+                    <Icon name="flag-outline" size={15} color={Colors.error} />
+                    <Text style={[styles.kebabItemText, styles.kebabItemDelete]}>Report</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </View>
-        )}
+        ) : null}
       </View>
       <Text style={styles.postContent}>{post.content}</Text>
       <ReactionBar post={post} onToggleReaction={onToggleReaction} />
@@ -703,6 +718,39 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     setComposeVisible(true);
   }, []);
 
+  const handleReport = useCallback((post: ParishPost) => {
+    const reasons: Array<{ text: string; value: string }> = [
+      { text: 'Spam', value: 'spam' },
+      { text: 'Harassment', value: 'harassment' },
+      { text: 'Hate Speech', value: 'hate_speech' },
+      { text: 'Inappropriate', value: 'inappropriate' },
+      { text: 'Misinformation', value: 'misinformation' },
+      { text: 'Other', value: 'other' },
+    ];
+    Alert.alert(
+      'Report Post',
+      'Why are you reporting this?',
+      [
+        ...reasons.map((r) => ({
+          text: r.text,
+          onPress: async () => {
+            try {
+              await api.reportContent('post', post.id, r.value);
+              Alert.alert('Report Submitted', 'Thank you. Our team will review this.');
+            } catch (err) {
+              if (err instanceof ApiError && err.status === 409) {
+                Alert.alert('Already Reported', "You've already reported this content.");
+              } else {
+                Alert.alert('Error', 'Could not submit report. Please try again.');
+              }
+            }
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }, []);
+
   const handleDelete = useCallback(async (post: ParishPost) => {
     setPosts((prev) => prev.filter((p) => p.id !== post.id));
     try {
@@ -775,6 +823,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
       onMenuClose={() => setOpenMenuPostId(null)}
       onEdit={handleEdit}
       onDelete={handleDelete}
+      onReport={handleReport}
       onToggleReaction={handleToggleReaction}
     />
   );

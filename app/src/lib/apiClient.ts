@@ -756,6 +756,14 @@ export const api = {
     return apiFetch<void>(`/notifications/prayer-groups/${groupId}/mute`, { method: 'DELETE' });
   },
 
+  // Reports
+  reportContent(contentType: 'post' | 'group_message', contentId: string, reason: string) {
+    return apiFetch<{ id: string }>('/reports', {
+      method: 'POST',
+      body: JSON.stringify({ content_type: contentType, content_id: contentId, reason }),
+    });
+  },
+
   // Users
   getMe() {
     return apiFetch<ApiUser>('/users/me');

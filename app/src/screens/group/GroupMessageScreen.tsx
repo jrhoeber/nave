@@ -678,6 +678,56 @@ export function GroupMessageScreen() {
     if (hasMore && !isLoading) loadMoreMessages(groupId);
   }, [hasMore, isLoading, groupId, loadMoreMessages]);
 
+  const handleReportMessage = useCallback((messageId: string) => {
+    const reasons: Array<{ text: string; value: string }> = [
+      { text: 'Spam', value: 'spam' },
+      { text: 'Harassment', value: 'harassment' },
+      { text: 'Hate Speech', value: 'hate_speech' },
+      { text: 'Inappropriate', value: 'inappropriate' },
+      { text: 'Misinformation', value: 'misinformation' },
+      { text: 'Other', value: 'other' },
+    ];
+    Alert.alert(
+      'Report Message',
+      'Why are you reporting this?',
+      [
+        ...reasons.map((r) => ({
+          text: r.text,
+          onPress: async () => {
+            try {
+              await api.reportContent('group_message', messageId, r.value);
+              Alert.alert('Report Submitted', 'Thank you. Our team will review this.');
+            } catch (err) {
+              if (err instanceof ApiError && err.status === 409) {
+                Alert.alert('Already Reported', "You've already reported this content.");
+              } else {
+                Alert.alert('Error', 'Could not submit report. Please try again.');
+              }
+            }
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }, []);
+
+  const handleLongPress = useCallback((messageId: string, authorId: string) => {
+    if (authorId === user?.id) {
+      // Own message: go straight to emoji picker
+      setPickerMessageId(messageId);
+      return;
+    }
+    Alert.alert(
+      '',
+      undefined,
+      [
+        { text: 'React', onPress: () => setPickerMessageId(messageId) },
+        { text: 'Report', style: 'destructive', onPress: () => handleReportMessage(messageId) },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }, [user?.id, handleReportMessage]);
+
   const renderItem = useCallback(
     ({ item }: { item: RenderItem }) => {
       if ('type' in item && item.type === 'separator') {
@@ -691,11 +741,11 @@ export function GroupMessageScreen() {
           isMember={group?.isMember ?? false}
           isOwn={msg.author.id === user?.id}
           position={msg._position ?? 'solo'}
-          onLongPress={setPickerMessageId}
+          onLongPress={(msgId) => handleLongPress(msgId, msg.author.id)}
         />
       );
     },
-    [groupId, group?.isMember, user?.id],
+    [groupId, group?.isMember, user?.id, handleLongPress],
   );
 
   if (!group) {

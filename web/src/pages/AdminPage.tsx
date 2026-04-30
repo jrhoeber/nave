@@ -34,6 +34,27 @@ export function AdminPage() {
             </Link>
 
             <Link
+              to="/admin/reports"
+              className="group border border-white/10 rounded-xl p-5 bg-white/5 hover:bg-white/8 hover:border-white/20 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" y1="22" x2="4" y2="15" />
+                  </svg>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/20 group-hover:text-white/40 transition-colors mt-0.5">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+              <h2 className="text-white font-medium mb-1">User Reports</h2>
+              <p className="text-white/40 text-sm leading-relaxed">
+                Review content reported by users. View reports for posts and group messages.
+              </p>
+            </Link>
+
+            <Link
               to="/admin/parishes"
               className="group border border-white/10 rounded-xl p-5 bg-white/5 hover:bg-white/8 hover:border-white/20 transition-colors"
             >

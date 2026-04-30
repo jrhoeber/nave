@@ -5,6 +5,7 @@ import { SignInPage } from './pages/SignInPage';
 import { AdminPage } from './pages/AdminPage';
 import { ManagePage } from './pages/ManagePage';
 import { ModerationQueuePage } from './pages/ModerationQueuePage';
+import { UserReportsPage } from './pages/UserReportsPage';
 import { ManageParishesPage } from './pages/ManageParishesPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -38,6 +39,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <ModerationQueuePage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <AdminRoute>
+                <UserReportsPage />
               </AdminRoute>
             }
           />

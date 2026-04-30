@@ -88,7 +88,7 @@ npm run type-check               # TypeScript check (no emit)
 
 PostgreSQL. All PKs are UUIDs. Parish search uses trigram (pg_trgm) indexes. Full schema in `api/schema.sql`.
 
-Core tables: `users` (includes `push_notifications_enabled`, `notify_group_messages`, `notify_friend_requests`), `parishes`, `prayer_groups`, `prayer_group_members`, `group_messages`, `group_message_reactions`, `parish_posts`, `parish_post_reactions`, `friendships`, `user_device_tokens` (FCM tokens), `group_notification_mutes`.
+Core tables: `users` (includes `push_notifications_enabled`, `notify_group_messages`, `notify_friend_requests`), `parishes`, `prayer_groups`, `prayer_group_members`, `group_messages`, `group_message_reactions`, `parish_posts`, `parish_post_reactions`, `friendships`, `user_device_tokens` (FCM tokens), `group_notification_mutes`, `user_reports` (user-submitted content reports with reason, status, reviewer tracking).
 
 ### Auth flow
 
@@ -141,6 +141,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `notifications.py` | `POST/DELETE /notifications/device-token`, `GET/PATCH /notifications/preferences`, `POST/DELETE/GET /notifications/prayer-groups/{id}/mute` |
 | `admin.py` | `GET /admin/moderation/queue`, `PATCH /admin/moderation/queue/{id}` — admin review of flagged content; restricted to users in `app_admins` table |
 | `admin_parishes.py` | `GET/POST /admin/parishes`, `PATCH/DELETE /admin/parishes/{id}`, `GET/POST /admin/parishes/{id}/admins`, `DELETE /admin/parishes/{id}/admins/{user_id}` — full parish CRUD + parish admin assignment; restricted to `app_admins` |
+| `reports.py` | `POST /reports` — user-submitted content reports (post or group_message); validates content exists, blocks self-reports, deduplicates via unique constraint (409) |
+| `admin_reports.py` | `GET /admin/reports/queue`, `PATCH /admin/reports/queue/{id}` — admin review of user reports; shows content snippets and per-item report counts; restricted to `app_admins` |
 
 #### Moderation (`/api/app/moderation/`)
 | File | Purpose |
@@ -163,6 +165,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `group_message.py` | `GroupMessageCreate`, `GroupMessageResponse`, `GroupMessagesResponse`, `AddReactionBody` |
 | `friendship.py` | `FriendRequestCreate`, `FriendRequestUpdate` |
 | `block.py` | `BlockCreate` |
+| `report.py` | `ReportCreate`, `ReportDecision` |
 
 #### Utils (`/api/app/utils/`)
 | File | Purpose |
