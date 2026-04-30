@@ -140,6 +140,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `blocks.py` | `POST /blocks`, `DELETE /blocks/{blocked_id}`, `GET /blocks` — block/unblock users; POST atomically removes friendship |
 | `notifications.py` | `POST/DELETE /notifications/device-token`, `GET/PATCH /notifications/preferences`, `POST/DELETE/GET /notifications/prayer-groups/{id}/mute` |
 | `admin.py` | `GET /admin/moderation/queue`, `PATCH /admin/moderation/queue/{id}` — admin review of flagged content; restricted to users in `app_admins` table |
+| `admin_parishes.py` | `GET/POST /admin/parishes`, `PATCH/DELETE /admin/parishes/{id}`, `GET/POST /admin/parishes/{id}/admins`, `DELETE /admin/parishes/{id}/admins/{user_id}` — full parish CRUD + parish admin assignment; restricted to `app_admins` |
 
 #### Moderation (`/api/app/moderation/`)
 | File | Purpose |
