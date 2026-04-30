@@ -147,7 +147,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `moderate.py` | Orchestrator: `moderate_content()` runs Layer 1 + Layer 2 and returns `{action, reasoning, crisis, crisis_resources}` |
 | `openai_prefilter.py` | Layer 1: `check_openai_moderation()` — OpenAI `omni-moderation-latest` with tunable thresholds |
 | `claude_moderator.py` | Layer 2: `evaluate_with_claude()` — Claude Haiku 4.5 with prompt-cached policy |
-| `review_queue.py` | Postgres queue: `add_to_queue()`, `get_pending()`, `mark_reviewed()` — writes to `moderation_queue` table |
+| `image_moderator.py` | Image moderation: `moderate_image()` — Google Cloud Vision SafeSearch; `check_image_or_raise()` — convenience helper used by upload endpoints; thresholds tuned for Catholic audience (strict on adult/racy, lenient on violence for religious art) |
+| `review_queue.py` | Postgres queue: `add_to_queue()`, `get_pending()`, `mark_reviewed()` — writes to `moderation_queue` table; supports text and image entries (`image_url`, `image_result`) |
 | `crisis_resources.py` | Returns crisis resource list (988, Catholic Charities, diocese, parish priest) |
 | `policy.md` | System prompt for Claude Haiku — defines allowed/blocked/review categories |
 | `README.md` | Architecture, cost estimates, policy update guide, admin runbook |

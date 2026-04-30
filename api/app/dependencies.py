@@ -30,9 +30,14 @@ async def get_current_user(
 
 
 async def is_parish_admin(conn, user_id: str, parish_id: str) -> bool:
-    """Returns True if the given user is a parish admin for the given parish."""
+    """Returns True if the user is a parish admin for this parish, or a global app admin."""
     row = await conn.fetchrow(
-        "SELECT 1 FROM parish_admins WHERE parish_id = $1 AND user_id = $2",
+        """
+        SELECT 1 FROM parish_admins WHERE parish_id = $1 AND user_id = $2
+        UNION ALL
+        SELECT 1 FROM app_admins WHERE user_id = $2
+        LIMIT 1
+        """,
         parish_id,
         user_id,
     )

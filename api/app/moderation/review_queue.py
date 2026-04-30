@@ -10,19 +10,22 @@ async def add_to_queue(
     conn,
     *,
     user_id: str,
-    content: str,
+    content: Optional[str] = None,
     context_type: str,
     content_id: Optional[str] = None,
     layer1_result: Optional[dict] = None,
     layer2_result: Optional[dict] = None,
+    image_url: Optional[str] = None,
+    image_result: Optional[dict] = None,
     final_action: str,
 ) -> str:
     """Insert a flagged item into the moderation queue. Returns the queue item UUID."""
     row = await conn.fetchrow(
         """
         INSERT INTO moderation_queue
-            (user_id, content, context_type, content_id, final_action, layer1_result, layer2_result)
-        VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6::jsonb, $7::jsonb)
+            (user_id, content, context_type, content_id, final_action,
+             layer1_result, layer2_result, image_url, image_result)
+        VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6::jsonb, $7::jsonb, $8, $9::jsonb)
         RETURNING id
         """,
         user_id,
@@ -32,6 +35,8 @@ async def add_to_queue(
         final_action,
         json.dumps(layer1_result) if layer1_result else None,
         json.dumps(layer2_result) if layer2_result else None,
+        image_url,
+        json.dumps(image_result) if image_result else None,
     )
     item_id = str(row["id"])
     logger.info("Added item %s to moderation queue (action=%s)", item_id, final_action)
@@ -44,6 +49,7 @@ async def get_pending(conn, limit: int = 20) -> list[dict[str, Any]]:
         """
         SELECT mq.id, mq.user_id, mq.content, mq.context_type, mq.content_id,
                mq.final_action, mq.layer1_result, mq.layer2_result,
+               mq.image_url, mq.image_result,
                mq.status, mq.created_at,
                u.username, u.display_name
         FROM moderation_queue mq

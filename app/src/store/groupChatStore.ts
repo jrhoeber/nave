@@ -181,14 +181,14 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
           ),
         },
       }));
-    } catch {
+    } catch (err) {
       set((s) => ({
         messagesByGroup: {
           ...s.messagesByGroup,
           [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId),
         },
       }));
-      throw new Error('Failed to send photo');
+      throw err;
     }
   },
 

@@ -197,6 +197,10 @@ async def upload_message_image(
     if len(file_bytes) > _MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="Image must be under 10 MB")
 
+    from app.moderation.image_moderator import check_image_or_raise
+    await check_image_or_raise(conn, image_bytes=file_bytes, user_id=str(current_user["id"]),
+                               context_type="image_group_message")
+
     from app.utils.storage import get_signed_url, upload_message_image as _upload
     temp_id = str(uuid.uuid4())
     object_name = _upload(file_bytes, group_id, temp_id, content_type)

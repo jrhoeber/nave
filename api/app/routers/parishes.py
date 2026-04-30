@@ -244,6 +244,10 @@ async def upload_parish_cover_photo(
     if len(file_bytes) > _MAX_AVATAR_BYTES:
         raise HTTPException(status_code=413, detail="Cover photo must be under 5 MB")
 
+    from app.moderation.image_moderator import check_image_or_raise
+    await check_image_or_raise(conn, image_bytes=file_bytes, user_id=str(current_user["id"]),
+                               context_type="image_parish_cover")
+
     object_name = upload_parish_cover(file_bytes, parish_id, content_type)
 
     await conn.execute(

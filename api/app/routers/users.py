@@ -142,6 +142,10 @@ async def upload_my_avatar(
     if len(file_bytes) > _MAX_AVATAR_BYTES:
         raise HTTPException(status_code=413, detail="Avatar image must be under 5 MB")
 
+    from app.moderation.image_moderator import check_image_or_raise
+    await check_image_or_raise(conn, image_bytes=file_bytes, user_id=str(current_user["id"]),
+                               context_type="image_avatar")
+
     object_name = upload_avatar(file_bytes, str(current_user["id"]), content_type)
 
     await conn.execute(

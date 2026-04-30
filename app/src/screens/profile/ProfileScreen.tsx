@@ -37,8 +37,8 @@ export function ProfileScreen() {
       if (updated.avatar_url) {
         await updateUser({ avatarUrl: updated.avatar_url });
       }
-    } catch {
-      Alert.alert('Error', 'Failed to update avatar. Please try again.');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Failed to update avatar. Please try again.');
     } finally {
       setAvatarUploading(false);
     }

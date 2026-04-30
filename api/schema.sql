@@ -242,6 +242,32 @@ CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker ON user_blocks (blocker_id);
 CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked ON user_blocks (blocked_id);
 
 -- ============================================================
+-- MODERATION QUEUE
+-- ============================================================
+CREATE TABLE IF NOT EXISTS moderation_queue (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content        TEXT,                      -- NULL for image-only entries
+    context_type   TEXT NOT NULL,
+    content_id     UUID,
+    final_action   TEXT NOT NULL,
+    layer1_result  JSONB,
+    layer2_result  JSONB,
+    image_url      TEXT,                      -- GCS object name of flagged image
+    image_result   JSONB,                     -- SafeSearch scores and action
+    status         TEXT NOT NULL DEFAULT 'pending'
+                       CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewer_id    UUID REFERENCES users(id),
+    reviewed_at    TIMESTAMPTZ,
+    reviewer_notes TEXT,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_mq_status_created
+    ON moderation_queue (status, created_at)
+    WHERE status = 'pending';
+
+-- ============================================================
 -- USER STATS VIEW
 -- ============================================================
 CREATE OR REPLACE VIEW user_stats AS

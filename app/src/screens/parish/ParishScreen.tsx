@@ -457,8 +457,8 @@ function ManageParishModal({ parish, visible, onClose, onUpdated }: {
       const data = await api.uploadParishCoverPhoto(parish.id, asset.uri!, asset.type ?? 'image/jpeg');
       setLocalCoverUri(asset.uri!);
       onUpdated({ ...parish, coverPhotoUrl: data.cover_photo_url });
-    } catch {
-      Alert.alert('Error', 'Failed to upload cover photo. Please try again.');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Failed to upload cover photo. Please try again.');
     } finally {
       setUploadingCover(false);
     }
