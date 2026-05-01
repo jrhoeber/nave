@@ -222,7 +222,7 @@ export function mapParish(raw: ApiParish): Parish {
     streetAddress: raw.street_address,
     postalCode: raw.postal_code,
     established: raw.established,
-    coverPhotoUrl: raw.cover_photo_url,
+    coverPhotoUrl: raw.cover_photo_url?.startsWith('http') ? raw.cover_photo_url : undefined,
     massSchedule: raw.mass_schedule,
     website: raw.website,
     isParishAdmin: raw.is_parish_admin,

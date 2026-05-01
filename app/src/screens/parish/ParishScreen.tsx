@@ -290,18 +290,19 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
 
 // ─── Manage parish modal (admin only) ────────────────────────────────────────
 
-function ManageParishModal({ parish, visible, onClose, onUpdated }: {
+function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover, setUploadingCover }: {
   parish: Parish | null;
   visible: boolean;
   onClose: () => void;
   onUpdated: (updated: Parish) => void;
+  uploadingCover: boolean;
+  setUploadingCover: (v: boolean) => void;
 }) {
   const insets = useSafeAreaInsets();
   const [website, setWebsite] = useState('');
   const [massSchedule, setMassSchedule] = useState('');
   const [savingWebsite, setSavingWebsite] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
   const [localCoverUri, setLocalCoverUri] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -324,12 +325,13 @@ function ManageParishModal({ parish, visible, onClose, onUpdated }: {
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, maxWidth: 1600, maxHeight: 900 });
     if (result.didCancel || !result.assets?.[0]?.uri) return;
     const asset = result.assets[0];
+    setLocalCoverUri(asset.uri!);
     setUploadingCover(true);
     try {
       const data = await api.uploadParishCoverPhoto(parish.id, asset.uri!, asset.type ?? 'image/jpeg');
-      setLocalCoverUri(asset.uri!);
       onUpdated({ ...parish, coverPhotoUrl: data.cover_photo_url });
     } catch (e: any) {
+      setLocalCoverUri(null);
       Alert.alert('Error', e?.message ?? 'Failed to upload cover photo. Please try again.');
     } finally {
       setUploadingCover(false);
@@ -380,14 +382,18 @@ function ManageParishModal({ parish, visible, onClose, onUpdated }: {
           <View style={manageStyles.section}>
             <Text style={manageStyles.sectionTitle}>Cover Photo</Text>
             <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={manageStyles.coverPhotoBtn}>
-              {uploadingCover ? (
-                <ActivityIndicator color={Colors.textInverse} />
-              ) : (localCoverUri ?? parish?.coverPhotoUrl) ? (
+              {(localCoverUri ?? parish?.coverPhotoUrl) ? (
                 <>
                   <Image source={{ uri: localCoverUri ?? parish!.coverPhotoUrl! }} style={manageStyles.coverPhotoPreview} resizeMode="cover" />
                   <View style={manageStyles.coverPhotoOverlay}>
-                    <Icon name="camera-outline" size={22} color="#fff" />
-                    <Text style={manageStyles.coverPhotoOverlayText}>Change Photo</Text>
+                    {uploadingCover ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <>
+                        <Icon name="camera-outline" size={22} color="#fff" />
+                        <Text style={manageStyles.coverPhotoOverlayText}>Change Photo</Text>
+                      </>
+                    )}
                   </View>
                 </>
               ) : (
@@ -471,6 +477,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   const [editingPost, setEditingPost] = useState<ParishPost | undefined>();
   const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
   const [parish, setParish] = useState<Parish | null>(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const isParishAdmin = parish?.isParishAdmin ?? false;
 
   const [posts, setPosts] = useState<ParishPost[]>([]);
@@ -641,6 +648,11 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
             <MCIcon name="church" size={48} color={Colors.primary + '60'} />
           </View>
         )}
+        {uploadingCover && (
+          <View style={styles.coverPhotoUploading}>
+            <ActivityIndicator size="small" color={Colors.textInverse} />
+          </View>
+        )}
         <View style={[styles.coverPhotoActions, { top: insets.top + Spacing[3] }]}>
           {isParishAdmin && (
             <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
@@ -665,7 +677,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         <ActivityIndicator color={Colors.primary} style={styles.initialLoader} />
       )}
     </View>
-  ), [parish, parishName, loadingPosts, isParishAdmin, insets.top]);
+  ), [parish, parishName, loadingPosts, isParishAdmin, uploadingCover, insets.top]);
 
   const ListFooter = useCallback(() => loadingMore ? (
     <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />
@@ -748,6 +760,8 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         visible={manageVisible}
         onClose={() => setManageVisible(false)}
         onUpdated={(updated) => setParish(updated)}
+        uploadingCover={uploadingCover}
+        setUploadingCover={setUploadingCover}
       />
     </View>
   );
@@ -905,6 +919,12 @@ const styles = StyleSheet.create({
 
   coverPhotoPlaceholder: {
     backgroundColor: Colors.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverPhotoUploading: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
