@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Colors, Radius, Typography } from '../../theme';
 
 interface AvatarProps {
@@ -36,10 +35,10 @@ export function Avatar({
         <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
       </View>
       {uri && !imgError && (
-        <FastImage
-          source={{ uri, priority: FastImage.priority.normal }}
+        <Image
+          source={{ uri }}
           style={[StyleSheet.absoluteFill, styles.image, { borderRadius: size / 2 }]}
-          resizeMode={FastImage.resizeMode.cover}
+          resizeMode="cover"
           onError={() => setImgError(true)}
           onLoad={onLoad}
         />

@@ -60,7 +60,16 @@
       "Bash(grep -E \"\\\\.py$|^d\")",
       "Bash(grep:*)",
       "Bash(python -c \"from app.routers.admin_parishes import router; print\\('OK'\\)\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebFetch(domain:react-native-community.github.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm view:*)",
+      "Read(//private/tmp/**)",
+      "Bash(npm pack:*)",
+      "Bash(tar -xzf react-native-community-template-0.83.9.tgz)",
+      "Bash(git stash:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }
