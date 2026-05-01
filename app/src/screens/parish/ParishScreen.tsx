@@ -9,6 +9,7 @@ import {
   Linking,
   ListRenderItemInfo,
   Modal,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -18,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +32,8 @@ import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { Parish, ParishPost, ParishReactionType } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Parish profile modal ─────────────────────────────────────────────────────
 
@@ -640,14 +644,21 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 
   const ListHeader = useCallback(() => (
     <View>
-      <View style={{ height: 180 + insets.top }}>
+      <View style={{ height: 220 + insets.top }}>
         {parish?.coverPhotoUrl ? (
           <Image source={{ uri: parish.coverPhotoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.coverPhotoPlaceholder]}>
-            <MCIcon name="church" size={48} color={Colors.primary + '60'} />
+            <View style={styles.coverPhotoPattern}>
+              <MCIcon name="church" size={56} color={Colors.accent + '25'} />
+            </View>
           </View>
         )}
+        <LinearGradient
+          colors={['rgba(15, 26, 46, 0.3)', 'rgba(15, 26, 46, 0.0)', 'rgba(15, 26, 46, 0.65)']}
+          locations={[0, 0.4, 1]}
+          style={StyleSheet.absoluteFill}
+        />
         {uploadingCover && (
           <View style={styles.coverPhotoUploading}>
             <ActivityIndicator size="small" color={Colors.textInverse} />
@@ -656,25 +667,34 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         <View style={[styles.coverPhotoActions, { top: insets.top + Spacing[3] }]}>
           {isParishAdmin && (
             <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
-              <Icon name="settings-outline" size={20} color={Colors.textInverse} />
+              <Icon name="settings-outline" size={18} color={Colors.textInverse} />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
-            <Icon name="information-circle-outline" size={22} color={Colors.textInverse} />
+            <Icon name="information-circle-outline" size={20} color={Colors.textInverse} />
           </TouchableOpacity>
         </View>
-      </View>
-      <View style={styles.parishIdentity}>
-        <View style={styles.parishIdentityText}>
-          <Text style={styles.parishName} numberOfLines={2}>{parishName}</Text>
+        {/* Parish name overlaid at bottom of cover */}
+        <View style={styles.coverNameOverlay}>
+          <Text style={styles.coverParishName} numberOfLines={2}>{parishName}</Text>
           {parish?.established && (
-            <Text style={styles.parishEstablished}>Est. {parish.established}</Text>
+            <View style={styles.coverEstRow}>
+              <View style={styles.coverEstDot} />
+              <Text style={styles.coverEstText}>Est. {parish.established}</Text>
+            </View>
           )}
         </View>
       </View>
-      <View style={styles.divider} />
+
+      {/* Subtle separator */}
+      <View style={styles.feedSeparator}>
+        <View style={styles.feedSeparatorLine} />
+        <Text style={styles.feedSeparatorLabel}>Community</Text>
+        <View style={styles.feedSeparatorLine} />
+      </View>
+
       {loadingPosts && (
-        <ActivityIndicator color={Colors.primary} style={styles.initialLoader} />
+        <ActivityIndicator color={Colors.accent} style={styles.initialLoader} />
       )}
     </View>
   ), [parish, parishName, loadingPosts, isParishAdmin, uploadingCover, insets.top]);
@@ -685,8 +705,11 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 
   const ListEmpty = useCallback(() => !loadingPosts ? (
     <View style={styles.emptyState}>
-      <Icon name="chatbubble-outline" size={32} color={Colors.textLight} />
-      <Text style={styles.emptyText}>No posts yet</Text>
+      <View style={styles.emptyIconRing}>
+        <Icon name="chatbubble-outline" size={28} color={Colors.accent} />
+      </View>
+      <Text style={styles.emptyTitle}>Start the conversation</Text>
+      <Text style={styles.emptyText}>Be the first to share something with your parish community</Text>
     </View>
   ) : null, [loadingPosts]);
 
@@ -735,7 +758,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         onPress={() => { setEditingPost(undefined); setComposeVisible(true); }}
         activeOpacity={0.85}
       >
-        <Icon name="add" size={26} color={Colors.textInverse} />
+        <Icon name="create-outline" size={22} color={Colors.textInverse} />
       </TouchableOpacity>
 
       <ParishProfileModal
@@ -801,9 +824,11 @@ function ParishSelect({ onSelect }: { onSelect: (parish: Parish) => void }) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.selectHeader}>
-        <MCIcon name="church" size={32} color={Colors.primary} style={styles.selectIcon} />
-        <Text style={styles.selectTitle}>Parish</Text>
-        <Text style={styles.selectSubtitle}>Select a parish to connect with your community</Text>
+        <View style={styles.selectIconRing}>
+          <MCIcon name="church" size={26} color={Colors.accent} />
+        </View>
+        <Text style={styles.selectTitle}>Find Your Parish</Text>
+        <Text style={styles.selectSubtitle}>Connect with your local Catholic community</Text>
       </View>
 
       <View style={styles.searchWrapper}>
@@ -812,16 +837,16 @@ function ParishSelect({ onSelect }: { onSelect: (parish: Parish) => void }) {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search by name, city..."
+            placeholder="Search by name, city, or state..."
             placeholderTextColor={Colors.textLight}
             style={styles.searchInput}
             autoCorrect={false}
           />
           {loading ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
+            <ActivityIndicator size="small" color={Colors.accent} />
           ) : query.length > 0 ? (
             <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="close-circle" size={18} color={Colors.textSecondary} />
+              <Icon name="close-circle" size={18} color={Colors.textLight} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -833,15 +858,17 @@ function ParishSelect({ onSelect }: { onSelect: (parish: Parish) => void }) {
                 key={parish.id}
                 style={[styles.resultRow, index === results.length - 1 && styles.resultRowLast]}
                 onPress={() => onSelect(parish)}
-                activeOpacity={0.75}
+                activeOpacity={0.7}
               >
-                <Avatar name={parish.name} size={40} />
+                <View style={styles.resultAvatarWrap}>
+                  <Avatar name={parish.name} size={44} />
+                </View>
                 <View style={styles.resultInfo}>
                   <Text style={styles.resultName}>{parish.name}</Text>
                   <Text style={styles.resultLocation}>{parish.city}, {parish.state}</Text>
                 </View>
                 <View style={styles.resultMeta}>
-                  <Icon name="people-outline" size={13} color={Colors.textSecondary} />
+                  <Icon name="people" size={12} color={Colors.accent} />
                   <Text style={styles.resultCount}>{parish.memberCount}</Text>
                 </View>
               </TouchableOpacity>
@@ -851,14 +878,21 @@ function ParishSelect({ onSelect }: { onSelect: (parish: Parish) => void }) {
 
         {query.length === 0 && (
           <View style={styles.welcomeContainer}>
-            <Text style={styles.welcomeTitle}>Welcome to Nave!</Text>
-            <Text style={styles.welcomeSubtitle}>Join a parish to stay connected</Text>
+            <View style={styles.welcomeDivider}>
+              <View style={styles.welcomeDividerLine} />
+              <MCIcon name="cross" size={14} color={Colors.accent} />
+              <View style={styles.welcomeDividerLine} />
+            </View>
+            <Text style={styles.welcomeTitle}>Welcome to Nave</Text>
+            <Text style={styles.welcomeSubtitle}>Your parish is the heart of your faith community. Search above to find and join yours.</Text>
           </View>
         )}
 
         {query.length > 1 && !loading && results.length === 0 && (
           <View style={styles.noResults}>
+            <Icon name="search" size={20} color={Colors.textLight} />
             <Text style={styles.noResultsText}>No parishes found for "{query}"</Text>
+            <Text style={styles.noResultsHint}>Try a different spelling or city name</Text>
           </View>
         )}
       </View>
@@ -918,13 +952,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
   coverPhotoPlaceholder: {
-    backgroundColor: Colors.primary + '10',
+    backgroundColor: Colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  coverPhotoPattern: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.8,
+  },
   coverPhotoUploading: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -936,113 +975,239 @@ const styles = StyleSheet.create({
     gap: Spacing[2],
   },
   coverPhotoActionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  parishIdentity: {
+  coverNameOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: Spacing[5],
+    paddingBottom: Spacing[5],
+  },
+  coverParishName: {
+    fontFamily: Typography.fontSerif,
+    fontSize: Typography['2xl'],
+    fontWeight: Typography.bold,
+    color: '#ffffff',
+    lineHeight: Typography['2xl'] * 1.15,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  coverEstRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  coverEstDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.accent,
+  },
+  coverEstText: {
+    fontSize: Typography.xs,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: Typography.medium,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+
+  feedSeparator: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[4],
-    paddingBottom: Spacing[4],
+    paddingVertical: Spacing[4],
     gap: Spacing[3],
   },
-  parishIdentityText: { flex: 1 },
-  parishName: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
-  parishEstablished: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium, marginTop: 2 },
-  divider: { height: 1, backgroundColor: Colors.border, marginHorizontal: Spacing[5] },
+  feedSeparatorLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+  },
+  feedSeparatorLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.semibold,
+    color: Colors.textLight,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
 
   feedScroll: { paddingBottom: Spacing[10] },
   initialLoader: { marginTop: Spacing[8] },
   footerLoader: { marginVertical: Spacing[4] },
 
-  emptyState: { alignItems: 'center', paddingTop: Spacing[10], gap: Spacing[3] },
-  emptyText: { fontSize: Typography.base, color: Colors.textLight },
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: Spacing[12],
+    paddingHorizontal: Spacing[8],
+    gap: Spacing[3],
+  },
+  emptyIconRing: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.accent + '12',
+    borderWidth: 1,
+    borderColor: Colors.accent + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing[2],
+  },
+  emptyTitle: {
+    fontSize: Typography.md,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+  },
+  emptyText: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: Typography.sm * 1.6,
+  },
 
   fab: {
     position: 'absolute',
     right: Spacing[5],
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.md,
+    ...Shadows.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
 
   selectHeader: {
     paddingHorizontal: Spacing[6],
-    paddingTop: Spacing[8],
-    paddingBottom: Spacing[6],
+    paddingTop: Spacing[10],
+    paddingBottom: Spacing[7],
     alignItems: 'center',
   },
-  selectIcon: { marginBottom: Spacing[3] },
+  selectIconRing: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.accent + '12',
+    borderWidth: 1.5,
+    borderColor: Colors.accent + '35',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing[4],
+  },
   selectTitle: {
+    fontFamily: Typography.fontSerif,
     fontSize: Typography['2xl'],
     fontWeight: Typography.bold,
     color: Colors.textPrimary,
     marginBottom: Spacing[2],
   },
   selectSubtitle: {
-    fontSize: Typography.base,
+    fontSize: Typography.sm,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Typography.base * 1.5,
+    lineHeight: Typography.sm * 1.6,
   },
 
-  searchWrapper: { flex: 1, paddingHorizontal: Spacing[4] },
+  searchWrapper: { flex: 1, paddingHorizontal: Spacing[5] },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing[3],
-    borderWidth: 1.5,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing[4],
+    borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: Spacing[2],
+    marginBottom: Spacing[3],
+    ...Shadows.sm,
   },
   searchIcon: { marginRight: Spacing[2] },
   searchInput: {
     flex: 1,
     fontSize: Typography.base,
     color: Colors.textPrimary,
-    paddingVertical: Spacing[3],
+    paddingVertical: Platform.OS === 'ios' ? Spacing[3] + 2 : Spacing[3],
   },
 
   resultsList: {
     backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',
     flex: 1,
+    ...Shadows.sm,
   },
   resultRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[3] + 2,
     gap: Spacing[3],
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
   resultRowLast: { borderBottomWidth: 0 },
+  resultAvatarWrap: {},
   resultInfo: { flex: 1 },
-  resultName: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
-  resultLocation: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 1 },
-  resultMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  resultCount: { fontSize: Typography.xs, color: Colors.textSecondary },
-  welcomeContainer: { alignItems: 'center', paddingTop: Spacing[8] },
-  welcomeTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary, marginBottom: Spacing[2] },
-  welcomeSubtitle: { fontSize: Typography.base, color: Colors.textSecondary },
+  resultName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  resultLocation: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
+  resultMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.accent + '10',
+    paddingHorizontal: Spacing[2],
+    paddingVertical: 3,
+    borderRadius: Radius.sm,
+  },
+  resultCount: { fontSize: Typography.xs, color: Colors.accent, fontWeight: Typography.medium },
 
-  noResults: { paddingVertical: Spacing[5], alignItems: 'center' },
-  noResultsText: { fontSize: Typography.sm, color: Colors.textSecondary },
+  welcomeContainer: {
+    alignItems: 'center',
+    paddingTop: Spacing[10],
+    paddingHorizontal: Spacing[4],
+  },
+  welcomeDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+    marginBottom: Spacing[5],
+  },
+  welcomeDividerLine: {
+    width: 32,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.accent + '60',
+  },
+  welcomeTitle: {
+    fontFamily: Typography.fontSerif,
+    fontSize: Typography.xl,
+    fontWeight: Typography.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing[3],
+  },
+  welcomeSubtitle: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: Typography.sm * 1.7,
+    maxWidth: 280,
+  },
+
+  noResults: { paddingVertical: Spacing[7], alignItems: 'center', gap: Spacing[2] },
+  noResultsText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
+  noResultsHint: { fontSize: Typography.xs, color: Colors.textLight },
 });
 
 // ─── Profile modal styles ─────────────────────────────────────────────────────
