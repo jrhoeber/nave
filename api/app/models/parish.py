@@ -61,6 +61,7 @@ class ParishPostResponse(BaseModel):
     created_at: datetime
     reactions: dict[str, int] = {}
     user_reactions: list[str] = []
+    comment_count: int = 0
 
 
 class ParishPostsResponse(BaseModel):
@@ -71,3 +72,34 @@ class ParishPostsResponse(BaseModel):
 class ReactionResponse(BaseModel):
     reactions: dict[str, int]
     user_reactions: list[str]
+
+
+# ─── Comments ──────────────────────────────────────────────────────────────────
+
+class ParishCommentCreate(BaseModel):
+    content: str
+    reply_to_id: Optional[str] = None
+
+
+class ParishCommentUpdate(BaseModel):
+    content: str
+
+
+class ParishCommentResponse(BaseModel):
+    id: str
+    post_id: str
+    author: ParishPostAuthor
+    content: str
+    status: ParishPostStatus
+    reply_to_id: Optional[str] = None
+    reply_to_author: Optional[ParishPostAuthor] = None
+    created_at: datetime
+    updated_at: datetime
+    reactions: dict[str, int] = {}
+    user_reactions: list[str] = []
+
+
+class ParishCommentsResponse(BaseModel):
+    comments: list[ParishCommentResponse]
+    total_count: int
+    next_cursor: Optional[str] = None

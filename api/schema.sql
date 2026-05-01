@@ -130,6 +130,37 @@ CREATE TABLE IF NOT EXISTS parish_post_reactions (
 CREATE INDEX IF NOT EXISTS idx_parish_post_reactions_post ON parish_post_reactions (post_id);
 
 -- ============================================================
+-- PARISH POST COMMENTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS parish_post_comments (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    post_id      UUID NOT NULL REFERENCES parish_posts(id) ON DELETE CASCADE,
+    user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reply_to_id  UUID REFERENCES parish_post_comments(id) ON DELETE CASCADE,
+    content      TEXT NOT NULL CHECK (char_length(content) > 0 AND char_length(content) <= 1000),
+    status       TEXT NOT NULL DEFAULT 'Posted'
+                     CHECK (status IN ('Pending', 'Posted', 'Deleted', 'Rejected')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppc_post_created ON parish_post_comments (post_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_ppc_user          ON parish_post_comments (user_id);
+
+-- ============================================================
+-- PARISH POST COMMENT REACTIONS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS parish_post_comment_reactions (
+    comment_id UUID NOT NULL REFERENCES parish_post_comments(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reaction   TEXT NOT NULL CHECK (reaction IN ('👍', '🙏', '❤️')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (comment_id, user_id, reaction)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppcr_comment ON parish_post_comment_reactions (comment_id);
+
+-- ============================================================
 -- PARISH ADMINS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS parish_admins (
@@ -273,7 +304,7 @@ CREATE INDEX IF NOT EXISTS idx_mq_status_created
 CREATE TABLE IF NOT EXISTS user_reports (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reporter_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content_type   TEXT NOT NULL CHECK (content_type IN ('post', 'group_message')),
+    content_type   TEXT NOT NULL CHECK (content_type IN ('post', 'group_message', 'comment')),
     content_id     UUID NOT NULL,
     reason         TEXT NOT NULL CHECK (reason IN (
                        'spam', 'harassment', 'hate_speech',

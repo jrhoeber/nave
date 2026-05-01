@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import admin, admin_parishes, admin_reports, auth, blocks, friends, group_messages, notifications, parishes, prayer_groups, reports, users
+from app.routers import admin, admin_parishes, admin_reports, auth, blocks, friends, group_messages, notifications, parish_post_comments, parishes, prayer_groups, reports, users
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -142,6 +142,7 @@ app.include_router(friends.router,         prefix="/friends",         tags=["fri
 app.include_router(prayer_groups.router,   prefix="/prayer-groups",   tags=["prayer-groups"])
 app.include_router(group_messages.router,  prefix="/prayer-groups",   tags=["group-messages"])
 app.include_router(parishes.router,        prefix="/parishes",        tags=["parishes"])
+app.include_router(parish_post_comments.router, prefix="/parishes", tags=["parish-comments"])
 app.include_router(notifications.router,   prefix="/notifications",   tags=["notifications"])
 app.include_router(reports.router,          prefix="/reports",          tags=["reports"])
 app.include_router(admin.router,           prefix="/admin/moderation", tags=["admin"])
