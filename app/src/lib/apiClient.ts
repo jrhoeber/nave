@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult, BlockedUser } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, ParishComment, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult, BlockedUser } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -96,10 +96,31 @@ interface ApiParishPost {
   created_at: string;
   reactions: Record<string, number>;
   user_reactions: string[];
+  comment_count: number;
 }
 
 interface ApiParishPostsResponse {
   posts: ApiParishPost[];
+  next_cursor: string | null;
+}
+
+interface ApiParishComment {
+  id: string;
+  post_id: string;
+  author: ApiParishPostAuthor;
+  content: string;
+  status: 'Pending' | 'Posted' | 'Deleted' | 'Rejected';
+  reply_to_id?: string;
+  reply_to_author?: ApiParishPostAuthor;
+  created_at: string;
+  updated_at: string;
+  reactions: Record<string, number>;
+  user_reactions: string[];
+}
+
+interface ApiParishCommentsResponse {
+  comments: ApiParishComment[];
+  total_count: number;
   next_cursor: string | null;
 }
 
@@ -283,6 +304,33 @@ export function mapParishPost(raw: ApiParishPost): ParishPost {
     status: raw.status,
     isAnnouncement: raw.is_announcement ?? false,
     createdAt: raw.created_at,
+    reactions: { ...defaultReactions, ...(raw.reactions ?? {}) } as Record<ParishReactionType, number>,
+    userReactions: (raw.user_reactions ?? []) as ParishReactionType[],
+    commentCount: raw.comment_count ?? 0,
+  };
+}
+
+function mapParishPostAuthor(raw: ApiParishPostAuthor): ParishPostAuthor {
+  return {
+    id: raw.id,
+    username: raw.username,
+    displayName: raw.display_name,
+    avatarUrl: raw.avatar_url?.startsWith('http') ? raw.avatar_url : undefined,
+  };
+}
+
+export function mapParishComment(raw: ApiParishComment): ParishComment {
+  const defaultReactions: Record<ParishReactionType, number> = { '👍': 0, '🙏': 0, '❤️': 0 };
+  return {
+    id: raw.id,
+    postId: raw.post_id,
+    author: mapParishPostAuthor(raw.author),
+    content: raw.content,
+    status: raw.status,
+    replyToId: raw.reply_to_id,
+    replyToAuthor: raw.reply_to_author ? mapParishPostAuthor(raw.reply_to_author) : undefined,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
     reactions: { ...defaultReactions, ...(raw.reactions ?? {}) } as Record<ParishReactionType, number>,
     userReactions: (raw.user_reactions ?? []) as ParishReactionType[],
   };
@@ -625,6 +673,37 @@ export const api = {
     });
   },
 
+  // Parish post comments
+  getParishPostComments(parishId: string, postId: string, cursor?: string) {
+    const query = cursor ? `limit=30&cursor=${encodeURIComponent(cursor)}` : 'limit=30';
+    return apiFetch<ApiParishCommentsResponse>(`/parishes/${parishId}/posts/${postId}/comments?${query}`);
+  },
+
+  createParishPostComment(parishId: string, postId: string, content: string, replyToId?: string) {
+    return apiFetch<ApiParishComment>(`/parishes/${parishId}/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content, reply_to_id: replyToId }),
+    });
+  },
+
+  updateParishPostComment(parishId: string, postId: string, commentId: string, content: string) {
+    return apiFetch<ApiParishComment>(`/parishes/${parishId}/posts/${postId}/comments/${commentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  deleteParishPostComment(parishId: string, postId: string, commentId: string) {
+    return apiFetch<void>(`/parishes/${parishId}/posts/${postId}/comments/${commentId}`, { method: 'DELETE' });
+  },
+
+  toggleParishCommentReaction(parishId: string, postId: string, commentId: string, reaction: ParishReactionType) {
+    return apiFetch<ApiReactionResponse>(`/parishes/${parishId}/posts/${postId}/comments/${commentId}/reactions`, {
+      method: 'POST',
+      body: JSON.stringify({ reaction }),
+    });
+  },
+
   // Group messages
   getGroupMessages(groupId: string, cursor?: string, limit = 50, after?: string) {
     let query = `limit=${limit}`;
@@ -757,7 +836,7 @@ export const api = {
   },
 
   // Reports
-  reportContent(contentType: 'post' | 'group_message', contentId: string, reason: string) {
+  reportContent(contentType: 'post' | 'group_message' | 'comment', contentId: string, reason: string) {
     return apiFetch<{ id: string }>('/reports', {
       method: 'POST',
       body: JSON.stringify({ content_type: contentType, content_id: contentId, reason }),

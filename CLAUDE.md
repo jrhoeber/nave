@@ -71,7 +71,7 @@ npm run type-check               # TypeScript check (no emit)
 - `database.py` — asyncpg connection pool helper
 - `auth.py` — JWT creation/verification (bcrypt removed; auth now uses Firebase)
 - `dependencies.py` — `get_current_user` dependency for protected routes
-- `routers/` — One file per domain: `auth`, `users`, `feed`, `posts`, `prayer_groups`, `friends`, `parishes`, `notifications`
+- `routers/` — One file per domain: `auth`, `users`, `feed`, `posts`, `prayer_groups`, `friends`, `parishes`, `parish_post_comments`, `notifications`
 - `models/` — Pydantic request/response schemas
 - `utils/` — Shared query helpers and notification creation
 
@@ -88,7 +88,7 @@ npm run type-check               # TypeScript check (no emit)
 
 PostgreSQL. All PKs are UUIDs. Parish search uses trigram (pg_trgm) indexes. Full schema in `api/schema.sql`.
 
-Core tables: `users` (includes `push_notifications_enabled`, `notify_group_messages`, `notify_friend_requests`), `parishes`, `prayer_groups`, `prayer_group_members`, `group_messages`, `group_message_reactions`, `parish_posts`, `parish_post_reactions`, `friendships`, `user_device_tokens` (FCM tokens), `group_notification_mutes`, `user_reports` (user-submitted content reports with reason, status, reviewer tracking).
+Core tables: `users` (includes `push_notifications_enabled`, `notify_group_messages`, `notify_friend_requests`), `parishes`, `prayer_groups`, `prayer_group_members`, `group_messages`, `group_message_reactions`, `parish_posts`, `parish_post_reactions`, `parish_post_comments` (flat comments with `reply_to_id`), `parish_post_comment_reactions`, `friendships`, `user_device_tokens` (FCM tokens), `group_notification_mutes`, `user_reports` (user-submitted content reports with reason, status, reviewer tracking).
 
 ### Auth flow
 
@@ -141,7 +141,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `notifications.py` | `POST/DELETE /notifications/device-token`, `GET/PATCH /notifications/preferences`, `POST/DELETE/GET /notifications/prayer-groups/{id}/mute` |
 | `admin.py` | `GET /admin/moderation/queue`, `PATCH /admin/moderation/queue/{id}` — admin review of flagged content; restricted to users in `app_admins` table |
 | `admin_parishes.py` | `GET/POST /admin/parishes`, `PATCH/DELETE /admin/parishes/{id}`, `GET/POST /admin/parishes/{id}/admins`, `DELETE /admin/parishes/{id}/admins/{user_id}` — full parish CRUD + parish admin assignment; restricted to `app_admins` |
-| `reports.py` | `POST /reports` — user-submitted content reports (post or group_message); validates content exists, blocks self-reports, deduplicates via unique constraint (409) |
+| `parish_post_comments.py` | `GET/POST /parishes/{id}/posts/{id}/comments`, `PATCH/DELETE` comment, `POST` toggle reaction; flat replies via `reply_to_id`, block filtering, content moderation |
+| `reports.py` | `POST /reports` — user-submitted content reports (post, group_message, or comment); validates content exists, blocks self-reports, deduplicates via unique constraint (409) |
 | `admin_reports.py` | `GET /admin/reports/queue`, `PATCH /admin/reports/queue/{id}` — admin review of user reports; shows content snippets and per-item report counts; restricted to `app_admins` |
 
 #### Moderation (`/api/app/moderation/`)
@@ -160,7 +161,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | File | Schemas |
 |------|---------|
 | `user.py` | `FirebaseAuthRequest`, `UserUpdate` (includes `birthday`), `UserResponse` (includes `birthday`), `TokenResponse` (includes `is_new_user`) |
-| `parish.py` | `ParishResponse`, `ParishesResponse` |
+| `parish.py` | `ParishResponse`, `ParishesResponse`, `ParishPostResponse` (includes `comment_count`), `ParishCommentCreate`, `ParishCommentUpdate`, `ParishCommentResponse`, `ParishCommentsResponse` |
 | `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `rosary`, `scripture_study`, `mens_group`, `womens_group`, `youth`, etc. |
 | `group_message.py` | `GroupMessageCreate`, `GroupMessageResponse`, `GroupMessagesResponse`, `AddReactionBody` |
 | `friendship.py` | `FriendRequestCreate`, `FriendRequestUpdate` |
@@ -232,6 +233,7 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `group/GroupProfileScreen.tsx` | Group profile: avatar (admin-uploadable), name, category, parish, info, mute/share/leave/delete actions, member list with admin remove |
 | `group/CreateGroupScreen.tsx` | Create group form |
 | `parish/ParishScreen.tsx` | Parish community view |
+| `parish/ParishPostDetailScreen.tsx` | Post detail with comments: list, compose, reply, reactions, edit/delete |
 | `friends/FriendsScreen.tsx` | Friends list + request management |
 | `profile/ProfileScreen.tsx` | Own profile with edit |
 | `shared/ComposeScreen.tsx` | Modal: create new post |
@@ -249,6 +251,8 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `ui/Input.tsx` | Styled text input |
 | `Splash.tsx` | Startup splash screen |
 | `feed/PostCard.tsx` | Post card used in feed and group views |
+| `parish/ParishPostCard.tsx` | Parish post card with reactions, comment count, kebab menu |
+| `parish/ReactionBar.tsx` | Reusable emoji reaction bar for posts and comments |
 | `prayer/PrayerGroupCard.tsx` | Prayer group card for list views |
 | `prayer/EditPrayerGroupModal.tsx` | pageSheet modal for admins to edit group name, description, category, schedule, privacy |
 

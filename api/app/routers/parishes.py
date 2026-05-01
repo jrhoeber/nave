@@ -275,7 +275,9 @@ async def list_parish_posts(
         rows = await conn.fetch(
             """
             SELECT pp.id, pp.parish_id, pp.content, pp.status, pp.is_announcement, pp.created_at,
-                   u.id AS user_id, u.username, u.display_name, u.avatar_url
+                   u.id AS user_id, u.username, u.display_name, u.avatar_url,
+                   (SELECT COUNT(*) FROM parish_post_comments c
+                    WHERE c.post_id = pp.id AND c.status = 'Posted') AS comment_count
             FROM parish_posts pp
             JOIN users u ON u.id = pp.user_id
             WHERE pp.parish_id = $1
@@ -292,7 +294,9 @@ async def list_parish_posts(
         rows = await conn.fetch(
             """
             SELECT pp.id, pp.parish_id, pp.content, pp.status, pp.is_announcement, pp.created_at,
-                   u.id AS user_id, u.username, u.display_name, u.avatar_url
+                   u.id AS user_id, u.username, u.display_name, u.avatar_url,
+                   (SELECT COUNT(*) FROM parish_post_comments c
+                    WHERE c.post_id = pp.id AND c.status = 'Posted') AS comment_count
             FROM parish_posts pp
             JOIN users u ON u.id = pp.user_id
             WHERE pp.parish_id = $1
@@ -323,6 +327,7 @@ async def list_parish_posts(
             created_at=r["created_at"],
             reactions=reaction_data.get(str(r["id"]), {}).get("reactions", {e: 0 for e in REACTION_EMOJIS}),
             user_reactions=reaction_data.get(str(r["id"]), {}).get("user_reactions", []),
+            comment_count=r.get("comment_count", 0),
         )
         for r in rows
     ]

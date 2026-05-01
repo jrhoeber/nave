@@ -21,12 +21,15 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Avatar } from '../../components/ui/Avatar';
+import { ParishPostCard } from '../../components/parish/ParishPostCard';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { Parish, ParishPost, ParishReactionType } from '../../types';
+import type { RootNavigationProp } from '../../types/navigation';
 
 // ─── Parish profile modal ─────────────────────────────────────────────────────
 
@@ -283,153 +286,7 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
   );
 }
 
-// ─── Post card ────────────────────────────────────────────────────────────────
-
-const REACTION_EMOJIS: ParishReactionType[] = ['👍', '🙏', '❤️'];
-
-function ReactionBar({ post, onToggleReaction }: {
-  post: ParishPost;
-  onToggleReaction: (postId: string, reaction: ParishReactionType) => void;
-}) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-
-  const existing = REACTION_EMOJIS.filter((e) => (post.reactions[e] ?? 0) > 0);
-
-  return (
-    <View style={styles.reactionBar}>
-      {existing.map((emoji) => {
-        const active = post.userReactions.includes(emoji);
-        return (
-          <TouchableOpacity
-            key={emoji}
-            style={[styles.reactionBtn, active && styles.reactionBtnActive]}
-            onPress={() => { onToggleReaction(post.id, emoji); setPickerOpen(false); }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.reactionEmoji}>{emoji}</Text>
-            <Text style={[styles.reactionCount, active && styles.reactionCountActive]}>
-              {post.reactions[emoji]}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-
-      {pickerOpen ? (
-        REACTION_EMOJIS.filter((e) => !post.userReactions.includes(e)).map((emoji) => (
-          <TouchableOpacity
-            key={emoji}
-            style={styles.reactionBtn}
-            onPress={() => { onToggleReaction(post.id, emoji); setPickerOpen(false); }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.reactionEmoji}>{emoji}</Text>
-          </TouchableOpacity>
-        ))
-      ) : (
-        <TouchableOpacity
-          style={styles.reactionAddBtn}
-          onPress={() => setPickerOpen(true)}
-          activeOpacity={0.7}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <Icon name="happy-outline" size={13} color={Colors.textLight} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
-function PostCard({ post, currentUserId, isParishAdmin, isMenuOpen, onMenuOpen, onMenuClose, onEdit, onDelete, onReport, onToggleReaction }: {
-  post: ParishPost;
-  currentUserId?: string;
-  isParishAdmin: boolean;
-  isMenuOpen: boolean;
-  onMenuOpen: () => void;
-  onMenuClose: () => void;
-  onEdit: (post: ParishPost) => void;
-  onDelete: (post: ParishPost) => void;
-  onReport: (post: ParishPost) => void;
-  onToggleReaction: (postId: string, reaction: ParishReactionType) => void;
-}) {
-  const isOwner = currentUserId === post.author.id;
-  const canManage = isOwner || isParishAdmin;
-
-  const relativeTime = (iso: string) => {
-    const diff = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
-  };
-
-  return (
-    <View style={styles.postCard}>
-      {post.isAnnouncement && (
-        <View style={styles.announcementBadge}>
-          <MCIcon name="church" size={11} color={Colors.accent} />
-          <Text style={styles.announcementBadgeText}>PARISH ANNOUNCEMENT</Text>
-        </View>
-      )}
-      <View style={styles.postHeader}>
-        <Avatar name={post.author.displayName} size={36} uri={post.author.avatarUrl} />
-        <View style={styles.postMeta}>
-          <Text style={styles.postAuthor}>{post.author.displayName}</Text>
-          <Text style={styles.postTime}>{relativeTime(post.createdAt)}</Text>
-        </View>
-        {!isOwner || canManage ? (
-          <View style={{ alignSelf: 'flex-start' }}>
-            <TouchableOpacity
-              onPress={isMenuOpen ? onMenuClose : onMenuOpen}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Icon name="ellipsis-horizontal" size={18} color={Colors.textSecondary} />
-            </TouchableOpacity>
-            {isMenuOpen && (
-              <View style={styles.kebabMenu}>
-                {isOwner && (
-                  <>
-                    <TouchableOpacity
-                      style={styles.kebabItem}
-                      onPress={() => { onMenuClose(); onEdit(post); }}
-                    >
-                      <Icon name="pencil-outline" size={15} color={Colors.textPrimary} />
-                      <Text style={styles.kebabItemText}>Edit</Text>
-                    </TouchableOpacity>
-                    <View style={styles.kebabDivider} />
-                  </>
-                )}
-                {canManage && (
-                  <>
-                    <TouchableOpacity
-                      style={styles.kebabItem}
-                      onPress={() => { onMenuClose(); onDelete(post); }}
-                    >
-                      <Icon name="trash-outline" size={15} color={Colors.error} />
-                      <Text style={[styles.kebabItemText, styles.kebabItemDelete]}>Delete</Text>
-                    </TouchableOpacity>
-                    {!isOwner && <View style={styles.kebabDivider} />}
-                  </>
-                )}
-                {!isOwner && (
-                  <TouchableOpacity
-                    style={styles.kebabItem}
-                    onPress={() => { onMenuClose(); onReport(post); }}
-                  >
-                    <Icon name="flag-outline" size={15} color={Colors.error} />
-                    <Text style={[styles.kebabItemText, styles.kebabItemDelete]}>Report</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        ) : null}
-      </View>
-      <Text style={styles.postContent}>{post.content}</Text>
-      <ReactionBar post={post} onToggleReaction={onToggleReaction} />
-    </View>
-  );
-}
+// PostCard and ReactionBar are now extracted to components/parish/
 
 // ─── Manage parish modal (admin only) ────────────────────────────────────────
 
@@ -606,6 +463,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   onChangeParish: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<RootNavigationProp>();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [profileVisible, setProfileVisible] = useState(false);
   const [composeVisible, setComposeVisible] = useState(false);
@@ -660,6 +518,13 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     await fetchPosts();
     setRefreshing(false);
   }, [fetchPosts]);
+
+  // Refresh post data (including comment counts) when returning from detail screen
+  useFocusEffect(
+    useCallback(() => {
+      fetchPosts();
+    }, [fetchPosts])
+  );
 
   const handleLoadMore = useCallback(async () => {
     console.log('[loadMore] fired — hasMore:', hasMore.current, 'loading:', loadingMoreRef.current, 'cursor:', nextCursor);
@@ -814,7 +679,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   ) : null, [loadingPosts]);
 
   const renderItem = ({ item }: ListRenderItemInfo<ParishPost>) => (
-    <PostCard
+    <ParishPostCard
       post={item}
       currentUserId={currentUserId}
       isParishAdmin={isParishAdmin}
@@ -825,6 +690,8 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
       onDelete={handleDelete}
       onReport={handleReport}
       onToggleReaction={handleToggleReaction}
+      onPress={() => navigation.navigate('ParishPostDetail', { parishId, postId: item.id })}
+      onAuthorPress={(userId) => navigation.navigate('UserProfile', { id: userId })}
     />
   );
   const keyExtractor = (item: ParishPost) => item.id;
@@ -1073,104 +940,8 @@ const styles = StyleSheet.create({
   initialLoader: { marginTop: Spacing[8] },
   footerLoader: { marginVertical: Spacing[4] },
 
-  postCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing[4],
-    marginHorizontal: Spacing[4],
-    marginTop: Spacing[3],
-    ...Shadows.sm,
-  },
-  announcementBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: Spacing[3],
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.accent + '20',
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing[3],
-    paddingVertical: 3,
-  },
-  announcementBadgeText: {
-    fontSize: 10,
-    fontWeight: Typography.bold,
-    color: Colors.accent,
-    letterSpacing: 0.8,
-  },
-  postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing[3], gap: Spacing[3] },
-  postMeta: { flex: 1 },
-  postAuthor: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary },
-  postTime: { fontSize: Typography.xs, color: Colors.textLight, marginTop: 1 },
-  postContent: { fontSize: Typography.base, color: Colors.textPrimary, lineHeight: Typography.base * 1.5 },
-
-  reactionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[2],
-    marginTop: Spacing[3],
-  },
-  reactionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: Spacing[2],
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.background,
-  },
-  reactionBtnActive: {
-    borderColor: Colors.primary + '60',
-    backgroundColor: Colors.primary + '12',
-  },
-  reactionAddBtn: {
-    padding: 4,
-  },
-  reactionEmoji: { fontSize: 13 },
-  reactionCount: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  reactionCountActive: {
-    color: Colors.primary,
-  },
-
   emptyState: { alignItems: 'center', paddingTop: Spacing[10], gap: Spacing[3] },
   emptyText: { fontSize: Typography.base, color: Colors.textLight },
-
-  kebabMenu: {
-    position: 'absolute',
-    top: 24,
-    right: 0,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    minWidth: 130,
-    zIndex: 100,
-    ...Shadows.md,
-  },
-  kebabItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[2],
-    paddingHorizontal: Spacing[3],
-    paddingVertical: Spacing[3],
-  },
-  kebabItemText: {
-    fontSize: Typography.sm,
-    color: Colors.textPrimary,
-  },
-  kebabItemDelete: {
-    color: Colors.error,
-  },
-  kebabDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-  },
 
   fab: {
     position: 'absolute',

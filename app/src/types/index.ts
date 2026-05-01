@@ -124,6 +124,23 @@ export interface ParishPost {
   createdAt: string;
   reactions: Record<ParishReactionType, number>;
   userReactions: ParishReactionType[];
+  commentCount: number;
+}
+
+// ─── Parish Post Comments ────────────────────────────────────────────────────
+
+export interface ParishComment {
+  id: string;
+  postId: string;
+  author: ParishPostAuthor;
+  content: string;
+  status: 'Pending' | 'Posted' | 'Deleted' | 'Rejected';
+  replyToId?: string;
+  replyToAuthor?: ParishPostAuthor;
+  createdAt: string;
+  updatedAt: string;
+  reactions: Record<ParishReactionType, number>;
+  userReactions: ParishReactionType[];
 }
 
 // ─── Group Messages ───────────────────────────────────────────────────────────

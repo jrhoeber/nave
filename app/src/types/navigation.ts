@@ -11,6 +11,7 @@ export type RootStackParamList = {
   GroupProfile: { id: string };
   CreateGroup: undefined;
   BlockedUsers: undefined;
+  ParishPostDetail: { parishId: string; postId: string };
 };
 
 export type AuthStackParamList = {
@@ -31,3 +32,4 @@ export type AuthNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 export type UserProfileRouteProp = RouteProp<RootStackParamList, 'UserProfile'>;
 export type GroupMessageRouteProp = RouteProp<RootStackParamList, 'GroupMessage'>;
 export type GroupProfileRouteProp = RouteProp<RootStackParamList, 'GroupProfile'>;
+export type ParishPostDetailRouteProp = RouteProp<RootStackParamList, 'ParishPostDetail'>;
