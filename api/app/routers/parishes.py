@@ -65,8 +65,7 @@ def _resolve_cover_photo(raw: str | None) -> str | None:
         return None
     if raw.startswith("http"):
         return raw
-    url = get_signed_url(raw)
-    return url or raw
+    return get_signed_url(raw)
 
 
 def _build_parish(row: dict, admin: bool = False) -> ParishResponse:
