@@ -7,10 +7,19 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.routers.admin import _require_admin
+from app.utils.storage import get_avatar_signed_url
 
 logger = logging.getLogger("nave.admin")
 
 router = APIRouter()
+
+_GCS_PATH_PREFIX = "avatars/"
+
+
+def _resolve_avatar(raw: str | None) -> str | None:
+    if raw and raw.startswith(_GCS_PATH_PREFIX):
+        return get_avatar_signed_url(raw)
+    return raw
 
 
 # ── Request / response schemas ───────────────────────────────────────────────
@@ -215,7 +224,7 @@ async def list_parish_admins(
                 "user_id": str(r["id"]),
                 "username": r["username"],
                 "display_name": r["display_name"],
-                "avatar_url": r.get("avatar_url"),
+                "avatar_url": _resolve_avatar(r.get("avatar_url")),
                 "granted_at": r["granted_at"].isoformat(),
             }
             for r in rows

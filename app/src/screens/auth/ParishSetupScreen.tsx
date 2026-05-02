@@ -15,13 +15,24 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
-import { api } from '../../lib/apiClient';
+import { api, mapUser } from '../../lib/apiClient';
 import { Colors, Spacing, Typography, Shadows } from '../../theme';
 import type { Parish } from '../../types';
 
 export function ParishSetupScreen() {
   const insets = useSafeAreaInsets();
   const updateUser = useAuthStore((s) => s.updateUser);
+  const existingUser = useAuthStore((s) => !!s.user?.birthday);
+
+  const handleCancel = async () => {
+    // Re-fetch profile from server to restore the user's current parish
+    try {
+      const fresh = await api.getMe();
+      await updateUser(mapUser(fresh));
+    } catch {
+      // ignore — user stays on this screen
+    }
+  };
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Parish[]>([]);
@@ -83,6 +94,11 @@ export function ParishSetupScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="dark-content" />
       <View style={[styles.inner, { paddingTop: insets.top + Spacing[6], paddingBottom: insets.bottom + Spacing[6] }]}>
+        {existingUser && (
+          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel} activeOpacity={0.7}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.header}>
           <Text style={styles.cross}>✝</Text>
           <Text style={styles.title}>Find your parish</Text>
@@ -125,7 +141,7 @@ export function ParishSetupScreen() {
                   </View>
                   <View style={styles.resultText}>
                     <Text style={styles.resultName}>{item.name}</Text>
-                    <Text style={styles.resultSub}>{item.city}, {item.state}</Text>
+                    <Text style={styles.resultSub}>{item.city}, {item.state} · {item.memberCount} {item.memberCount === 1 ? 'parishioner' : 'parishioners'}</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -146,7 +162,7 @@ export function ParishSetupScreen() {
 
         <View style={styles.footer}>
           <Button
-            label="Join Nave"
+            label="Join Parish"
             onPress={handleContinue}
             loading={saving}
             fullWidth
@@ -154,7 +170,7 @@ export function ParishSetupScreen() {
             disabled={!selected}
           />
           <Text style={styles.hint}>
-            You must select a parish to complete sign-up.
+            You must belong to a parish to use Nave.
           </Text>
         </View>
       </View>
@@ -165,6 +181,8 @@ export function ParishSetupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   inner: { flex: 1, paddingHorizontal: Spacing[6] },
+  cancelBtn: { alignSelf: 'flex-end', marginBottom: Spacing[2] },
+  cancelText: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textSecondary },
   header: { marginBottom: Spacing[6] },
   cross: { fontSize: 32, color: Colors.accent, marginBottom: Spacing[3] },
   title: { fontSize: Typography['3xl'], fontWeight: Typography.bold, color: Colors.textPrimary, marginBottom: Spacing[1] },

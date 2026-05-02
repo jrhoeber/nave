@@ -72,7 +72,23 @@
       "Bash(npm ls:*)",
       "Bash(curl -sL \"https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-Black.ttf\" -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/Montserrat-Black.ttf)",
       "Bash(npx react-native-asset:*)",
-      "Bash(curl -sL \"https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-ExtraBold.ttf\" -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/Montserrat-ExtraBold.ttf)"
+      "Bash(curl -sL \"https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-ExtraBold.ttf\" -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/Montserrat-ExtraBold.ttf)",
+      "Bash(ls /Users/jordanhoeber/wksp/nave/app/ios/*/Fonts/)",
+      "Bash(curl -L -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Italic.ttf \"https://github.com/google/fonts/raw/main/ofl/cormorantgaramond/CormorantGaramond-Italic.ttf\")",
+      "Bash(curl -L -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Regular.ttf \"https://github.com/google/fonts/raw/main/ofl/cormorantgaramond/CormorantGaramond-Regular.ttf\")",
+      "Bash(fc-scan --format \"%{postscriptname}\\\\n\" /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Italic.ttf)",
+      "Bash(otool -P /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Italic.ttf)",
+      "Bash(curl -L -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Italic.ttf \"https://raw.githubusercontent.com/google/fonts/main/ofl/cormorantgaramond/CormorantGaramond-Italic.ttf\")",
+      "Bash(curl -sL \"https://fonts.google.com/download?family=Cormorant+Garamond\" -o /tmp/cormorant.zip)",
+      "Bash(unzip -l /tmp/cormorant.zip)",
+      "Bash(curl -sL \"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&display=swap\")",
+      "Bash(curl -sL -H \"User-Agent: Mozilla/5.0\" \"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&display=swap\")",
+      "Bash(curl -sL -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Italic.ttf \"https://fonts.gstatic.com/s/cormorantgaramond/v21/co3smX5slCNuHLi8bLeY9MK7whWMhyjYrGFEsdtdc62E6zd58jDOjw.ttf\")",
+      "Bash(curl -sL -H \"User-Agent: Mozilla/5.0\" \"https://fonts.googleapis.com/css2?family=Cormorant+Garamond&display=swap\")",
+      "Bash(curl -sL -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Regular.ttf \"https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_v86GnM.ttf\")",
+      "Bash(cp -f /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Italic.ttf /Users/jordanhoeber/wksp/nave/app/android/app/src/main/assets/fonts/)",
+      "Bash(cp -f /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Regular.ttf /Users/jordanhoeber/wksp/nave/app/android/app/src/main/assets/fonts/)",
+      "Bash(yes)"
     ]
   }
 }

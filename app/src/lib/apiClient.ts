@@ -4,6 +4,12 @@ import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
 
+interface ApiMutualFriendBrief {
+  id: string;
+  display_name: string;
+  avatar_url?: string;
+}
+
 interface ApiUser {
   id: string;
   username: string;
@@ -12,6 +18,7 @@ interface ApiUser {
   avatar_url?: string;
   parish_id?: string;
   parish?: string;   // parish name, joined from parishes table
+  parish_city?: string;
   diocese?: string;
   location?: string;
   birthday?: string;
@@ -21,6 +28,10 @@ interface ApiUser {
   created_at: string;
   is_friend?: boolean;
   is_pending_friend?: boolean;
+  mutual_friend_count?: number;
+  mutual_friends?: ApiMutualFriendBrief[];
+  shared_group_count?: number;
+  friendship_created_at?: string;
 }
 
 interface ApiParishBrief {
@@ -238,6 +249,7 @@ export function mapUser(raw: ApiUser): User {
     avatarUrl: raw.avatar_url?.startsWith('http') ? raw.avatar_url : undefined,
     parishId: raw.parish_id,
     parish: raw.parish,
+    parishCity: raw.parish_city,
     diocese: raw.diocese,
     location: raw.location,
     birthday: raw.birthday,
@@ -246,6 +258,14 @@ export function mapUser(raw: ApiUser): User {
     createdAt: raw.created_at,
     isFriend: raw.is_friend,
     isPendingFriend: raw.is_pending_friend,
+    mutualFriendCount: raw.mutual_friend_count,
+    mutualFriends: raw.mutual_friends?.map((m) => ({
+      id: m.id,
+      displayName: m.display_name,
+      avatarUrl: m.avatar_url?.startsWith('http') ? m.avatar_url : undefined,
+    })),
+    sharedGroupCount: raw.shared_group_count,
+    friendshipCreatedAt: raw.friendship_created_at,
   };
 }
 

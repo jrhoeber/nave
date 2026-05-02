@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.utils.storage import _ALLOWED_CONTENT_TYPES, _MAX_AVATAR_BYTES, get_signed_url, upload_group_avatar
+from app.utils.storage import _ALLOWED_CONTENT_TYPES, _MAX_AVATAR_BYTES, get_avatar_signed_url, get_signed_url, upload_group_avatar
 from app.models.prayer_group import (
     PrayerGroupCreate,
     PrayerGroupResponse,
@@ -17,13 +17,21 @@ from app.models.user import UserResponse
 
 router = APIRouter()
 
+_GCS_PATH_PREFIX = "avatars/"
+
+
+def _resolve_avatar(raw: str | None) -> str | None:
+    if raw and raw.startswith(_GCS_PATH_PREFIX):
+        return get_avatar_signed_url(raw)
+    return raw
+
 
 def _build_admin(row: dict) -> UserResponse:
     return UserResponse(
         id=str(row["admin_id"]),
         username=row["admin_username"],
         display_name=row["admin_display_name"],
-        avatar_url=row.get("admin_avatar_url"),
+        avatar_url=_resolve_avatar(row.get("admin_avatar_url")),
         created_at=row["admin_created_at"],
     )
 
@@ -308,7 +316,7 @@ async def list_group_members(
             "id": str(r["id"]),
             "username": r["username"],
             "display_name": r["display_name"],
-            "avatar_url": r["avatar_url"],
+            "avatar_url": _resolve_avatar(r.get("avatar_url")),
             "joined_at": r["joined_at"].isoformat(),
         }
         for r in rows
@@ -342,7 +350,7 @@ async def list_pending_members(
             "id": str(r["id"]),
             "username": r["username"],
             "display_name": r["display_name"],
-            "avatar_url": r["avatar_url"],
+            "avatar_url": _resolve_avatar(r.get("avatar_url")),
             "requested_at": r["joined_at"].isoformat(),
         }
         for r in rows

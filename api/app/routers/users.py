@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models.user import UserResponse, UserUpdate
+from app.models.user import MutualFriendBrief, UserResponse, UserUpdate
 from app.utils.storage import (
     _ALLOWED_CONTENT_TYPES,
     _MAX_AVATAR_BYTES,
@@ -32,9 +32,11 @@ def _build_user_response(row: dict) -> UserResponse:
         avatar_url=_resolve_avatar_url(row.get("avatar_url")),
         parish_id=str(row["parish_id"]) if row.get("parish_id") else None,
         parish=row.get("parish_name"),
+        parish_city=row.get("parish_city"),
         diocese=row.get("diocese"),
         location=row.get("location"),
         birthday=row.get("birthday"),
+        friend_count=row.get("friend_count", 0),
         prayer_group_count=row.get("prayer_group_count", 0),
         created_at=row["created_at"],
     )
@@ -210,8 +212,9 @@ async def get_user(
 ):
     row = await conn.fetchrow(
         """
-        SELECT u.*, p.name AS parish_name,
-               COALESCE(us.prayer_group_count,0) AS prayer_group_count
+        SELECT u.*, p.name AS parish_name, p.city AS parish_city,
+               COALESCE(us.prayer_group_count,0) AS prayer_group_count,
+               COALESCE(us.friend_count,0) AS friend_count
         FROM users u
         LEFT JOIN parishes p ON p.id = u.parish_id
         LEFT JOIN user_stats us ON us.id = u.id
@@ -238,7 +241,7 @@ async def get_user(
 
     friendship = await conn.fetchrow(
         """
-        SELECT status, requester_id
+        SELECT status, requester_id, created_at
         FROM friendships
         WHERE (requester_id = $1 AND addressee_id = $2)
            OR (requester_id = $2 AND addressee_id = $1)
@@ -248,7 +251,70 @@ async def get_user(
     if friendship:
         if friendship["status"] == "accepted":
             response.is_friend = True
+            response.friendship_created_at = friendship["created_at"]
         elif friendship["status"] == "pending" and str(friendship["requester_id"]) == str(current_user["id"]):
             response.is_pending_friend = True
+
+    # Mutual friends: users who are friends with both current_user and target user
+    mutual_rows = await conn.fetch(
+        """
+        SELECT u.id, u.display_name, u.avatar_url
+        FROM friendships f1
+        JOIN friendships f2
+            ON f2.status = 'accepted'
+            AND (
+                (f2.requester_id = $2 AND f2.addressee_id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END)
+                OR (f2.addressee_id = $2 AND f2.requester_id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END)
+            )
+        JOIN users u ON u.id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END
+        WHERE f1.status = 'accepted'
+          AND (f1.requester_id = $1 OR f1.addressee_id = $1)
+          AND u.id <> $2
+        LIMIT 5
+        """,
+        current_user["id"], user_id,
+    )
+    response.mutual_friends = [
+        MutualFriendBrief(
+            id=str(r["id"]),
+            display_name=r["display_name"],
+            avatar_url=_resolve_avatar_url(r.get("avatar_url")),
+        )
+        for r in mutual_rows
+    ]
+    response.mutual_friend_count = len(mutual_rows)
+    # If we got exactly 5, there may be more — do a full count
+    if len(mutual_rows) == 5:
+        count_row = await conn.fetchrow(
+            """
+            SELECT COUNT(*) AS cnt
+            FROM friendships f1
+            JOIN friendships f2
+                ON f2.status = 'accepted'
+                AND (
+                    (f2.requester_id = $2 AND f2.addressee_id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END)
+                    OR (f2.addressee_id = $2 AND f2.requester_id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END)
+                )
+            JOIN users u ON u.id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END
+            WHERE f1.status = 'accepted'
+              AND (f1.requester_id = $1 OR f1.addressee_id = $1)
+              AND u.id <> $2
+            """,
+            current_user["id"], user_id,
+        )
+        response.mutual_friend_count = count_row["cnt"]
+
+    # Shared prayer groups
+    shared_count = await conn.fetchrow(
+        """
+        SELECT COUNT(*) AS cnt
+        FROM prayer_group_members m1
+        JOIN prayer_group_members m2
+            ON m2.group_id = m1.group_id AND m2.user_id = $2 AND m2.status = 'member'
+        WHERE m1.user_id = $1 AND m1.status = 'member'
+        """,
+        current_user["id"], user_id,
+    )
+    response.shared_group_count = shared_count["cnt"] if shared_count else 0
 
     return response

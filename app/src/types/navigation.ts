@@ -11,6 +11,7 @@ export type RootStackParamList = {
   GroupProfile: { id: string };
   CreateGroup: undefined;
   BlockedUsers: undefined;
+  EditProfile: undefined;
   ParishPostDetail: { parishId: string; postId: string };
 };
 

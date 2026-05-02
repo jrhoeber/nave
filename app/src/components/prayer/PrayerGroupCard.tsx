@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { Alert, Dimensions, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Avatar } from '../../components/ui/Avatar';
-import { Button } from '../../components/ui/Button';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { PrayerGroup, PrayerGroupCategory } from '../../types';
 import { useAuthStore } from '../../store/authStore';
@@ -55,7 +54,7 @@ function UnreadDot() {
   return <View style={styles.unreadDot} />;
 }
 
-export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDelete, onMute, onUnmute, isMuted = false, unreadCount = 0, lastMessageAt }: PrayerGroupCardProps) {
+export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDelete, onMute, onUnmute, isMuted = false, unreadCount = 0, lastMessageAt, isLast }: PrayerGroupCardProps & { isLast?: boolean }) {
   const cat = CATEGORY_CONFIG[group.category];
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isAdmin = group.admin.id === currentUserId;
@@ -73,7 +72,7 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
   };
 
   return (
-    <TouchableOpacity ref={cardRef} onPress={() => onPress(group.id)} onLongPress={handleLongPress} delayLongPress={350} activeOpacity={0.97} style={styles.card} testID={`group-card-${group.id}`}>
+    <TouchableOpacity ref={cardRef} onPress={() => onPress(group.id)} onLongPress={handleLongPress} delayLongPress={350} activeOpacity={0.97} style={[styles.card, isLast && styles.cardLast]} testID={`group-card-${group.id}`}>
 
       <View style={styles.row}>
         <Avatar name={group.name} size={42} uri={group.avatarUrl} />
@@ -85,30 +84,9 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
             )}
             {isMuted && <Icon name="notifications-off-outline" size={13} color={Colors.textSecondary} />}
           </View>
-          <View style={styles.metaRow}>
-            <View style={[styles.categoryBadge, { backgroundColor: cat.color + '18' }]}>
-              <Icon name={cat.icon} size={10} color={cat.color} />
-              <Text style={[styles.categoryLabel, { color: cat.color }]}>{cat.label}</Text>
-            </View>
-            <View style={styles.memberCount}>
-              <Icon name="people-outline" size={12} color={Colors.textSecondary} />
-              <Text style={styles.memberText}>{group.memberCount.toLocaleString()}</Text>
-            </View>
-          </View>
-          <View style={styles.pillRow}>
-            {group.parish && (
-              <View style={styles.parishPill}>
-                <Icon name="business-outline" size={10} color={Colors.primary} />
-                <Text style={styles.parishPillText} numberOfLines={1}>{group.parish}</Text>
-              </View>
-            )}
-            {!group.parish && (
-              <View style={styles.privatePill}>
-                <Icon name="lock-closed" size={10} color={Colors.textSecondary} />
-                <Text style={styles.privatePillText}>Private</Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.metaLine} numberOfLines={1}>
+            {cat.label} · {group.memberCount === 1 ? '1 Member' : `${group.memberCount.toLocaleString()} Members`}
+          </Text>
         </View>
         {group.isMember ? (
           <View style={styles.rightMeta}>
@@ -116,13 +94,13 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
           </View>
         ) : (
           <View style={styles.action} onStartShouldSetResponder={() => true}>
-            <Button
-              label={group.isPendingApproval ? 'Requested' : 'Join'}
-              variant={group.isPendingApproval ? 'outline' : 'primary'}
-              size="sm"
-              disabled={group.isPendingApproval}
-              onPress={() => onJoin(group.id)}
-            />
+            {group.isPendingApproval ? (
+              <Text style={styles.requestedText}>Requested</Text>
+            ) : (
+              <TouchableOpacity style={styles.joinBtn} onPress={() => onJoin(group.id)} activeOpacity={0.7}>
+                <Text style={styles.joinBtnText}>Join</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -199,22 +177,17 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing[3], marginBottom: Spacing[2], ...Shadows.sm },
+  card: { paddingHorizontal: Spacing[5], paddingVertical: Spacing[4], borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#d8d3cb' },
+  cardLast: { borderBottomWidth: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
   info: { flex: 1, minWidth: 0 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[1], marginBottom: 3 },
-  name: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary, flexShrink: 1 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
-  categoryBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: Spacing[2], paddingVertical: 2, borderRadius: Radius.full, gap: 3 },
-  categoryLabel: { fontSize: Typography.xs, fontWeight: Typography.medium },
-  memberCount: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  memberText: { fontSize: Typography.xs, color: Colors.textSecondary },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[1], marginTop: 4 },
-  parishPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: Spacing[2], paddingVertical: 2, borderRadius: Radius.full, backgroundColor: Colors.primary + '12', maxWidth: 160 },
-  parishPillText: { fontSize: Typography.xs, color: Colors.primary, fontWeight: Typography.medium },
-  privatePill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: Spacing[2], paddingVertical: 2, borderRadius: Radius.full, backgroundColor: Colors.surfaceAlt },
-  privatePillText: { fontSize: Typography.xs, color: Colors.textSecondary, fontWeight: Typography.medium },
+  name: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary, flexShrink: 1 },
+  metaLine: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
   action: { flexShrink: 0 },
+  joinBtn: { borderBottomWidth: 2, borderBottomColor: Colors.accent, paddingBottom: 2 },
+  joinBtnText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  requestedText: { fontSize: Typography.sm, color: Colors.textSecondary },
   rightMeta: { flexShrink: 0, alignItems: 'flex-end', gap: Spacing[1] },
   titleTime: { fontSize: Typography.xs, color: Colors.textSecondary, flexShrink: 0 },
   kebabMenu: {

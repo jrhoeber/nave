@@ -32,9 +32,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const userJson = await AsyncStorage.getItem('auth_user');
       if (token && userJson) {
         const cached = JSON.parse(userJson) as User;
-        if (cached.avatarUrl && !cached.avatarUrl.startsWith('http')) {
-          cached.avatarUrl = undefined;
-        }
+        // Clear cached avatar URL — signed URLs expire after 1h,
+        // so stale ones cause unhandled promise rejections.
+        // Fresh URL will arrive from the background refresh below.
+        cached.avatarUrl = undefined;
         set({ token, user: cached, isAuthenticated: true });
       }
     } catch {
@@ -47,9 +48,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const fresh = await api.getMe();
       const freshUser = mapUser(fresh);
       await AsyncStorage.setItem('auth_user', JSON.stringify(freshUser));
-      const currentAvatarUrl = get().user?.avatarUrl;
-      set({ user: { ...freshUser, avatarUrl: currentAvatarUrl || freshUser.avatarUrl } });
-      if (freshUser.avatarUrl) Image.prefetch(freshUser.avatarUrl);
+      set({ user: freshUser });
+      if (freshUser.avatarUrl) Image.prefetch(freshUser.avatarUrl).catch(() => {});
     } catch {
       // Use cached data if refresh fails
     }
@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem('auth_token', token);
     await AsyncStorage.setItem('auth_user', JSON.stringify(user));
     set({ user, token, isAuthenticated: true, avatarReady: false });
-    if (user.avatarUrl) Image.prefetch(user.avatarUrl);
+    if (user.avatarUrl) Image.prefetch(user.avatarUrl).catch(() => {});
     return { isNewUser: data.is_new_user };
   },
 

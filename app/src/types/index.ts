@@ -1,5 +1,11 @@
 // ─── User ────────────────────────────────────────────────────────────────────
 
+export interface MutualFriendBrief {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -8,6 +14,7 @@ export interface User {
   avatarUrl?: string;
   parishId?: string;
   parish?: string;   // parish name, for display
+  parishCity?: string;
   diocese?: string;
   location?: string;
   birthday?: string; // ISO date string YYYY-MM-DD; null until profile setup is complete
@@ -16,6 +23,10 @@ export interface User {
   createdAt: string;
   isFriend?: boolean;
   isPendingFriend?: boolean;
+  mutualFriendCount?: number;
+  mutualFriends?: MutualFriendBrief[];
+  sharedGroupCount?: number;
+  friendshipCreatedAt?: string;
 }
 
 // ─── Posts ───────────────────────────────────────────────────────────────────

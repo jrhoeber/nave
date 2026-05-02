@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { ActivityIndicator, Image, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import firebase from '@react-native-firebase/app';
+import { getApp } from '@react-native-firebase/app';
 import { GoogleSignin, statusCodes as GoogleStatusCodes } from '@react-native-google-signin/google-signin';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -23,7 +22,7 @@ async function getFirebaseIdToken(
   providerToken: string,
   providerId: 'google.com' | 'apple.com',
 ): Promise<string> {
-  const apiKey = firebase.app().options.apiKey;
+  const apiKey = getApp().options.apiKey;
   const res = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${apiKey}`,
     {
@@ -104,14 +103,13 @@ export function WelcomeScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[Colors.primaryDark, Colors.primary, Colors.primaryLight]}
-      style={styles.gradient}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
-    >
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <View style={[styles.container, { paddingTop: insets.top + Spacing[6], paddingBottom: insets.bottom + Spacing[6] }]}>
+    <View style={styles.screen}>
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+      {/* Gold accent line on left edge */}
+      <View style={styles.goldEdge} />
+
+      <View style={[styles.container, { paddingTop: insets.top + Spacing[16], paddingBottom: insets.bottom + Spacing[4] }]}>
+        {/* Top content */}
         <View style={styles.top}>
           <Image
             source={require('../../assets/logo.png')}
@@ -119,25 +117,16 @@ export function WelcomeScreen() {
             resizeMode="contain"
           />
           <Text style={styles.appName}>Nave</Text>
-          <Text style={styles.tagline}>
-            Where Catholics gather, pray,{'\n'}and grow in faith together.
+          <View style={styles.goldDivider} />
+
+          <Text style={styles.quote}>
+            {'\u201C'}For where two or three are{'\n'}gathered together in my name,{'\n'}there am I in the midst of them.{'\u201D'}
           </Text>
+          <Text style={styles.reference}>Matthew 18:20</Text>
+
         </View>
 
-        <View style={styles.features}>
-          {[
-            { icon: '🙏', text: 'Join prayer groups & share intentions' },
-            { icon: '✝️', text: 'Connect with your parish & diocese' },
-            { icon: '👐', text: 'Make Catholic friends near & far' },
-            { icon: '📖', text: 'Share scripture, reflections & events' },
-          ].map(({ icon, text }) => (
-            <View key={text} style={styles.featureRow}>
-              <Text style={styles.featureIcon}>{icon}</Text>
-              <Text style={styles.featureText}>{text}</Text>
-            </View>
-          ))}
-        </View>
-
+        {/* Bottom CTA */}
         <View style={styles.cta}>
           {error ? (
             <View style={styles.errorBanner}>
@@ -145,20 +134,6 @@ export function WelcomeScreen() {
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
-
-          <TouchableOpacity
-            style={[styles.socialBtn, styles.googleBtn]}
-            onPress={handleGoogleSignIn}
-            disabled={loading !== null}
-            activeOpacity={0.85}
-          >
-            {loading === 'google' ? (
-              <ActivityIndicator size="small" color={Colors.textPrimary} />
-            ) : (
-              <Icon name="logo-google" size={20} color={Colors.textPrimary} />
-            )}
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
-          </TouchableOpacity>
 
           {Platform.OS === 'ios' && (
             <TouchableOpacity
@@ -176,33 +151,164 @@ export function WelcomeScreen() {
             </TouchableOpacity>
           )}
 
-          <Text style={styles.disclaimer}>
-            By joining, you agree to our Terms of Service and Privacy Policy.
-          </Text>
+          <TouchableOpacity
+            style={[styles.socialBtn, styles.googleBtn]}
+            onPress={handleGoogleSignIn}
+            disabled={loading !== null}
+            activeOpacity={0.85}
+          >
+            {loading === 'google' ? (
+              <ActivityIndicator size="small" color={Colors.textPrimary} />
+            ) : (
+              <Icon name="logo-google" size={20} color={Colors.textPrimary} />
+            )}
+            <Text style={styles.googleBtnText}>Continue with Google</Text>
+          </TouchableOpacity>
+
+          <View style={styles.legal}>
+            <Text style={styles.legalLabel}>BY CONTINUING, YOU AGREE TO OUR</Text>
+            <View style={styles.legalLinks}>
+              <TouchableOpacity onPress={() => Linking.openURL('https://naveapp.co/terms')} activeOpacity={0.7}>
+                <Text style={styles.legalLink}>TERMS OF SERVICE</Text>
+              </TouchableOpacity>
+              <Text style={styles.legalDot}> · </Text>
+              <TouchableOpacity onPress={() => Linking.openURL('https://naveapp.co/privacy')} activeOpacity={0.7}>
+                <Text style={styles.legalLink}>PRIVACY POLICY</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: Spacing[6], justifyContent: 'space-between' },
-  top: { alignItems: 'center', gap: Spacing[3] },
-  logo: { width: 100, height: 100, marginBottom: Spacing[2] },
-  appName: { fontSize: 64, fontWeight: Typography.extrabold, color: Colors.textInverse, letterSpacing: -2, lineHeight: 68 },
-  tagline: { fontSize: Typography.md, color: 'rgba(255,255,255,0.82)', textAlign: 'center', lineHeight: Typography.md * 1.5 },
-  features: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: Spacing[5], gap: Spacing[3] },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
-  featureIcon: { fontSize: 22, width: 30, textAlign: 'center' },
-  featureText: { fontSize: Typography.base, color: 'rgba(255,255,255,0.9)', flex: 1 },
-  cta: { gap: Spacing[3] },
-  errorBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(220,38,38,0.15)', borderRadius: 8, padding: Spacing[3], gap: Spacing[2] },
-  errorText: { color: '#fca5a5', fontSize: Typography.sm, flex: 1 },
-  socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing[3], borderRadius: 14, paddingVertical: Spacing[4], paddingHorizontal: Spacing[5] },
-  googleBtn: { backgroundColor: Colors.textInverse },
-  googleBtnText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
-  appleBtn: { backgroundColor: '#000' },
-  appleBtnText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textInverse },
-  disclaimer: { fontSize: Typography.xs, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: Spacing[2] },
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  goldEdge: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: Colors.accent,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: Spacing[8],
+    justifyContent: 'space-between',
+  },
+  top: {
+    alignItems: 'center',
+    gap: Spacing[2],
+    marginBottom: Spacing[10],
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    marginBottom: Spacing[1],
+  },
+  appName: {
+    fontFamily: 'CormorantGaramond-Regular',
+    fontSize: 56,
+    color: Colors.textPrimary,
+    letterSpacing: -1,
+    lineHeight: 64,
+  },
+  goldDivider: {
+    width: 32,
+    height: 2,
+    backgroundColor: Colors.accent,
+    marginVertical: Spacing[3],
+  },
+  quote: {
+    fontFamily: 'CormorantGaramond-Italic',
+    fontSize: 22,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    lineHeight: 32,
+    marginTop: Spacing[2],
+  },
+  reference: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    letterSpacing: 1,
+    marginTop: Spacing[1],
+  },
+  cta: {
+    gap: Spacing[3],
+    alignItems: 'center',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(220,38,38,0.1)',
+    borderRadius: 8,
+    padding: Spacing[3],
+    gap: Spacing[2],
+    width: '100%',
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: Typography.sm,
+    flex: 1,
+  },
+  socialBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing[3],
+    borderRadius: 28,
+    paddingVertical: 16,
+    paddingHorizontal: Spacing[6],
+    width: '100%',
+  },
+  appleBtn: {
+    backgroundColor: '#1a1a1a',
+  },
+  appleBtnText: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textInverse,
+  },
+  googleBtn: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  googleBtnText: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+  },
+  legal: {
+    alignItems: 'center',
+    marginTop: Spacing[3],
+    gap: 4,
+  },
+  legalLabel: {
+    fontSize: 10,
+    color: Colors.textLight,
+    letterSpacing: 1.5,
+    textAlign: 'center',
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legalLink: {
+    fontSize: 10,
+    color: Colors.textPrimary,
+    letterSpacing: 1.5,
+    fontWeight: Typography.semibold,
+    textDecorationLine: 'underline',
+  },
+  legalDot: {
+    fontSize: 10,
+    color: Colors.textLight,
+  },
 });

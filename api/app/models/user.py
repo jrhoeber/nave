@@ -19,6 +19,12 @@ class UserUpdate(BaseModel):
     birthday: Optional[date] = None
 
 
+class MutualFriendBrief(BaseModel):
+    id: str
+    display_name: str
+    avatar_url: Optional[str] = None
+
+
 class UserResponse(BaseModel):
     id: str
     username: str
@@ -27,13 +33,20 @@ class UserResponse(BaseModel):
     avatar_url: Optional[str] = None
     parish_id: Optional[str] = None
     parish: Optional[str] = None   # parish name, joined from parishes table
+    parish_city: Optional[str] = None
     diocese: Optional[str] = None
     location: Optional[str] = None
     birthday: Optional[date] = None
+    friend_count: int = 0
     prayer_group_count: int = 0
     created_at: datetime
     is_friend: bool = False
     is_pending_friend: bool = False
+    # Populated only on GET /users/{id}
+    mutual_friend_count: int = 0
+    mutual_friends: list[MutualFriendBrief] = []
+    shared_group_count: int = 0
+    friendship_created_at: Optional[datetime] = None
 
 
 class TokenResponse(BaseModel):

@@ -12,7 +12,7 @@ export const AVATAR_TOTAL = AVATAR_SIZE + AVATAR_BORDER * 2;
 interface ProfileViewProps {
   user: User;
   paddingTop: number;
-  /** Button rendered in the top-right/left of the hero (gear icon or back chevron) */
+  /** Button rendered in the top-right/left of the header (gear icon or back chevron) */
   headerSlot: ReactNode;
   /** Full avatar area rendered inside avatarAnchor (ring + optional badge) */
   avatarSlot: ReactNode;
@@ -32,66 +32,69 @@ export function ProfileView({
   footerSlot,
   testID,
 }: ProfileViewProps) {
-  const hasMetaBelow = user.parish || user.location;
+  const hasParish = !!user.parish;
+  const hasLocation = !!user.location;
   const hasBio = !!user.bio;
 
   return (
     <ScrollView
       testID={testID}
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: Spacing[12] }}
+      contentContainerStyle={styles.scroll}
       showsVerticalScrollIndicator={false}
+      bounces
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
-      {/* ── Navy hero panel ── */}
-      <View style={[styles.hero, { paddingTop }]}>
+      {/* ── Top row: title + header action ── */}
+      <View style={[styles.topRow, { paddingTop }]}>
+        <Text style={styles.screenTitle}>Profile</Text>
         {headerSlot}
-        <View style={styles.heroRule} />
       </View>
 
-      {/* ── Avatar — floats at the hero/content boundary ── */}
+      {/* ── Avatar — centered ── */}
       <View style={styles.avatarAnchor}>
         {avatarSlot}
       </View>
 
-      {/* ── Identity content ── */}
-      <View style={styles.identity}>
-        <Text style={styles.displayName}>{user.displayName}</Text>
-        <Text style={styles.username}>@{user.username}</Text>
+      {/* ── Display name ── */}
+      <Text style={styles.displayName}>{user.displayName}</Text>
 
-        {hasMetaBelow && (
-          <View style={styles.metaBlock}>
-            {user.parish && (
-              <View style={styles.parishPill}>
-                <Icon name="business-outline" size={12} color={Colors.accent} />
-                <Text style={styles.parishText} numberOfLines={1}>{user.parish}</Text>
-              </View>
-            )}
-            {user.location && (
-              <View style={styles.locationRow}>
-                <Icon name="location-outline" size={13} color={Colors.textSecondary} />
-                <Text style={styles.locationText}>{user.location}</Text>
-              </View>
-            )}
-          </View>
-        )}
+      {/* ── Username ── */}
+      <Text style={styles.username}>@{user.username}</Text>
 
-        {hasBio && (
-          <>
-            <View style={styles.ornament}>
-              <View style={styles.ornamentLine} />
-              <View style={styles.ornamentDot} />
-              <View style={styles.ornamentDot} />
-              <View style={styles.ornamentDot} />
-              <View style={styles.ornamentLine} />
-            </View>
-            <Text style={styles.bio}>{user.bio}</Text>
-          </>
-        )}
-
+      {/* ── Action button ── */}
+      <View style={styles.actionRow}>
         {actionSlot}
       </View>
+
+      {/* ── Bio card ── */}
+      {hasBio && (
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>ABOUT</Text>
+          <Text style={styles.bioText}>{user.bio}</Text>
+        </View>
+      )}
+
+      {/* ── Details card (parish + location) ── */}
+      {(hasParish || hasLocation) && (
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>DETAILS</Text>
+          {hasParish && (
+            <View style={styles.detailRow}>
+              <Icon name="business-outline" size={15} color={Colors.accent} />
+              <Text style={styles.detailText} numberOfLines={1}>{user.parish}</Text>
+            </View>
+          )}
+          {hasParish && hasLocation && <View style={styles.detailDivider} />}
+          {hasLocation && (
+            <View style={styles.detailRow}>
+              <Icon name="location-outline" size={15} color={Colors.accent} />
+              <Text style={styles.detailText}>{user.location}</Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {footerSlot}
     </ScrollView>
@@ -129,13 +132,10 @@ export const profileStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing[2],
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    paddingVertical: Spacing[3],
-    paddingHorizontal: Spacing[5],
-    marginTop: Spacing[1],
-    minWidth: 140,
-    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.accent + '50',
+    paddingBottom: 4,
   },
   actionBtnText: {
     fontSize: Typography.base,
@@ -149,25 +149,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  hero: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing[5],
-    paddingBottom: AVATAR_TOTAL / 2 + Spacing[6],
+  scroll: {
+    paddingHorizontal: Spacing[6],
+    paddingBottom: Spacing[12],
   },
-  heroRule: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: Colors.accent,
-    opacity: 0.5,
+
+  // ── Top row ───────────────────────────────────────────────────────────────
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing[5],
   },
+  screenTitle: {
+    fontFamily: Typography.fontSans,
+    fontSize: 30,
+    fontWeight: Typography.semibold,
+    color: '#1a1a1a',
+    letterSpacing: -0.8,
+  },
+
+  // ── Avatar ────────────────────────────────────────────────────────────────
   avatarAnchor: {
     alignItems: 'center',
-    marginTop: -(AVATAR_TOTAL / 2),
-    zIndex: 10,
-    marginBottom: Spacing[2],
+    marginBottom: Spacing[4],
   },
   avatarRing: {
     width: AVATAR_TOTAL,
@@ -175,20 +180,18 @@ const styles = StyleSheet.create({
     borderRadius: AVATAR_TOTAL / 2,
     borderWidth: AVATAR_BORDER,
     borderColor: Colors.accent,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.background,
     overflow: 'hidden',
     ...Shadows.lg,
   },
-  identity: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing[6],
-  },
+
+  // ── Identity ──────────────────────────────────────────────────────────────
   displayName: {
     fontFamily: Typography.fontSerif,
-    fontSize: Typography['2xl'],
+    fontSize: Typography['3xl'],
     fontWeight: Typography.bold,
     color: Colors.textPrimary,
-    letterSpacing: 0.3,
+    lineHeight: Typography['3xl'] * 1.15,
     textAlign: 'center',
     marginBottom: Spacing[2],
   },
@@ -197,67 +200,51 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     letterSpacing: 0.3,
     textTransform: 'lowercase',
-    marginBottom: Spacing[4],
-  },
-  metaBlock: {
-    alignItems: 'center',
-    gap: Spacing[2],
-    marginBottom: Spacing[4],
-  },
-  parishPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[2],
-    backgroundColor: Colors.accent + '18',
-    borderWidth: 1,
-    borderColor: Colors.accent + '40',
-    borderRadius: Radius.full,
-    paddingVertical: 6,
-    paddingHorizontal: Spacing[3],
-  },
-  parishText: {
-    fontSize: Typography.sm,
-    color: Colors.accentDark,
-    fontWeight: Typography.semibold,
-    letterSpacing: 0.2,
-    maxWidth: 240,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[1],
-  },
-  locationText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    letterSpacing: 0.1,
-  },
-  ornament: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[2],
-    marginBottom: Spacing[4],
-    width: '60%',
-  },
-  ornamentLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.accent,
-    opacity: 0.35,
-  },
-  ornamentDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.accent,
-    opacity: 0.6,
-  },
-  bio: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Typography.base * Typography.relaxed,
-    marginBottom: Spacing[6],
+    marginBottom: Spacing[5],
+  },
+
+  // ── Action row ────────────────────────────────────────────────────────────
+  actionRow: {
+    alignItems: 'center',
+    marginBottom: Spacing[7],
+  },
+
+  // ── Cards (matching parish profile modal) ─────────────────────────────────
+  card: {
+    backgroundColor: '#ffffff',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent + '50',
+    borderRadius: Radius.md,
     paddingHorizontal: Spacing[5],
+    paddingVertical: Spacing[4],
+    marginBottom: Spacing[4],
+  },
+  cardLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.bold,
+    color: Colors.textSecondary,
+    letterSpacing: 1.5,
+    marginBottom: Spacing[3],
+  },
+  bioText: {
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    lineHeight: Typography.base * 1.5,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+    paddingVertical: Spacing[2],
+  },
+  detailText: {
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  detailDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(0,0,0,0.15)',
   },
 });

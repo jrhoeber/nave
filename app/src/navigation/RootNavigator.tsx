@@ -10,6 +10,7 @@ import { GroupMessageScreen } from '../screens/group/GroupMessageScreen';
 import { GroupProfileScreen } from '../screens/group/GroupProfileScreen';
 import { CreateGroupScreen } from '../screens/group/CreateGroupScreen';
 import { BlockedUsersScreen } from '../screens/profile/BlockedUsersScreen';
+import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 import { ParishPostDetailScreen } from '../screens/parish/ParishPostDetailScreen';
 import type { RootStackParamList } from '../types/navigation';
 
@@ -46,6 +47,7 @@ export function RootNavigator() {
           />
           <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ParishPostDetail" component={ParishPostDetailScreen} options={{ animation: 'slide_from_right' }} />
         </>
       )}

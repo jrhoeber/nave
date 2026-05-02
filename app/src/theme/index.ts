@@ -2,7 +2,7 @@ export const Colors = {
   // Primary palette — deep navy evokes the church nave
   primary: '#1a2b4a',
   primaryLight: '#2d4270',
-  primaryDark: '#0f1a2e',
+  primaryDark: '#111111',
 
   // Accent — liturgical gold
   accent: '#c9a84c',
@@ -15,7 +15,7 @@ export const Colors = {
   surfaceAlt: '#f0ebe3',
 
   // Text
-  textPrimary: '#1a2b4a',
+  textPrimary: '#1a1a1a',
   textSecondary: '#6b7280',
   textLight: '#9ca3af',
   textInverse: '#ffffff',

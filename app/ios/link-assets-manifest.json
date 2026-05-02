@@ -2,6 +2,14 @@
   "migIndex": 1,
   "data": [
     {
+      "path": "assets/fonts/CormorantGaramond-Italic.ttf",
+      "sha1": "e56a55ee5e4402391e365f69ec3def247ef5c1ed"
+    },
+    {
+      "path": "assets/fonts/CormorantGaramond-Regular.ttf",
+      "sha1": "9ed7745936e33bdd65368c098eda736c8b60bb79"
+    },
+    {
       "path": "assets/fonts/Montserrat-Black.ttf",
       "sha1": "0f4454ac2c23712a721593b8f2ce23d30cee9e1e"
     },
