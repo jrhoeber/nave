@@ -9,10 +9,12 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		1A7F36CA2F8C09700048BB07 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A7F36C92F8C09700048BB07 /* GoogleService-Info.plist */; };
+		555D6ACAA76B476D9C58EBA1 /* Montserrat-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C2E42E3920954CB5817001A3 /* Montserrat-Black.ttf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		793346CF592900B22054ACF6 /* libPods-Nave.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AF4CF5260F07C8B4A69A60B /* libPods-Nave.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8D1FB25D9E8C6212CD1EDCF4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		E4013B07FDBF49A481831387 /* Montserrat-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F62EADADC8344CF5AD8772AD /* Montserrat-ExtraBold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,8 +28,10 @@
 		694E123D2B86AA61D8869208 /* Pods-Nave.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nave.release.xcconfig"; path = "Target Support Files/Pods-Nave/Pods-Nave.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Nave/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Nave/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		C2E42E3920954CB5817001A3 /* Montserrat-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Black.ttf"; path = "../assets/fonts/Montserrat-Black.ttf"; sourceTree = "<group>"; };
 		C3A906D3C65E7BC0DDC7DEEF /* Pods-Nave.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nave.debug.xcconfig"; path = "Target Support Files/Pods-Nave/Pods-Nave.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F62EADADC8344CF5AD8772AD /* Montserrat-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-ExtraBold.ttf"; path = "../assets/fonts/Montserrat-ExtraBold.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +69,16 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		378D1C543B054404BA685C7F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C2E42E3920954CB5817001A3 /* Montserrat-Black.ttf */,
+				F62EADADC8344CF5AD8772AD /* Montserrat-ExtraBold.ttf */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
@@ -80,6 +94,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				378D1C543B054404BA685C7F /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -169,6 +184,8 @@
 				1A7F36CA2F8C09700048BB07 /* GoogleService-Info.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				8D1FB25D9E8C6212CD1EDCF4 /* PrivacyInfo.xcprivacy in Resources */,
+				555D6ACAA76B476D9C58EBA1 /* Montserrat-Black.ttf in Resources */,
+				E4013B07FDBF49A481831387 /* Montserrat-ExtraBold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

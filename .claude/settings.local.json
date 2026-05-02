@@ -69,7 +69,10 @@
       "Bash(npm pack:*)",
       "Bash(tar -xzf react-native-community-template-0.83.9.tgz)",
       "Bash(git stash:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(curl -sL \"https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-Black.ttf\" -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/Montserrat-Black.ttf)",
+      "Bash(npx react-native-asset:*)",
+      "Bash(curl -sL \"https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-ExtraBold.ttf\" -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/Montserrat-ExtraBold.ttf)"
     ]
   }
 }

@@ -20,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { BlurView } from '@react-native-community/blur';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -479,7 +480,6 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   const [composeVisible, setComposeVisible] = useState(false);
   const [manageVisible, setManageVisible] = useState(false);
   const [editingPost, setEditingPost] = useState<ParishPost | undefined>();
-  const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
   const [parish, setParish] = useState<Parish | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
   const isParishAdmin = parish?.isParishAdmin ?? false;
@@ -644,7 +644,8 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 
   const ListHeader = useCallback(() => (
     <View>
-      <View style={{ height: 220 + insets.top }}>
+      {/* Cover photo area */}
+      <View style={{ height: 360 + insets.top }}>
         {parish?.coverPhotoUrl ? (
           <Image source={{ uri: parish.coverPhotoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : (
@@ -654,9 +655,10 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
             </View>
           </View>
         )}
+        {/* Gradient fades to white at bottom to blend with community section */}
         <LinearGradient
-          colors={['rgba(15, 26, 46, 0.3)', 'rgba(15, 26, 46, 0.0)', 'rgba(15, 26, 46, 0.65)']}
-          locations={[0, 0.4, 1]}
+          colors={['rgba(250,247,243,0)', 'rgba(250,247,243,0)', 'rgba(250,247,243,0.4)', 'rgba(250,247,243,0.8)', 'rgba(250,247,243,1)']}
+          locations={[0, 0.45, 0.65, 0.85, 1]}
           style={StyleSheet.absoluteFill}
         />
         {uploadingCover && (
@@ -664,33 +666,43 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
             <ActivityIndicator size="small" color={Colors.textInverse} />
           </View>
         )}
+        {/* Top-right action buttons: (i) and (...) */}
         <View style={[styles.coverPhotoActions, { top: insets.top + Spacing[3] }]}>
-          {isParishAdmin && (
-            <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
-              <Icon name="settings-outline" size={18} color={Colors.textInverse} />
-            </TouchableOpacity>
-          )}
           <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
-            <Icon name="information-circle-outline" size={20} color={Colors.textInverse} />
+            <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
+            <MCIcon name="information-outline" size={19} color="rgba(237, 235, 235, 0.9)" />
           </TouchableOpacity>
+          {isParishAdmin ? (
+            <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
+              <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
+              <Icon name="ellipsis-horizontal" size={17} color="rgba(255,255,255,0.9)" />
+            </TouchableOpacity>
+          ) : null}
         </View>
-        {/* Parish name overlaid at bottom of cover */}
+        {/* Parish info overlaid at bottom of cover */}
         <View style={styles.coverNameOverlay}>
-          <Text style={styles.coverParishName} numberOfLines={2}>{parishName}</Text>
-          {parish?.established && (
-            <View style={styles.coverEstRow}>
-              <View style={styles.coverEstDot} />
-              <Text style={styles.coverEstText}>Est. {parish.established}</Text>
-            </View>
+          {parish && (
+            <Text style={styles.coverSubtitle}>
+              Parish · {parish.city}, {parish.state}
+            </Text>
           )}
+          <Text style={styles.coverParishName} numberOfLines={2}>{parishName}</Text>
         </View>
       </View>
 
-      {/* Subtle separator */}
-      <View style={styles.feedSeparator}>
-        <View style={styles.feedSeparatorLine} />
-        <Text style={styles.feedSeparatorLabel}>Community</Text>
-        <View style={styles.feedSeparatorLine} />
+      {/* Hairline divider */}
+      <View style={styles.sectionDivider} />
+
+      {/* Community header — sits outside the post card */}
+      <View style={styles.communityHeader}>
+        <Text style={styles.communityTitle}>Community</Text>
+        <TouchableOpacity
+          onPress={() => { setEditingPost(undefined); setComposeVisible(true); }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.newPostLink}><Text style={styles.newPostPlus}>+  </Text>New post</Text>
+        </TouchableOpacity>
       </View>
 
       {loadingPosts && (
@@ -699,9 +711,11 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     </View>
   ), [parish, parishName, loadingPosts, isParishAdmin, uploadingCover, insets.top]);
 
-  const ListFooter = useCallback(() => loadingMore ? (
-    <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />
-  ) : null, [loadingMore]);
+  const ListFooter = useCallback(() => (
+    <View style={styles.cardBottom}>
+      {loadingMore && <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />}
+    </View>
+  ), [loadingMore]);
 
   const ListEmpty = useCallback(() => !loadingPosts ? (
     <View style={styles.emptyState}>
@@ -713,21 +727,21 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     </View>
   ) : null, [loadingPosts]);
 
-  const renderItem = ({ item }: ListRenderItemInfo<ParishPost>) => (
-    <ParishPostCard
-      post={item}
-      currentUserId={currentUserId}
-      isParishAdmin={isParishAdmin}
-      isMenuOpen={openMenuPostId === item.id}
-      onMenuOpen={() => setOpenMenuPostId(item.id)}
-      onMenuClose={() => setOpenMenuPostId(null)}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onReport={handleReport}
-      onToggleReaction={handleToggleReaction}
-      onPress={() => navigation.navigate('ParishPostDetail', { parishId, postId: item.id })}
-      onAuthorPress={(userId) => navigation.navigate('UserProfile', { id: userId })}
-    />
+  const renderItem = ({ item, index }: ListRenderItemInfo<ParishPost>) => (
+    <View style={[styles.postWrapper, index === 0 && styles.postWrapperFirst]}>
+      <ParishPostCard
+        post={item}
+        currentUserId={currentUserId}
+        isParishAdmin={isParishAdmin}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onReport={handleReport}
+        onToggleReaction={handleToggleReaction}
+        onPress={() => navigation.navigate('ParishPostDetail', { parishId, postId: item.id })}
+        onAuthorPress={(userId) => navigation.navigate('UserProfile', { id: userId })}
+        isLast={index === posts.length - 1}
+      />
+    </View>
   );
   const keyExtractor = (item: ParishPost) => item.id;
 
@@ -747,19 +761,9 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         style={{ flex: 1 }}
         onRefresh={handleRefresh}
         refreshing={refreshing}
-        onScrollBeginDrag={() => setOpenMenuPostId(null)}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.feedScroll}
       />
-
-      {/* FAB */}
-      <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + Spacing[5] }]}
-        onPress={() => { setEditingPost(undefined); setComposeVisible(true); }}
-        activeOpacity={0.85}
-      >
-        <Icon name="create-outline" size={22} color={Colors.textInverse} />
-      </TouchableOpacity>
 
       <ParishProfileModal
         parish={parish}
@@ -948,8 +952,10 @@ export function ParishScreen() {
 
 // ─── Feed styles ──────────────────────────────────────────────────────────────
 
+const PAGE_BG = '#faf7f3';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: PAGE_BG },
 
   coverPhotoPlaceholder: {
     backgroundColor: Colors.primaryDark,
@@ -975,14 +981,13 @@ const styles = StyleSheet.create({
     gap: Spacing[2],
   },
   coverPhotoActionBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(80,80,80,0.35)',
   },
   coverNameOverlay: {
     position: 'absolute',
@@ -990,63 +995,82 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: Spacing[5],
-    paddingBottom: Spacing[5],
+    paddingBottom: Spacing[6],
+  },
+  coverSubtitle: {
+    fontSize: Typography.sm,
+    color: 'rgba(55,65,81,0.75)',
+    marginBottom: 6,
   },
   coverParishName: {
-    fontFamily: Typography.fontSerif,
-    fontSize: Typography['2xl'],
-    fontWeight: Typography.bold,
-    color: '#ffffff',
-    lineHeight: Typography['2xl'] * 1.15,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  coverEstRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-  },
-  coverEstDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.accent,
-  },
-  coverEstText: {
-    fontSize: Typography.xs,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: Typography.medium,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    fontFamily: Typography.fontSans,
+    fontSize: 30,
+    fontWeight: Typography.semibold,
+    color: '#1a1a1a',
+    letterSpacing: -0.8,
+    lineHeight: 30 * 1.05,
   },
 
-  feedSeparator: {
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+  },
+  communityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing[5],
-    paddingVertical: Spacing[4],
-    gap: Spacing[3],
+    paddingTop: Spacing[4],
+    paddingBottom: Spacing[3],
   },
-  feedSeparatorLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
+  communityTitle: {
+    fontSize: Typography.md,
+    fontWeight: Typography.bold,
+    color: Colors.textPrimary,
   },
-  feedSeparatorLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    color: Colors.textLight,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+  newPostLink: {
+    fontSize: Typography.base,
+    fontWeight: Typography.medium,
+    color: '#2d4a3e',
+  },
+  newPostPlus: {
+    fontWeight: Typography.regular,
+  },
+
+  // Each post row continues the white card
+  postWrapper: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: Spacing[3],
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e8e4df',
+  },
+  postWrapperFirst: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+
+  // Bottom of the white card — rounded bottom corners
+  cardBottom: {
+    backgroundColor: '#ffffff',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    marginHorizontal: Spacing[3],
+    minHeight: Spacing[5],
+    paddingBottom: Spacing[3],
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e8e4df',
   },
 
   feedScroll: { paddingBottom: Spacing[10] },
-  initialLoader: { marginTop: Spacing[8] },
+  initialLoader: { marginTop: Spacing[4], marginBottom: Spacing[4] },
   footerLoader: { marginVertical: Spacing[4] },
 
   emptyState: {
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     paddingTop: Spacing[12],
     paddingHorizontal: Spacing[8],
@@ -1073,20 +1097,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: Typography.sm * 1.6,
-  },
-
-  fab: {
-    position: 'absolute',
-    right: Spacing[5],
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
 
   selectHeader: {

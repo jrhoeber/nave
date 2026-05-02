@@ -410,9 +410,6 @@ export function ParishPostDetailScreen() {
           post={post}
           currentUserId={currentUserId}
           isParishAdmin={isParishAdmin}
-          isMenuOpen={openMenuPostId === post.id}
-          onMenuOpen={() => setOpenMenuPostId(post.id)}
-          onMenuClose={() => setOpenMenuPostId(null)}
           onEdit={() => {}}
           onDelete={() => navigation.goBack()}
           onReport={() => {}}
