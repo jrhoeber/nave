@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +22,10 @@ import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { ParishComment, ParishPost, ParishReactionType } from '../../types';
 import type { ParishPostDetailRouteProp, RootNavigationProp } from '../../types/navigation';
 
+function CommentCellRenderer({ children, style: cellStyle, ...rest }: any) {
+  return <View {...rest} style={[cellStyle, styles.commentWrapper]}>{children}</View>;
+}
+
 export function ParishPostDetailScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
@@ -34,7 +38,6 @@ export function ParishPostDetailScreen() {
   // Post state
   const [post, setPost] = useState<ParishPost | null>(null);
   const [isParishAdmin, setIsParishAdmin] = useState(false);
-  const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
 
   // Comments state
   const [comments, setComments] = useState<ParishComment[]>([]);
@@ -47,12 +50,10 @@ export function ParishPostDetailScreen() {
   // Compose state
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [replyingTo, setReplyingTo] = useState<{ id: string; displayName: string } | null>(null);
   const inputRef = useRef<TextInput>(null);
 
   // Edit state
   const [editingComment, setEditingComment] = useState<ParishComment | null>(null);
-  const [openMenuCommentId, setOpenMenuCommentId] = useState<string | null>(null);
 
   // Fetch post
   useEffect(() => {
@@ -119,7 +120,7 @@ export function ParishPostDetailScreen() {
         setComments((prev) => prev.map((c) => c.id === updated.id ? updated : c));
         setEditingComment(null);
       } else {
-        const raw = await api.createParishPostComment(parishId, postId, trimmed, replyingTo?.id);
+        const raw = await api.createParishPostComment(parishId, postId, trimmed);
         const created = mapParishComment(raw);
         if (created.status === 'Posted') {
           setComments((prev) => [...prev, created]);
@@ -128,7 +129,6 @@ export function ParishPostDetailScreen() {
         }
       }
       setCommentText('');
-      setReplyingTo(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to post comment.';
       Alert.alert('Error', message);
@@ -270,13 +270,49 @@ export function ParishPostDetailScreen() {
     return `${Math.floor(hrs / 24)}d ago`;
   };
 
-  const renderComment = ({ item }: { item: ParishComment }) => {
+  const handleCommentLongPress = useCallback((item: ParishComment) => {
     const isOwner = currentUserId === item.author.id;
     const isPostAuthor = currentUserId === post?.author.id;
     const canDelete = isOwner || isPostAuthor || isParishAdmin;
 
+    const buttons: Array<{ text: string; onPress: () => void; style?: 'destructive' | 'cancel' }> = [];
+    if (isOwner) {
+      buttons.push({
+        text: 'Edit',
+        onPress: () => {
+          setEditingComment(item);
+          setCommentText(item.content);
+          inputRef.current?.focus();
+        },
+      });
+    }
+    if (canDelete) {
+      buttons.push({
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => handleDeleteComment(item),
+      });
+    }
+    if (!isOwner) {
+      buttons.push({
+        text: 'Report',
+        style: 'destructive',
+        onPress: () => handleReportComment(item),
+      });
+    }
+    buttons.push({ text: 'Cancel', style: 'cancel', onPress: () => {} });
+
+    Alert.alert(undefined as any, undefined as any, buttons);
+  }, [currentUserId, post, isParishAdmin, handleDeleteComment, handleReportComment]);
+
+  const renderComment = ({ item }: { item: ParishComment }) => {
     return (
-      <View style={styles.commentCard}>
+      <TouchableOpacity
+        style={styles.commentCard}
+        activeOpacity={0.7}
+        onLongPress={() => handleCommentLongPress(item)}
+        delayLongPress={400}
+      >
         <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { id: item.author.id })} activeOpacity={0.7}>
           <Avatar name={item.author.displayName} size={32} uri={item.author.avatarUrl} />
         </TouchableOpacity>
@@ -289,122 +325,45 @@ export function ParishPostDetailScreen() {
             {item.updatedAt !== item.createdAt && (
               <Text style={styles.commentEdited}>(edited)</Text>
             )}
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity
-              onPress={() => setOpenMenuCommentId(openMenuCommentId === item.id ? null : item.id)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Icon name="ellipsis-horizontal" size={14} color={Colors.textLight} />
-            </TouchableOpacity>
           </View>
-
-          {openMenuCommentId === item.id && (
-            <View style={styles.commentMenu}>
-              {isOwner && (
-                <TouchableOpacity
-                  style={styles.commentMenuItem}
-                  onPress={() => {
-                    setOpenMenuCommentId(null);
-                    setEditingComment(item);
-                    setCommentText(item.content);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  <Icon name="pencil-outline" size={14} color={Colors.textPrimary} />
-                  <Text style={styles.commentMenuText}>Edit</Text>
-                </TouchableOpacity>
-              )}
-              {canDelete && (
-                <TouchableOpacity
-                  style={styles.commentMenuItem}
-                  onPress={() => {
-                    setOpenMenuCommentId(null);
-                    handleDeleteComment(item);
-                  }}
-                >
-                  <Icon name="trash-outline" size={14} color={Colors.error} />
-                  <Text style={[styles.commentMenuText, { color: Colors.error }]}>Delete</Text>
-                </TouchableOpacity>
-              )}
-              {!isOwner && (
-                <TouchableOpacity
-                  style={styles.commentMenuItem}
-                  onPress={() => {
-                    setOpenMenuCommentId(null);
-                    handleReportComment(item);
-                  }}
-                >
-                  <Icon name="flag-outline" size={14} color={Colors.error} />
-                  <Text style={[styles.commentMenuText, { color: Colors.error }]}>Report</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-
-          {item.replyToAuthor && (
-            <View style={styles.replyIndicator}>
-              <Icon name="return-down-forward-outline" size={12} color={Colors.textLight} />
-              <Text style={styles.replyIndicatorText}>@{item.replyToAuthor.displayName}</Text>
-            </View>
-          )}
 
           <Text style={styles.commentContent}>{item.content}</Text>
 
-          {/* Compact comment actions: Like · Reply · reaction summary */}
+          {/* Heart reaction — matches post ReactionBar */}
           <View style={styles.commentActions}>
             <TouchableOpacity
+              style={styles.heartBtn}
               onPress={() => {
                 const hasReacted = item.userReactions.length > 0;
-                handleToggleCommentReaction(item.id, hasReacted ? item.userReactions[0] : '👍');
+                handleToggleCommentReaction(item.id, hasReacted ? item.userReactions[0] : '❤️');
               }}
               activeOpacity={0.6}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
-              <Text style={[
-                styles.commentActionLink,
-                item.userReactions.length > 0 && styles.commentActionLinkActive,
-              ]}>
-                {item.userReactions.length > 0 ? 'Liked' : 'Like'}
-              </Text>
+              <Icon
+                name={item.userReactions.length > 0 ? 'heart' : 'heart-outline'}
+                size={16}
+                color={item.userReactions.length > 0 ? '#dc2626' : Colors.textSecondary}
+              />
+              {(() => {
+                const heartCount = (item.reactions['❤️'] ?? 0) + (item.reactions['👍'] ?? 0);
+                if (heartCount === 0) return null;
+                return (
+                  <Text style={[
+                    styles.heartCount,
+                    item.userReactions.length > 0 && styles.heartCountActive,
+                  ]}>{heartCount}</Text>
+                );
+              })()}
             </TouchableOpacity>
-            <Text style={styles.commentActionDot}>·</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setReplyingTo({ id: item.id, displayName: item.author.displayName });
-                setEditingComment(null);
-                setCommentText('');
-                inputRef.current?.focus();
-              }}
-              activeOpacity={0.6}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            >
-              <Text style={styles.commentActionLink}>Reply</Text>
-            </TouchableOpacity>
-            {(() => {
-              const totalReactions = (['👍', '🙏', '❤️'] as const).reduce(
-                (sum, e) => sum + (item.reactions[e] ?? 0), 0
-              );
-              const usedEmojis = (['👍', '🙏', '❤️'] as const).filter(
-                (e) => (item.reactions[e] ?? 0) > 0
-              );
-              if (totalReactions === 0) return null;
-              return (
-                <View style={styles.commentReactionSummary}>
-                  {usedEmojis.map((emoji) => (
-                    <Text key={emoji} style={styles.commentReactionEmoji}>{emoji}</Text>
-                  ))}
-                  <Text style={styles.commentReactionCount}>{totalReactions}</Text>
-                </View>
-              );
-            })()}
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
-  const ListHeader = () => (
-    <View>
+  const listHeader = useMemo(() => (
+    <View style={styles.cardOuter}>
       {post && (
         <ParishPostCard
           post={post}
@@ -417,26 +376,37 @@ export function ParishPostDetailScreen() {
           onAuthorPress={(userId) => navigation.navigate('UserProfile', { id: userId })}
         />
       )}
-      <View style={styles.commentsDivider}>
+
+      {/* Inline divider inside the card */}
+      <View style={styles.inlineDivider} />
+
+      {/* Comments header inside the card */}
+      <View style={styles.commentsHeader}>
         <Text style={styles.commentsTitle}>
           {totalCount} {totalCount === 1 ? 'Comment' : 'Comments'}
         </Text>
       </View>
       {loadingComments && (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing[4] }} />
+        <ActivityIndicator color={Colors.accent} style={{ marginTop: Spacing[4] }} />
       )}
     </View>
-  );
+  ), [post, currentUserId, isParishAdmin, handleTogglePostReaction, totalCount, loadingComments, navigation]);
 
-  const ListFooter = () => loadingMore ? (
-    <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing[4] }} />
-  ) : null;
-
-  const ListEmpty = () => !loadingComments ? (
-    <View style={styles.emptyComments}>
-      <Text style={styles.emptyCommentsText}>No comments yet. Be the first to respond!</Text>
+  const listFooter = useMemo(() => (
+    <View style={styles.cardBottom}>
+      {loadingMore && <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />}
     </View>
-  ) : null;
+  ), [loadingMore]);
+
+  const listEmpty = useMemo(() => !loadingComments ? (
+    <View style={styles.emptyComments}>
+      <View style={styles.emptyIconRing}>
+        <Icon name="chatbubble-outline" size={24} color={Colors.accent} />
+      </View>
+      <Text style={styles.emptyTitle}>No comments yet</Text>
+      <Text style={styles.emptyText}>Be the first to respond!</Text>
+    </View>
+  ) : null, [loadingComments]);
 
   return (
     <KeyboardAvoidingView
@@ -450,7 +420,7 @@ export function ParishPostDetailScreen() {
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={styles.backBtn}
         >
-          <Icon name="chevron-back" size={24} color={Colors.textPrimary} />
+          <Icon name="chevron-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post</Text>
         <View style={{ width: 40 }} />
@@ -461,28 +431,25 @@ export function ParishPostDetailScreen() {
         data={comments}
         keyExtractor={(item) => item.id}
         renderItem={renderComment}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={ListFooter}
-        ListEmptyComponent={ListEmpty}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={listEmpty}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         onRefresh={handleRefresh}
         refreshing={false}
-        onScrollBeginDrag={() => { setOpenMenuPostId(null); setOpenMenuCommentId(null); }}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        CellRendererComponent={CommentCellRenderer}
       />
 
       {/* Compose bar */}
       <View style={[styles.composeBar, { paddingBottom: Math.max(insets.bottom, Spacing[2]) }]}>
-        {(replyingTo || editingComment) && (
+        {editingComment && (
           <View style={styles.composeContext}>
-            <Text style={styles.composeContextText}>
-              {editingComment ? 'Editing comment' : `Replying to @${replyingTo!.displayName}`}
-            </Text>
+            <Text style={styles.composeContextText}>Editing comment</Text>
             <TouchableOpacity
               onPress={() => {
-                setReplyingTo(null);
                 setEditingComment(null);
                 setCommentText('');
               }}
@@ -493,17 +460,19 @@ export function ParishPostDetailScreen() {
           </View>
         )}
         <View style={styles.composeRow}>
-          <Avatar name={user?.displayName ?? ''} uri={user?.avatarUrl} size={32} />
-          <TextInput
-            ref={inputRef}
-            style={styles.composeInput}
-            placeholder="Write a comment..."
-            placeholderTextColor={Colors.textLight}
-            value={commentText}
-            onChangeText={setCommentText}
-            multiline
-            maxLength={1000}
-          />
+          <Avatar name={user?.displayName ?? ''} uri={user?.avatarUrl} size={36} />
+          <View style={styles.inputOutline}>
+            <TextInput
+              ref={inputRef}
+              style={styles.composeInput}
+              placeholder="Write a comment..."
+              placeholderTextColor={Colors.textLight}
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+              maxLength={1000}
+            />
+          </View>
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={!commentText.trim() || submitting}
@@ -525,15 +494,15 @@ export function ParishPostDetailScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
 
-  // Header
+  // Header — matches ParishScreen's warm background
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing[2],
     paddingBottom: Spacing[2],
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.18)',
   },
   backBtn: {
     width: 40,
@@ -550,32 +519,97 @@ const styles = StyleSheet.create({
   },
 
   // List
-  listContent: { paddingBottom: Spacing[2] },
+  listContent: { paddingBottom: Spacing[10] },
 
-  // Comments divider
-  commentsDivider: {
+  // Unified card container — post + comments header + comments all live inside
+  cardOuter: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: Spacing[3],
+    marginTop: Spacing[4],
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d8d3cb',
+  },
+
+  // Thin divider inside the card between post and comments
+  inlineDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#d8d3cb',
+    marginHorizontal: Spacing[4],
+  },
+
+  // Comments header inside the card
+  commentsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing[5],
     paddingTop: Spacing[4],
-    paddingBottom: Spacing[2],
+    paddingBottom: Spacing[3],
   },
   commentsTitle: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: Typography.md,
+    fontWeight: Typography.bold,
+    color: Colors.textPrimary,
   },
 
-  // Empty state
-  emptyComments: {
-    alignItems: 'center',
-    paddingVertical: Spacing[8],
-    paddingHorizontal: Spacing[6],
+  // Comment wrapper — continues the white card
+  commentWrapper: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: Spacing[3],
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d8d3cb',
   },
-  emptyCommentsText: {
+
+  // Bottom of the white card — rounded bottom corners, matching ParishScreen cardBottom
+  cardBottom: {
+    backgroundColor: '#ffffff',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    marginHorizontal: Spacing[3],
+    minHeight: Spacing[5],
+    paddingBottom: Spacing[3],
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d8d3cb',
+  },
+  footerLoader: { marginVertical: Spacing[4] },
+
+  // Empty state — matches ParishScreen emptyState
+  emptyComments: {
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    paddingTop: Spacing[10],
+    paddingBottom: Spacing[4],
+    paddingHorizontal: Spacing[8],
+    gap: Spacing[3],
+  },
+  emptyIconRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.accent + '12',
+    borderWidth: 1,
+    borderColor: Colors.accent + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing[1],
+  },
+  emptyTitle: {
+    fontSize: Typography.md,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+  },
+  emptyText: {
     fontSize: Typography.sm,
-    color: Colors.textLight,
+    color: Colors.textSecondary,
     textAlign: 'center',
+    lineHeight: Typography.sm * 1.6,
   },
 
   // Comment card
@@ -614,76 +648,27 @@ const styles = StyleSheet.create({
   commentActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 0,
     marginTop: Spacing[2],
   },
-  commentActionLink: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-  },
-  commentActionLinkActive: {
-    color: Colors.primary,
-  },
-  commentActionDot: {
-    fontSize: Typography.xs,
-    color: Colors.textLight,
-    marginHorizontal: Spacing[2],
-  },
-  commentReactionSummary: {
+  heartBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 'auto',
-    gap: 1,
+    gap: 5,
   },
-  commentReactionEmoji: {
-    fontSize: 12,
-  },
-  commentReactionCount: {
-    fontSize: Typography.xs,
+  heartCount: {
+    fontSize: Typography.sm,
     color: Colors.textSecondary,
-    marginLeft: 2,
-  },
-
-  // Reply indicator
-  replyIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  replyIndicatorText: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
     fontWeight: Typography.medium,
   },
-
-  // Comment menu
-  commentMenu: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: Spacing[2],
-    ...Shadows.sm,
-  },
-  commentMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[2],
-    paddingHorizontal: Spacing[3],
-    paddingVertical: Spacing[2],
-  },
-  commentMenuText: {
-    fontSize: Typography.sm,
-    color: Colors.textPrimary,
+  heartCountActive: {
+    color: '#dc2626',
   },
 
   // Compose bar
   composeBar: {
     backgroundColor: Colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.18)',
     paddingHorizontal: Spacing[3],
     paddingTop: Spacing[2],
   },
@@ -707,21 +692,28 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: Spacing[2],
   },
-  composeInput: {
+  inputOutline: {
     flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing[3],
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  composeInput: {
     fontSize: Typography.sm,
     color: Colors.textPrimary,
     maxHeight: 100,
     paddingVertical: Spacing[2],
   },
   sendBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
   },
   sendBtnDisabled: {
     opacity: 0.4,

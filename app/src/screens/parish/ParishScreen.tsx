@@ -952,10 +952,8 @@ export function ParishScreen() {
 
 // ─── Feed styles ──────────────────────────────────────────────────────────────
 
-const PAGE_BG = '#faf7f3';
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: PAGE_BG },
+  container: { flex: 1, backgroundColor: Colors.background },
 
   coverPhotoPlaceholder: {
     backgroundColor: Colors.primaryDark,
@@ -1013,7 +1011,7 @@ const styles = StyleSheet.create({
 
   sectionDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(0,0,0,0.18)',
   },
   communityHeader: {
     flexDirection: 'row',
@@ -1043,7 +1041,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing[3],
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e8e4df',
+    borderColor: '#d8d3cb',
   },
   postWrapperFirst: {
     borderTopLeftRadius: 24,
@@ -1062,7 +1060,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderRightWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e8e4df',
+    borderColor: '#d8d3cb',
   },
 
   feedScroll: { paddingBottom: Spacing[10] },

@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[5],
     paddingVertical: Spacing[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    borderBottomColor: '#d8d3cb',
   },
   postCardLast: {
     borderBottomWidth: 0,

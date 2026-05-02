@@ -33,7 +33,10 @@ export function ProfileScreen() {
     const asset = result.assets[0];
     setAvatarUploading(true);
     try {
-      const updated = await api.uploadAvatar(asset.uri!, asset.type ?? 'image/jpeg');
+      // Show the local image immediately for instant feedback
+      const localUri = asset.uri!;
+      await updateUser({ avatarUrl: localUri });
+      const updated = await api.uploadAvatar(localUri, asset.type ?? 'image/jpeg');
       if (updated.avatar_url) {
         await updateUser({ avatarUrl: updated.avatar_url });
       }

@@ -34,6 +34,7 @@ def upload_avatar(file_bytes: bytes, user_id: str, content_type: str) -> str:
     client.bucket(settings.gcs_bucket_name).blob(object_name).upload_from_string(
         buf.getvalue(), content_type="image/jpeg"
     )
+    _signed_url_cache.pop(object_name, None)
     logger.info("Uploaded avatar to gs://%s/%s", settings.gcs_bucket_name, object_name)
     return object_name
 

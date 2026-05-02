@@ -30,21 +30,23 @@ export function ReactionBar({
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.actionBtn}
-        onPress={handleHeartPress}
-        activeOpacity={0.6}
-        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-      >
-        <Icon
-          name={hasReacted ? 'heart' : 'heart-outline'}
-          size={18}
-          color={hasReacted ? '#dc2626' : Colors.textSecondary}
-        />
-        {heartCount > 0 && (
-          <Text style={[styles.countText, hasReacted && styles.countTextActive]}>{heartCount}</Text>
-        )}
-      </TouchableOpacity>
+      <View style={styles.heartContainer}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={handleHeartPress}
+          activeOpacity={0.6}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        >
+          <Icon
+            name={hasReacted ? 'heart' : 'heart-outline'}
+            size={16}
+            color={hasReacted ? '#dc2626' : Colors.textSecondary}
+          />
+          {heartCount > 0 && (
+            <Text style={[styles.countText, hasReacted && styles.countTextActive]}>{heartCount}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity
         style={styles.actionBtn}
@@ -52,7 +54,7 @@ export function ReactionBar({
         activeOpacity={0.6}
         hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
       >
-        <Icon name="chatbubble-outline" size={17} color={Colors.textSecondary} />
+        <Icon name="chatbubble-outline" size={15} color={Colors.textSecondary} />
         {(commentCount ?? 0) > 0 && (
           <Text style={styles.countText}>{commentCount}</Text>
         )}
@@ -65,8 +67,10 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[5],
     marginTop: Spacing[3],
+  },
+  heartContainer: {
+    width: 42,
   },
   actionBtn: {
     flexDirection: 'row',
