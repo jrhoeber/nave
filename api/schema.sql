@@ -258,6 +258,15 @@ CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships (requester_i
 CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships (addressee_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_status    ON friendships (status);
 
+-- Denormalized edge table for fast mutual-friend lookups.
+-- Each accepted friendship is stored as two rows: (A,B) and (B,A).
+-- Maintained in application code (accept, remove, block).
+CREATE TABLE IF NOT EXISTS friend_edges (
+    user_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    friend_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, friend_id)
+);
+
 -- ============================================================
 -- USER BLOCKS
 -- ============================================================

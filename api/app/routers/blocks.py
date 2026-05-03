@@ -40,6 +40,12 @@ async def block_user(
             current_user["id"],
             body.blocked_id,
         )
+        # Clean up friend_edges
+        await conn.execute(
+            "DELETE FROM friend_edges WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)",
+            current_user["id"],
+            body.blocked_id,
+        )
         # Insert block (ignore if already blocked)
         await conn.execute(
             """

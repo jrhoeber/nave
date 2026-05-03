@@ -105,7 +105,10 @@ async def evaluate_with_claude(
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
-            messages=[{"role": "user", "content": user_message}],
+            messages=[
+                {"role": "user", "content": user_message},
+                {"role": "assistant", "content": "{"},
+            ],
         ),
         timeout=10.0,
     )
@@ -116,9 +119,11 @@ async def evaluate_with_claude(
     raw_text = response.content[0].text if response.content else ""
 
     try:
+        # Prepend the "{" we used as assistant prefill
+        clean = "{" + raw_text.strip()
         # Strip markdown code fences if present
-        clean = raw_text.strip()
-        if clean.startswith("```"):
+        if clean.startswith("{```"):
+            clean = clean[1:].strip()
             clean = clean.split("```", 2)[1]
             if clean.startswith("json"):
                 clean = clean[4:]

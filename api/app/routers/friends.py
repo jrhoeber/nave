@@ -160,6 +160,12 @@ async def send_friend_request(
                     "UPDATE friendships SET status = 'accepted', updated_at = NOW() WHERE id = $1",
                     existing["id"],
                 )
+                # Maintain friend_edges
+                await conn.execute(
+                    "INSERT INTO friend_edges (user_id, friend_id) VALUES ($1, $2), ($2, $1) ON CONFLICT DO NOTHING",
+                    current_user["id"],
+                    body.addressee_id,
+                )
                 return {"message": "Friend request accepted"}
             raise HTTPException(status_code=409, detail="Friend request already sent")
         if status == "rejected":
@@ -259,7 +265,7 @@ async def respond_to_request(
         raise HTTPException(status_code=400, detail="status must be 'accepted' or 'rejected'")
 
     row = await conn.fetchrow(
-        "SELECT id, addressee_id, status FROM friendships WHERE id = $1",
+        "SELECT id, requester_id, addressee_id, status FROM friendships WHERE id = $1",
         friendship_id,
     )
     if not row:
@@ -274,6 +280,15 @@ async def respond_to_request(
         body.status,
         friendship_id,
     )
+
+    if body.status == "accepted":
+        # Maintain friend_edges
+        await conn.execute(
+            "INSERT INTO friend_edges (user_id, friend_id) VALUES ($1, $2), ($2, $1) ON CONFLICT DO NOTHING",
+            row["requester_id"],
+            row["addressee_id"],
+        )
+
     return {"status": body.status}
 
 
@@ -286,7 +301,7 @@ async def remove_friendship(
     """Remove a friend, cancel an outgoing request, or delete any friendship record."""
     row = await conn.fetchrow(
         """
-        SELECT id FROM friendships
+        SELECT id, requester_id, addressee_id FROM friendships
         WHERE id = $1 AND (requester_id = $2 OR addressee_id = $2)
         """,
         friendship_id,
@@ -295,3 +310,9 @@ async def remove_friendship(
     if not row:
         raise HTTPException(status_code=404, detail="Friendship not found")
     await conn.execute("DELETE FROM friendships WHERE id = $1", friendship_id)
+    # Clean up friend_edges
+    await conn.execute(
+        "DELETE FROM friend_edges WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)",
+        row["requester_id"],
+        row["addressee_id"],
+    )

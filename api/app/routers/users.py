@@ -255,21 +255,14 @@ async def get_user(
         elif friendship["status"] == "pending" and str(friendship["requester_id"]) == str(current_user["id"]):
             response.is_pending_friend = True
 
-    # Mutual friends: users who are friends with both current_user and target user
+    # Mutual friends via friend_edges intersection
     mutual_rows = await conn.fetch(
         """
         SELECT u.id, u.display_name, u.avatar_url
-        FROM friendships f1
-        JOIN friendships f2
-            ON f2.status = 'accepted'
-            AND (
-                (f2.requester_id = $2 AND f2.addressee_id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END)
-                OR (f2.addressee_id = $2 AND f2.requester_id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END)
-            )
-        JOIN users u ON u.id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END
-        WHERE f1.status = 'accepted'
-          AND (f1.requester_id = $1 OR f1.addressee_id = $1)
-          AND u.id <> $2
+        FROM friend_edges e1
+        JOIN friend_edges e2 ON e2.user_id = $2 AND e2.friend_id = e1.friend_id
+        JOIN users u ON u.id = e1.friend_id
+        WHERE e1.user_id = $1
         LIMIT 5
         """,
         current_user["id"], user_id,
@@ -288,17 +281,9 @@ async def get_user(
         count_row = await conn.fetchrow(
             """
             SELECT COUNT(*) AS cnt
-            FROM friendships f1
-            JOIN friendships f2
-                ON f2.status = 'accepted'
-                AND (
-                    (f2.requester_id = $2 AND f2.addressee_id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END)
-                    OR (f2.addressee_id = $2 AND f2.requester_id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END)
-                )
-            JOIN users u ON u.id = CASE WHEN f1.requester_id = $1 THEN f1.addressee_id ELSE f1.requester_id END
-            WHERE f1.status = 'accepted'
-              AND (f1.requester_id = $1 OR f1.addressee_id = $1)
-              AND u.id <> $2
+            FROM friend_edges e1
+            JOIN friend_edges e2 ON e2.user_id = $2 AND e2.friend_id = e1.friend_id
+            WHERE e1.user_id = $1
             """,
             current_user["id"], user_id,
         )

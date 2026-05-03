@@ -670,8 +670,17 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         <View style={{ height: 360 + insets.top }}>
           <Image source={{ uri: parish!.coverPhotoUrl! }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           <LinearGradient
-            colors={['rgba(250,247,243,0)', 'rgba(250,247,243,0)', 'rgba(250,247,243,0.4)', 'rgba(250,247,243,0.8)', 'rgba(250,247,243,1)']}
-            locations={[0, 0.45, 0.65, 0.85, 1]}
+            colors={[
+              'rgba(250,247,243,0)',
+              'rgba(250,247,243,0)',
+              'rgba(250,247,243,0.03)',
+              'rgba(250,247,243,0.12)',
+              'rgba(250,247,243,0.35)',
+              'rgba(250,247,243,0.7)',
+              'rgba(250,247,243,0.92)',
+              'rgba(250,247,243,1)',
+            ]}
+            locations={[0, 0.65, 0.72, 0.79, 0.86, 0.92, 0.96, 1]}
             style={StyleSheet.absoluteFill}
           />
           {uploadingCover && (
@@ -1369,7 +1378,11 @@ const manageStyles = StyleSheet.create({
     color: Colors.textInverse,
   },
   coverPhotoBtn: {
-    height: 160,
+    height: (() => {
+      const screenWidth = Dimensions.get('window').width;
+      const previewWidth = screenWidth - 2 * Spacing[5];
+      return previewWidth * (360 / screenWidth);
+    })(),
     borderRadius: Radius.md,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
