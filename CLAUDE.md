@@ -121,7 +121,7 @@ Before creating new UI or styling from scratch, **check what already exists**:
 
 - **`app/src/components/ui/`** — Generic reusable components (Button, Input, Avatar, TabBadge, EmptyStateBox, FormHeader, FormCard, FormField, SectionLabel, Separator, SearchModal)
 - **`app/src/components/group/`** — Shared group form components (GroupFormFields, CategoryPicker, VisibilityPicker, constants)
-- **`app/src/components/profile/`** — Profile-related components (AboutCard, SettingsModal, EditProfileModal)
+- **`app/src/components/profile/`** — Profile-related components (AboutCard, EditProfileModal)
 - **`app/src/theme/index.ts`** — Design tokens (Colors, Typography, Spacing, Radius, Shadows, CardList) — always use these instead of hardcoded values
 
 Search for existing components with similar functionality before writing new ones. If a screen already does something similar to what you're building, match its patterns and reuse its components.
@@ -275,6 +275,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | `parish/ParishPostDetailScreen.tsx` | Post detail with comments: list, compose, reply, reactions, edit/delete |
 | `friends/FriendsScreen.tsx` | Friends list + request management |
 | `profile/ProfileScreen.tsx` | Own profile with edit |
+| `profile/SettingsScreen.tsx` | Settings: notifications, blocked users, about links, sign out, delete account |
 | `shared/ComposeScreen.tsx` | Modal: create new post |
 | `shared/PostDetailScreen.tsx` | Full post + comments |
 | `shared/UserProfileScreen.tsx` | Other users' profiles; kebab menu (ellipsis-horizontal) to block user |

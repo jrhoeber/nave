@@ -10,6 +10,7 @@ export type RootStackParamList = {
   GroupMessage: { id: string };
   GroupProfile: { id: string };
   CreateGroup: undefined;
+  Settings: undefined;
   BlockedUsers: undefined;
   EditProfile: undefined;
   ParishPostDetail: { parishId: string; postId: string };

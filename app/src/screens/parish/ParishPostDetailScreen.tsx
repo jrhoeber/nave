@@ -18,7 +18,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { ParishPostCard } from '../../components/parish/ParishPostCard';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParishComment, mapParishPost } from '../../lib/apiClient';
-import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
+import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { ParishComment, ParishPost, ParishReactionType } from '../../types';
 import type { ParishPostDetailRouteProp, RootNavigationProp } from '../../types/navigation';
 
@@ -303,107 +303,106 @@ export function ParishPostDetailScreen() {
 
   const renderComment = ({ item, index }: { item: ParishComment; index: number }) => {
     const isLast = index === comments.length - 1;
+    const hasReacted = item.userReactions.length > 0;
+    const heartCount = (item.reactions['❤️'] ?? 0) + (item.reactions['👍'] ?? 0);
+
     return (
-      <View style={[CardList.item, isLast && CardList.itemLast]}>
-      <TouchableOpacity
-        style={styles.commentCard}
-        activeOpacity={0.7}
-        onLongPress={() => handleCommentLongPress(item)}
-        delayLongPress={400}
-      >
-        <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { id: item.author.id })} activeOpacity={0.7}>
-          <Avatar name={item.author.displayName} size={32} uri={item.author.avatarUrl} />
+      <View style={styles.commentSection}>
+        {index > 0 && <View style={styles.commentDivider} />}
+        <TouchableOpacity
+          style={styles.commentCard}
+          activeOpacity={0.7}
+          onLongPress={() => handleCommentLongPress(item)}
+          delayLongPress={400}
+        >
+          <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { id: item.author.id })} activeOpacity={0.7}>
+            <Avatar name={item.author.displayName} size={40} uri={item.author.avatarUrl} />
+          </TouchableOpacity>
+          <View style={styles.commentBody}>
+            <View style={styles.commentHeader}>
+              <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { id: item.author.id })} activeOpacity={0.7}>
+                <Text style={styles.commentAuthor}>{item.author.displayName}</Text>
+              </TouchableOpacity>
+              <Text style={styles.commentTime}>· {relativeTime(item.createdAt)}</Text>
+              {item.updatedAt !== item.createdAt && (
+                <Text style={styles.commentEdited}>(edited)</Text>
+              )}
+            </View>
+
+            <Text style={styles.commentContent}>{item.content}</Text>
+
+            <View style={styles.commentActions}>
+              <TouchableOpacity
+                style={[styles.heartChip, hasReacted && styles.heartChipActive]}
+                onPress={() => handleToggleCommentReaction(item.id, hasReacted ? item.userReactions[0] : '❤️')}
+                activeOpacity={0.6}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Icon
+                  name={hasReacted ? 'heart' : 'heart-outline'}
+                  size={14}
+                  color={hasReacted ? '#dc2626' : Colors.textSecondary}
+                />
+                {heartCount > 0 && (
+                  <Text style={[styles.heartCount, hasReacted && styles.heartCountActive]}>
+                    {heartCount}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </TouchableOpacity>
-        <View style={styles.commentBody}>
-          <View style={styles.commentHeader}>
-            <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { id: item.author.id })} activeOpacity={0.7}>
-              <Text style={styles.commentAuthor}>{item.author.displayName}</Text>
-            </TouchableOpacity>
-            <Text style={styles.commentTime}>{relativeTime(item.createdAt)}</Text>
-            {item.updatedAt !== item.createdAt && (
-              <Text style={styles.commentEdited}>(edited)</Text>
-            )}
-          </View>
-
-          <Text style={styles.commentContent}>{item.content}</Text>
-
-          {/* Heart reaction — matches post ReactionBar */}
-          <View style={styles.commentActions}>
-            <TouchableOpacity
-              style={styles.heartBtn}
-              onPress={() => {
-                const hasReacted = item.userReactions.length > 0;
-                handleToggleCommentReaction(item.id, hasReacted ? item.userReactions[0] : '❤️');
-              }}
-              activeOpacity={0.6}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            >
-              <Icon
-                name={item.userReactions.length > 0 ? 'heart' : 'heart-outline'}
-                size={16}
-                color={item.userReactions.length > 0 ? '#dc2626' : Colors.textSecondary}
-              />
-              {(() => {
-                const heartCount = (item.reactions['❤️'] ?? 0) + (item.reactions['👍'] ?? 0);
-                if (heartCount === 0) return null;
-                return (
-                  <Text style={[
-                    styles.heartCount,
-                    item.userReactions.length > 0 && styles.heartCountActive,
-                  ]}>{heartCount}</Text>
-                );
-              })()}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
       </View>
     );
   };
 
   const listHeader = useMemo(() => (
-    <View style={[CardList.item, CardList.itemFirst, styles.cardOuterExtra]}>
-      {post && (
-        <ParishPostCard
-          post={post}
-          currentUserId={currentUserId}
-          isParishAdmin={isParishAdmin}
-          onEdit={() => {}}
-          onDelete={() => navigation.goBack()}
-          onReport={() => {}}
-          onToggleReaction={handleTogglePostReaction}
-          onAuthorPress={(userId) => navigation.navigate('UserProfile', { id: userId })}
-        />
-      )}
-
-      {/* Inline divider inside the card */}
-      <View style={styles.inlineDivider} />
-
-      {/* Comments header inside the card */}
-      <View style={styles.commentsHeader}>
-        <Text style={styles.commentsTitle}>
-          {totalCount} {totalCount === 1 ? 'Comment' : 'Comments'}
-        </Text>
+    <>
+      <View style={styles.postSection}>
+        {post && (
+          <ParishPostCard
+            post={post}
+            currentUserId={currentUserId}
+            isParishAdmin={isParishAdmin}
+            onEdit={() => {}}
+            onDelete={() => navigation.goBack()}
+            onReport={() => {}}
+            onToggleReaction={handleTogglePostReaction}
+            onAuthorPress={(userId) => navigation.navigate('UserProfile', { id: userId })}
+          />
+        )}
       </View>
+
+      {/* Comments header — hide when empty */}
+      {(totalCount > 0 || loadingComments) && (
+        <View style={styles.commentsHeader}>
+          <Text style={styles.commentsLabel}>
+            COMMENTS  •  {totalCount}
+          </Text>
+          <View style={styles.commentsHeaderLine} />
+        </View>
+      )}
       {loadingComments && (
         <ActivityIndicator color={Colors.accent} style={{ marginTop: Spacing[4] }} />
       )}
-    </View>
+    </>
   ), [post, currentUserId, isParishAdmin, handleTogglePostReaction, totalCount, loadingComments, navigation]);
 
   const listFooter = useMemo(() => (
     loadingMore ? <ActivityIndicator color={Colors.primary} style={styles.footerLoader} /> : null
   ), [loadingMore]);
 
+  const authorFirstName = post?.author.displayName.split(' ')[0] ?? '';
+
   const listEmpty = useMemo(() => !loadingComments ? (
     <View style={styles.emptyComments}>
-      <View style={styles.emptyIconRing}>
-        <Icon name="chatbubble-outline" size={24} color={Colors.accent} />
-      </View>
-      <Text style={styles.emptyTitle}>No comments yet</Text>
-      <Text style={styles.emptyText}>Be the first to respond!</Text>
+      <View style={styles.emptyDividerTop} />
+      <Text style={styles.emptyTitle}>
+        {'The pew is open.\nBe the first to greet ' + authorFirstName + '.'}
+      </Text>
+      <View style={styles.emptyDividerBottom} />
     </View>
-  ) : null, [loadingComments]);
+  ) : null, [loadingComments, authorFirstName]);
 
   return (
     <KeyboardAvoidingView
@@ -517,87 +516,101 @@ const styles = StyleSheet.create({
   // List
   listContent: { paddingBottom: Spacing[10] },
 
-  cardOuterExtra: {
-    marginTop: Spacing[4],
+  // Full-width white post section
+  postSection: {
+    backgroundColor: Colors.surface,
   },
 
-  // Thin divider inside the card between post and comments
-  inlineDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#d8d3cb',
-    marginHorizontal: Spacing[4],
-  },
-
-  // Comments header inside the card
+  // Comments header
   commentsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[4],
-    paddingBottom: Spacing[3],
+    paddingHorizontal: Spacing[4],
+    paddingTop: Spacing[3],
+    paddingBottom: Spacing[1],
+    gap: Spacing[3],
   },
-  commentsTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
+  commentsLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.semibold,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+  },
+  commentsHeaderLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#b5b0a8',
   },
 
   footerLoader: { marginVertical: Spacing[4] },
 
-  // Empty state — matches ParishScreen emptyState
+  // Empty comments
   emptyComments: {
-    backgroundColor: '#ffffff',
+    paddingTop: 130,
+    paddingHorizontal: Spacing[6],
     alignItems: 'center',
-    paddingTop: Spacing[10],
-    paddingBottom: Spacing[4],
-    paddingHorizontal: Spacing[8],
-    gap: Spacing[3],
   },
-  emptyIconRing: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.accent + '12',
-    borderWidth: 1,
-    borderColor: Colors.accent + '30',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing[1],
+  emptyDividerTop: {
+    width: 32,
+    height: 2,
+    backgroundColor: Colors.accent,
+    marginBottom: Spacing[4],
+    borderRadius: 1,
   },
   emptyTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.semibold,
+    fontFamily: 'Cormorant Garamond',
+    fontStyle: 'italic',
+    fontSize: 22,
     color: Colors.textPrimary,
-  },
-  emptyText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Typography.sm * 1.6,
+    lineHeight: 30,
+  },
+  emptyDividerBottom: {
+    width: 20,
+    height: 2,
+    backgroundColor: Colors.accent,
+    marginTop: Spacing[4],
+    marginBottom: Spacing[4],
+    borderRadius: 1,
+  },
+  emptySubtitle: {
+    fontSize: Typography.sm,
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+
+  commentSection: {},
+
+  // Comment divider
+  commentDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#d8d3cb',
+    marginHorizontal: Spacing[4],
   },
 
   // Comment card
   commentCard: {
     flexDirection: 'row',
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     gap: Spacing[3],
   },
   commentBody: { flex: 1 },
   commentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[2],
-    marginBottom: 2,
+    gap: Spacing[1],
+    marginBottom: Spacing[1],
   },
   commentAuthor: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
+    fontSize: Typography.base,
+    fontWeight: Typography.bold,
     color: Colors.textPrimary,
   },
   commentTime: {
-    fontSize: Typography.xs,
+    fontSize: Typography.sm,
     color: Colors.textLight,
   },
   commentEdited: {
@@ -606,20 +619,22 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   commentContent: {
-    fontSize: Typography.sm,
+    fontSize: Typography.base,
     color: Colors.textPrimary,
-    lineHeight: Typography.sm * 1.5,
+    lineHeight: Typography.base * 1.6,
   },
   commentActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing[2],
+    marginTop: Spacing[3],
+    gap: Spacing[2],
   },
-  heartBtn: {
+  heartChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
   },
+  heartChipActive: {},
   heartCount: {
     fontSize: Typography.sm,
     color: Colors.textSecondary,

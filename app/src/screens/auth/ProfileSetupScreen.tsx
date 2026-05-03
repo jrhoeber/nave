@@ -6,14 +6,19 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { FormCard } from '../../components/ui/FormCard';
+import { FormField } from '../../components/ui/FormField';
+import { SectionLabel } from '../../components/ui/SectionLabel';
+import { Separator } from '../../components/ui/Separator';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../lib/apiClient';
-import { Colors, Spacing, Typography } from '../../theme';
+import { Colors, Radius, Spacing, Typography } from '../../theme';
 
 function isValidDate(month: string, day: string, year: string): boolean {
   const m = parseInt(month, 10);
@@ -101,7 +106,9 @@ export function ProfileSetupScreen() {
     return (
       <View style={[styles.container, styles.blockedContainer, { paddingTop: insets.top + Spacing[6], paddingBottom: insets.bottom + Spacing[6] }]}>
         <StatusBar barStyle="dark-content" />
-        <Text style={styles.blockIcon}>✝</Text>
+        <View style={styles.blockIconContainer}>
+          <Icon name="cross-outline" size={28} color={Colors.accent} />
+        </View>
         <Text style={styles.blockTitle}>Nave is for ages 13+</Text>
         <Text style={styles.blockBody}>
           We're sorry — Nave is designed for users who are 13 years old and older. We hope to
@@ -115,82 +122,114 @@ export function ProfileSetupScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="dark-content" />
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Spacing[6], paddingBottom: insets.bottom + Spacing[8] }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Spacing[8], paddingBottom: insets.bottom + Spacing[8] }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Header ── */}
         <View style={styles.header}>
-          <Text style={styles.cross}>✝</Text>
+          <View style={styles.crossBadge}>
+            <Icon name="cross-outline" size={24} color={Colors.accent} />
+          </View>
           <Text style={styles.title}>Complete your profile</Text>
           <Text style={styles.subtitle}>Tell us a little about yourself</Text>
+          <View style={styles.goldDivider} />
         </View>
 
         {error ? (
           <View style={styles.errorBanner}>
+            <Icon name="alert-circle-outline" size={16} color={Colors.error} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
 
-        <Input
-          label="Full Name *"
-          value={displayName}
-          onChangeText={setDisplayName}
-          autoCapitalize="words"
-          leftIcon="person-outline"
-          placeholder="Your name"
-        />
+        {/* ── Name ── */}
+        <SectionLabel>YOUR NAME</SectionLabel>
+        <FormCard>
+          <FormField
+            label="FULL NAME"
+            icon="person-outline"
+            value={displayName}
+            onChangeText={setDisplayName}
+            maxLength={50}
+            autoCapitalize="words"
+            placeholder="Your name"
+          />
+        </FormCard>
 
-        <Text style={styles.fieldLabel}>Birthday *</Text>
-        <View style={styles.dateRow}>
-          <View style={styles.dateFieldMonth}>
-            <Input
-              label=""
-              value={birthMonth}
-              onChangeText={(v) => setBirthMonth(v.replace(/[^0-9]/g, '').slice(0, 2))}
-              keyboardType="number-pad"
-              placeholder="MM"
-              maxLength={2}
-            />
+        {/* ── Birthday ── */}
+        <SectionLabel>BIRTHDAY</SectionLabel>
+        <FormCard>
+          <View style={styles.dateContainer}>
+            <Text style={styles.dateLabel}>DATE OF BIRTH</Text>
+            <View style={styles.dateRow}>
+              <View style={styles.dateIcon}>
+                <Icon name="calendar-outline" size={13} color={Colors.accent} />
+              </View>
+              <View style={styles.dateFieldMonth}>
+                <TextInput
+                  style={styles.dateInput}
+                  value={birthMonth}
+                  onChangeText={(v) => setBirthMonth(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                  keyboardType="number-pad"
+                  placeholder="MM"
+                  placeholderTextColor={Colors.textLight}
+                  maxLength={2}
+                />
+              </View>
+              <Text style={styles.dateSep}>/</Text>
+              <View style={styles.dateFieldDay}>
+                <TextInput
+                  style={styles.dateInput}
+                  value={birthDay}
+                  onChangeText={(v) => setBirthDay(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                  keyboardType="number-pad"
+                  placeholder="DD"
+                  placeholderTextColor={Colors.textLight}
+                  maxLength={2}
+                />
+              </View>
+              <Text style={styles.dateSep}>/</Text>
+              <View style={styles.dateFieldYear}>
+                <TextInput
+                  style={styles.dateInput}
+                  value={birthYear}
+                  onChangeText={(v) => setBirthYear(v.replace(/[^0-9]/g, '').slice(0, 4))}
+                  keyboardType="number-pad"
+                  placeholder="YYYY"
+                  placeholderTextColor={Colors.textLight}
+                  maxLength={4}
+                />
+              </View>
+            </View>
           </View>
-          <View style={styles.dateFieldDay}>
-            <Input
-              label=""
-              value={birthDay}
-              onChangeText={(v) => setBirthDay(v.replace(/[^0-9]/g, '').slice(0, 2))}
-              keyboardType="number-pad"
-              placeholder="DD"
-              maxLength={2}
-            />
-          </View>
-          <View style={styles.dateFieldYear}>
-            <Input
-              label=""
-              value={birthYear}
-              onChangeText={(v) => setBirthYear(v.replace(/[^0-9]/g, '').slice(0, 4))}
-              keyboardType="number-pad"
-              placeholder="YYYY"
-              maxLength={4}
-            />
-          </View>
+        </FormCard>
+
+        {/* ── Bio ── */}
+        <SectionLabel>ABOUT YOU</SectionLabel>
+        <FormCard>
+          <FormField
+            label="BIO"
+            icon="document-text-outline"
+            value={bio}
+            onChangeText={setBio}
+            maxLength={200}
+            multiline
+            placeholder="Share a little about your faith journey"
+          />
+        </FormCard>
+
+        <View style={styles.footer}>
+          <Button
+            label="Continue"
+            onPress={handleContinue}
+            loading={loading}
+            fullWidth
+            size="lg"
+            showArrow
+          />
+          <Text style={styles.hint}>You can always update this later</Text>
         </View>
-
-        <Input
-          label="Bio (optional)"
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Share a little about your faith journey"
-          leftIcon="document-text-outline"
-          multiline
-        />
-
-        <Button
-          label="Continue"
-          onPress={handleContinue}
-          loading={loading}
-          fullWidth
-          size="lg"
-          style={styles.submitBtn}
-        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -199,20 +238,131 @@ export function ProfileSetupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   blockedContainer: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing[8] },
-  scroll: { paddingHorizontal: Spacing[6] },
-  header: { marginBottom: Spacing[6] },
-  cross: { fontSize: 32, color: Colors.accent, marginBottom: Spacing[3] },
-  title: { fontSize: Typography['3xl'], fontWeight: Typography.bold, color: Colors.textPrimary, marginBottom: Spacing[1] },
-  subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
-  errorBanner: { backgroundColor: Colors.error + '14', borderRadius: 8, padding: Spacing[3], marginBottom: Spacing[4] },
-  errorText: { color: Colors.error, fontSize: Typography.sm },
-  fieldLabel: { fontSize: Typography.sm, fontWeight: Typography.medium, color: Colors.textPrimary, marginBottom: Spacing[1], marginTop: Spacing[1] },
-  dateRow: { flexDirection: 'row', gap: Spacing[3], marginBottom: Spacing[2] },
-  dateFieldMonth: { flex: 1 },
-  dateFieldDay: { flex: 1 },
-  dateFieldYear: { flex: 1.6 },
-  submitBtn: { marginTop: Spacing[4] },
-  blockIcon: { fontSize: 48, color: Colors.accent, marginBottom: Spacing[5] },
-  blockTitle: { fontSize: Typography['2xl'], fontWeight: Typography.bold, color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing[4] },
-  blockBody: { fontSize: Typography.base, color: Colors.textSecondary, textAlign: 'center', lineHeight: Typography.base * 1.6 },
+  scroll: { paddingBottom: Spacing[8] },
+
+  // ── Header ──
+  header: {
+    alignItems: 'center',
+    marginBottom: Spacing[4],
+    paddingHorizontal: Spacing[6],
+  },
+  crossBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing[4],
+  },
+  title: {
+    fontFamily: 'CormorantGaramond-Regular',
+    fontSize: Typography['3xl'],
+    color: Colors.textPrimary,
+    lineHeight: Typography['3xl'] * 1.15,
+    textAlign: 'center',
+    marginBottom: Spacing[2],
+  },
+  subtitle: {
+    fontSize: Typography.base,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing[4],
+  },
+  goldDivider: {
+    width: 28,
+    height: 2.5,
+    backgroundColor: Colors.accent,
+    borderRadius: 2,
+  },
+
+  // ── Error ──
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+    backgroundColor: Colors.error + '14',
+    borderRadius: Radius.sm,
+    padding: Spacing[3],
+    marginHorizontal: Spacing[5],
+    marginBottom: Spacing[3],
+  },
+  errorText: { color: Colors.error, fontSize: Typography.sm, flex: 1 },
+
+  // ── Date fields ──
+  dateContainer: {
+    paddingVertical: Spacing[1],
+  },
+  dateLabel: {
+    fontSize: 10,
+    fontWeight: Typography.bold,
+    color: Colors.textSecondary,
+    letterSpacing: 1.2,
+    marginBottom: 0,
+    marginLeft: 26 + Spacing[3],
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing[3],
+  },
+  dateFieldMonth: { width: 44 },
+  dateFieldDay: { width: 44 },
+  dateFieldYear: { width: 60 },
+  dateInput: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+    paddingVertical: Spacing[2],
+    textAlign: 'center',
+  },
+  dateSep: {
+    fontSize: Typography.base,
+    color: Colors.textLight,
+    marginHorizontal: Spacing[1],
+  },
+
+  // ── Footer ──
+  footer: {
+    marginTop: Spacing[6],
+    paddingHorizontal: Spacing[5],
+    gap: Spacing[3],
+  },
+  hint: {
+    fontSize: Typography.xs,
+    color: Colors.textLight,
+    textAlign: 'center',
+  },
+
+  // ── Blocked state ──
+  blockIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing[5],
+  },
+  blockTitle: {
+    fontFamily: 'CormorantGaramond-Regular',
+    fontSize: Typography['2xl'],
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: Spacing[4],
+  },
+  blockBody: {
+    fontSize: Typography.base,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: Typography.base * 1.6,
+  },
 });

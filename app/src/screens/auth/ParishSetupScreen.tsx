@@ -7,16 +7,15 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Input } from '../../components/ui/Input';
-import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
 import { api, mapUser } from '../../lib/apiClient';
-import { Colors, Spacing, Typography, Shadows } from '../../theme';
+import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
 import type { Parish } from '../../types';
 
 export function ParishSetupScreen() {
@@ -25,7 +24,6 @@ export function ParishSetupScreen() {
   const existingUser = useAuthStore((s) => !!s.user?.birthday);
 
   const handleCancel = async () => {
-    // Re-fetch profile from server to restore the user's current parish
     try {
       const fresh = await api.getMe();
       await updateUser(mapUser(fresh));
@@ -37,13 +35,11 @@ export function ParishSetupScreen() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Parish[]>([]);
   const [searching, setSearching] = useState(false);
-  const [selected, setSelected] = useState<Parish | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const handleSearch = async (text: string) => {
     setQuery(text);
-    setSelected(null);
     if (text.trim().length < 2) {
       setResults([]);
       return;
@@ -66,22 +62,13 @@ export function ParishSetupScreen() {
     }
   };
 
-  const handleSelect = (parish: Parish) => {
-    setSelected(parish);
-    setQuery(parish.name);
-    setResults([]);
-  };
-
-  const handleContinue = async () => {
-    if (!selected) {
-      setError('Please search for and select your parish to continue.');
-      return;
-    }
+  const handleSelect = async (parish: Parish) => {
+    if (saving) return;
     setError('');
     setSaving(true);
     try {
-      await api.updateProfile({ parish_id: selected.id });
-      await updateUser({ parishId: selected.id, parish: selected.name });
+      await api.updateProfile({ parish_id: parish.id });
+      await updateUser({ parishId: parish.id, parish: parish.name });
       // RootNavigator will automatically navigate to App once parishId is set
     } catch {
       setError('Something went wrong. Please try again.');
@@ -99,76 +86,82 @@ export function ParishSetupScreen() {
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
         )}
-        <View style={styles.header}>
-          <Text style={styles.cross}>✝</Text>
-          <Text style={styles.title}>Find your parish</Text>
-          <Text style={styles.subtitle}>
-            Search for your home parish to connect with your local Catholic community.
-          </Text>
-        </View>
+
+        {/* ── Section header + hero ── */}
+        <Text style={styles.sectionHeader}>FIND YOUR PARISH</Text>
+        <Text style={styles.heroText}>Connect with{'\n'}your community.</Text>
 
         {error ? (
           <View style={styles.errorBanner}>
+            <Icon name="alert-circle-outline" size={16} color={Colors.error} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
 
-        <View style={styles.searchRow}>
-          <View style={styles.searchInputWrapper}>
-            <Input
-              label=""
-              value={query}
-              onChangeText={handleSearch}
-              placeholder="Search by parish name or city…"
-              leftIcon="search-outline"
-              autoCapitalize="words"
-              returnKeyType="search"
-            />
-          </View>
+        {/* ── Search bar (matches SearchModal pattern) ── */}
+        <View style={styles.searchContainer}>
+          <Icon name="search-outline" size={16} color={Colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={handleSearch}
+            placeholder="Search by parish name or city"
+            placeholderTextColor={Colors.textLight}
+            autoCapitalize="words"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => { setQuery(''); setResults([]); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="close-circle" size={16} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          )}
           {searching && <ActivityIndicator size="small" color={Colors.primary} style={styles.spinner} />}
         </View>
 
+        {/* ── Results (CardList pattern) ── */}
         {results.length > 0 && (
-          <View style={styles.resultsContainer}>
+          <>
+            <Text style={styles.resultsLabel}>RESULTS</Text>
             <FlatList
               data={results}
               keyExtractor={(item) => item.id}
               keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => (
-                <TouchableOpacity style={styles.resultRow} onPress={() => handleSelect(item)} activeOpacity={0.7}>
-                  <View style={styles.resultIcon}>
-                    <Icon name="business-outline" size={18} color={Colors.primary} />
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item, index }) => {
+                const isFirst = index === 0;
+                const isLast = index === results.length - 1;
+                return (
+                  <View style={[CardList.item, isFirst && CardList.itemFirst, isLast && CardList.itemLast]}>
+                    <TouchableOpacity
+                      style={[styles.resultRow, isLast && styles.resultRowLast]}
+                      onPress={() => handleSelect(item)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.resultIcon}>
+                        <Icon name="business-outline" size={18} color={Colors.accent} />
+                      </View>
+                      <View style={styles.resultText}>
+                        <Text style={styles.resultName}>{item.name}</Text>
+                        <Text style={styles.resultSub}>{item.city}, {item.state} · {item.memberCount} {item.memberCount === 1 ? 'parishioner' : 'parishioners'}</Text>
+                      </View>
+                      <Icon name="chevron-forward" size={16} color={Colors.textSecondary} />
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.resultText}>
-                    <Text style={styles.resultName}>{item.name}</Text>
-                    <Text style={styles.resultSub}>{item.city}, {item.state} · {item.memberCount} {item.memberCount === 1 ? 'parishioner' : 'parishioners'}</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
+                );
+              }}
+              contentContainerStyle={styles.list}
             />
-          </View>
+          </>
         )}
 
-        {selected && (
-          <View style={styles.selectedCard}>
-            <Icon name="checkmark-circle" size={22} color={Colors.success} />
-            <View style={styles.selectedText}>
-              <Text style={styles.selectedName}>{selected.name}</Text>
-              <Text style={styles.selectedSub}>{selected.city}, {selected.state}</Text>
-            </View>
+        {!searching && query.trim().length >= 2 && results.length === 0 && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No parishes found for &ldquo;{query}&rdquo;</Text>
           </View>
         )}
 
         <View style={styles.footer}>
-          <Button
-            label="Join Parish"
-            onPress={handleContinue}
-            loading={saving}
-            fullWidth
-            size="lg"
-            disabled={!selected}
-          />
           <Text style={styles.hint}>
             You must belong to a parish to use Nave.
           </Text>
@@ -180,29 +173,97 @@ export function ParishSetupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  inner: { flex: 1, paddingHorizontal: Spacing[6] },
+  inner: { flex: 1, paddingHorizontal: Spacing[5] },
   cancelBtn: { alignSelf: 'flex-end', marginBottom: Spacing[2] },
-  cancelText: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textSecondary },
-  header: { marginBottom: Spacing[6] },
-  cross: { fontSize: 32, color: Colors.accent, marginBottom: Spacing[3] },
-  title: { fontSize: Typography['3xl'], fontWeight: Typography.bold, color: Colors.textPrimary, marginBottom: Spacing[1] },
-  subtitle: { fontSize: Typography.base, color: Colors.textSecondary, lineHeight: Typography.base * 1.5 },
-  errorBanner: { backgroundColor: Colors.error + '14', borderRadius: 8, padding: Spacing[3], marginBottom: Spacing[3] },
-  errorText: { color: Colors.error, fontSize: Typography.sm },
-  searchRow: { flexDirection: 'row', alignItems: 'center' },
-  searchInputWrapper: { flex: 1 },
-  spinner: { marginLeft: Spacing[2] },
-  resultsContainer: { backgroundColor: Colors.surface, borderRadius: 12, maxHeight: 280, ...Shadows.md, marginBottom: Spacing[3] },
-  resultRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing[4], gap: Spacing[3] },
-  resultIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: '#4b5563' },
+
+  // ── Header (matches SearchModal) ──
+  sectionHeader: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.semibold,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    paddingTop: Spacing[2],
+  },
+  heroText: {
+    fontFamily: 'CormorantGaramond-Bold',
+    fontSize: 28,
+    color: '#000000',
+    paddingTop: Spacing[2],
+    paddingBottom: Spacing[1],
+  },
+
+  // ── Error ──
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+    backgroundColor: Colors.error + '14',
+    borderRadius: Radius.sm,
+    padding: Spacing[3],
+    marginTop: Spacing[3],
+  },
+  errorText: { color: Colors.error, fontSize: Typography.sm, flex: 1 },
+
+  // ── Search bar (matches SearchModal) ──
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing[3],
+    marginBottom: Spacing[2],
+    paddingBottom: Spacing[3],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    gap: Spacing[2],
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    paddingVertical: 0,
+    height: 24,
+  },
+  spinner: { marginLeft: Spacing[1] },
+
+  // ── Results (CardList pattern) ──
+  resultsLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.semibold,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    paddingTop: Spacing[2],
+    paddingBottom: Spacing[3],
+  },
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing[5],
+    paddingVertical: Spacing[4],
+    gap: Spacing[3],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#d8d3cb',
+  },
+  resultRowLast: { borderBottomWidth: 0 },
+  resultIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   resultText: { flex: 1 },
   resultName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
   resultSub: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
-  separator: { height: 1, backgroundColor: Colors.divider, marginLeft: Spacing[4] + 36 + Spacing[3] },
-  selectedCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], backgroundColor: Colors.success + '12', borderRadius: 12, padding: Spacing[4], marginBottom: Spacing[4] },
-  selectedText: { flex: 1 },
-  selectedName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
-  selectedSub: { fontSize: Typography.sm, color: Colors.textSecondary },
+
+  list: { paddingBottom: Spacing[4] },
+
+  // ── Empty ──
+  empty: { alignItems: 'center', paddingVertical: Spacing[12], paddingHorizontal: Spacing[6] },
+  emptyText: { fontSize: Typography.base, color: Colors.textSecondary, textAlign: 'center' },
+
+  // ── Footer ──
   footer: { marginTop: 'auto', gap: Spacing[3] },
   hint: { fontSize: Typography.xs, color: Colors.textLight, textAlign: 'center' },
 });

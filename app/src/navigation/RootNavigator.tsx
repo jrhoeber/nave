@@ -9,6 +9,7 @@ import { UserProfileScreen } from '../screens/shared/UserProfileScreen';
 import { GroupMessageScreen } from '../screens/group/GroupMessageScreen';
 import { GroupProfileScreen } from '../screens/group/GroupProfileScreen';
 import { CreateGroupScreen } from '../screens/group/CreateGroupScreen';
+import { SettingsScreen } from '../screens/profile/SettingsScreen';
 import { BlockedUsersScreen } from '../screens/profile/BlockedUsersScreen';
 import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 import { ParishPostDetailScreen } from '../screens/parish/ParishPostDetailScreen';
@@ -45,7 +46,8 @@ export function RootNavigator() {
             component={GroupProfileScreen}
             options={{ animation: 'slide_from_right' }}
           />
-          <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ presentation: 'modal' }} />
+          <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="Settings" component={SettingsScreen} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ParishPostDetail" component={ParishPostDetailScreen} options={{ animation: 'slide_from_right' }} />

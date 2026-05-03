@@ -14,6 +14,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
+import { Button } from '../../components/ui/Button';
 import { EditPrayerGroupModal } from '../../components/prayer/EditPrayerGroupModal';
 import { AddToGroupModal } from '../../components/prayer/AddToGroupModal';
 import { usePrayerStore } from '../../store/prayerStore';
@@ -62,10 +63,21 @@ interface MemberRowProps {
 
 function MemberRow({ member, isGroupAdmin, canRemove, onRemove, onPress, isLast }: MemberRowProps) {
   const meta = [`@${member.username}`, isGroupAdmin && 'Admin'].filter(Boolean).join(' · ');
+
+  const handleLongPress = () => {
+    if (!canRemove) return;
+    Alert.alert(undefined as any, undefined as any, [
+      { text: 'Remove from Group', style: 'destructive', onPress: onRemove },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   return (
     <TouchableOpacity
       style={[memberStyles.card, isLast && memberStyles.cardLast]}
       onPress={onPress}
+      onLongPress={handleLongPress}
+      delayLongPress={400}
       activeOpacity={0.97}
     >
       <View style={memberStyles.row}>
@@ -74,15 +86,6 @@ function MemberRow({ member, isGroupAdmin, canRemove, onRemove, onPress, isLast 
           <Text style={memberStyles.displayName} numberOfLines={1}>{member.displayName}</Text>
           <Text style={memberStyles.meta} numberOfLines={1}>{meta}</Text>
         </View>
-        {canRemove && (
-          <TouchableOpacity
-            onPress={(e) => { e.stopPropagation(); onRemove(); }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            activeOpacity={0.6}
-          >
-            <Icon name="close-circle-outline" size={22} color={Colors.textLight} />
-          </TouchableOpacity>
-        )}
       </View>
     </TouchableOpacity>
   );
@@ -288,27 +291,14 @@ export function GroupProfileScreen() {
     }
   };
 
-  const handleRemoveMember = (member: Member) => {
-    Alert.alert(
-      'Remove Member',
-      `Remove ${member.displayName} from this group?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.removeMember(groupId, member.id);
-              setMembers((prev) => prev.filter((m) => m.id !== member.id));
-              setMemberCount((c: number) => Math.max(0, c - 1));
-            } catch (e: any) {
-              Alert.alert('Error', e.message ?? 'Could not remove member.');
-            }
-          },
-        },
-      ],
-    );
+  const handleRemoveMember = async (member: Member) => {
+    try {
+      await api.removeMember(groupId, member.id);
+      setMembers((prev) => prev.filter((m) => m.id !== member.id));
+      setMemberCount((c: number) => Math.max(0, c - 1));
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'Could not remove member.');
+    }
   };
 
   const handleApproveMember = async (member: Member) => {
@@ -488,12 +478,9 @@ export function GroupProfileScreen() {
             )}
           </>
         ) : (
-          <TouchableOpacity
-            style={[
-              styles.actionBtnOutlined,
-              !group.isPendingApproval && styles.actionBtnJoin,
-              group.isPendingApproval && { opacity: 0.5 },
-            ]}
+          <Button
+            label={group.isPendingApproval ? 'Requested' : 'Join Group'}
+            variant={group.isPendingApproval ? 'outline' : 'primary'}
             onPress={async () => {
               if (group.isPendingApproval || joining) return;
               setJoining(true);
@@ -505,28 +492,10 @@ export function GroupProfileScreen() {
                 setJoining(false);
               }
             }}
-            disabled={group.isPendingApproval || joining}
-            activeOpacity={0.7}
-          >
-            {joining ? (
-              <ActivityIndicator size="small" color={group.isPendingApproval ? Colors.textSecondary : Colors.textInverse} />
-            ) : (
-              <>
-                <Icon
-                  name={group.isPendingApproval ? 'time-outline' : 'person-add-outline'}
-                  size={16}
-                  color={group.isPendingApproval ? Colors.textSecondary : Colors.textInverse}
-                />
-                <Text style={[
-                  styles.actionBtnText,
-                  !group.isPendingApproval && { color: Colors.textInverse },
-                  group.isPendingApproval && { color: Colors.textSecondary },
-                ]}>
-                  {group.isPendingApproval ? 'Requested' : 'Join Group'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+            disabled={group.isPendingApproval}
+            loading={joining}
+            showArrow={!group.isPendingApproval}
+          />
         )}
       </View>
 
@@ -579,34 +548,32 @@ export function GroupProfileScreen() {
             <ActivityIndicator color={Colors.accent} style={{ marginVertical: Spacing[4] }} />
           ) : (
             pendingMembers.map((member, index) => (
-              <View key={member.id} style={styles.requestCard}>
+              <View key={member.id} style={[CardList.item, index === 0 && CardList.itemFirst, index === pendingMembers.length - 1 && CardList.itemLast]}>
                 <TouchableOpacity
-                  style={styles.requestUserRow}
+                  style={styles.requestRow}
                   onPress={() => navigation.navigate('UserProfile', { id: member.id })}
                   activeOpacity={0.85}
                 >
-                  <Avatar name={member.displayName} uri={member.avatarUrl} size={46} />
+                  <Avatar name={member.displayName} uri={member.avatarUrl} size={42} />
                   <View style={memberStyles.info}>
                     <Text style={memberStyles.displayName} numberOfLines={1}>{member.displayName}</Text>
                     <Text style={memberStyles.meta}>@{member.username}</Text>
                   </View>
+                  <View style={styles.requestActions}>
+                    <Button
+                      label="Accept"
+                      size="sm"
+                      onPress={() => handleApproveMember(member)}
+                    />
+                    <Button
+                      label="Decline"
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => handleRejectMember(member)}
+                      textStyle={{ color: Colors.textSecondary }}
+                    />
+                  </View>
                 </TouchableOpacity>
-                <View style={styles.requestActions}>
-                  <TouchableOpacity
-                    style={styles.acceptBtn}
-                    onPress={() => handleApproveMember(member)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.acceptBtnLabel}>Accept</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.rejectBtn}
-                    onPress={() => handleRejectMember(member)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.rejectBtnLabel}>Decline</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
             ))
           )}
@@ -614,15 +581,18 @@ export function GroupProfileScreen() {
       )}
 
       {/* ── Members ── */}
+      {isAdmin && pendingMembers.length > 0 && <View style={{ height: Spacing[6] }} />}
       <View style={styles.membersSectionHeader}>
         <Text style={styles.sectionLabel}>MEMBERS ({memberCount})</Text>
-        <TouchableOpacity
-          style={styles.addMemberBtn}
-          onPress={() => setAddMemberModalVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.addMemberBtnText}>+ Add member</Text>
-        </TouchableOpacity>
+        {group.isMember && (
+          <TouchableOpacity
+            style={styles.addMemberBtn}
+            onPress={() => setAddMemberModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.addMemberBtnText}>+ Add member</Text>
+          </TouchableOpacity>
+        )}
       </View>
       {membersLoading ? (
         <ActivityIndicator color={Colors.accent} style={{ marginVertical: Spacing[4] }} />
@@ -796,10 +766,6 @@ const styles = StyleSheet.create({
   actionBtnDanger: {
     borderColor: Colors.error + '40',
   },
-  actionBtnJoin: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
 
   // ── Stats card ──
   statsCard: {
@@ -916,48 +882,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[4],
   },
 
-  // ── Request cards (matches FriendsScreen) ──
-  requestCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: Radius.lg,
-    padding: Spacing[3],
-    marginBottom: Spacing[3],
-    marginHorizontal: Spacing[3],
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
-  },
-  requestUserRow: {
+  // ── Request rows ──
+  requestRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: Spacing[5],
+    paddingVertical: Spacing[4],
     gap: Spacing[3],
-    marginBottom: Spacing[3],
   },
   requestActions: {
     flexDirection: 'row',
-    gap: Spacing[2],
-  },
-  acceptBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing[2],
     alignItems: 'center',
-  },
-  acceptBtnLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textInverse,
-  },
-  rejectBtn: {
-    flex: 1,
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing[2],
-    alignItems: 'center',
-  },
-  rejectBtnLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.medium,
-    color: Colors.textSecondary,
+    gap: Spacing[3],
   },
 });

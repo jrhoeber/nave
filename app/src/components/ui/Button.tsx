@@ -17,6 +17,7 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   fullWidth?: boolean;
+  showArrow?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
   testID?: string;
@@ -30,6 +31,7 @@ export function Button({
   loading = false,
   disabled = false,
   fullWidth = false,
+  showArrow = false,
   style,
   textStyle,
   testID,
@@ -57,9 +59,14 @@ export function Button({
           color={variant === 'outline' || variant === 'ghost' ? Colors.primary : Colors.textInverse}
         />
       ) : (
-        <Text style={[styles.label, styles[`label_${variant}`], styles[`labelSize_${size}`], textStyle]}>
-          {label}
-        </Text>
+        <>
+          <Text style={[styles.label, styles[`label_${variant}`], styles[`labelSize_${size}`], textStyle]}>
+            {label}
+          </Text>
+          {showArrow && (
+            <Text style={[styles.arrow, styles[`label_${variant}`], textStyle]}>{'\u2192'}</Text>
+          )}
+        </>
       )}
     </TouchableOpacity>
   );
@@ -70,7 +77,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.md,
+    borderRadius: Radius.full,
   },
   fullWidth: {
     width: '100%',
@@ -81,7 +88,7 @@ const styles = StyleSheet.create({
 
   // Variants
   primary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.textPrimary,
   },
   secondary: {
     backgroundColor: Colors.accent,
@@ -104,8 +111,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[2],
   },
   size_md: {
-    paddingHorizontal: Spacing[5],
-    paddingVertical: Spacing[3] + 2,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
   },
   size_lg: {
     paddingHorizontal: Spacing[6],
@@ -129,4 +136,10 @@ const styles = StyleSheet.create({
   labelSize_sm: { fontSize: Typography.sm },
   labelSize_md: { fontSize: Typography.base },
   labelSize_lg: { fontSize: Typography.md },
+
+  // Arrow
+  arrow: {
+    fontSize: Typography.base,
+    marginLeft: Spacing[2],
+  },
 });

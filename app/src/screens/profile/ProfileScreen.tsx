@@ -15,7 +15,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Avatar } from '../../components/ui/Avatar';
 import { AboutCard } from '../../components/profile/AboutCard';
-import { SettingsModal } from '../../components/profile/SettingsModal';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../lib/apiClient';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
@@ -32,7 +31,6 @@ export function ProfileScreen() {
   const navigation = useNavigation<RootNavigationProp>();
   const { user, updateUser, setAvatarReady } = useAuthStore();
   const [avatarUploading, setAvatarUploading] = useState(false);
-  const [settingsVisible, setSettingsVisible] = useState(false);
 
   const handleAvatarPress = async () => {
     const result = await launchImageLibrary({
@@ -79,7 +77,7 @@ export function ProfileScreen() {
         <View style={{ width: 40 }} />
         <TouchableOpacity
           style={styles.headerBtn}
-          onPress={() => setSettingsVisible(true)}
+          onPress={() => navigation.navigate('Settings')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Icon name="ellipsis-horizontal" size={20} color={Colors.textPrimary} />
@@ -187,14 +185,6 @@ export function ProfileScreen() {
         </>
       )}
 
-      <SettingsModal
-        visible={settingsVisible}
-        onClose={() => setSettingsVisible(false)}
-        onBlockedUsersPress={() => {
-          setSettingsVisible(false);
-          setTimeout(() => navigation.navigate('BlockedUsers'), 300);
-        }}
-      />
     </ScrollView>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApp } from '@react-native-firebase/app';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
 import { Input } from '../../components/ui/Input';
 import { Colors, Spacing, Typography } from '../../theme';
@@ -160,20 +160,14 @@ export function EmailSignInScreen() {
             )}
           </View>
 
-          <TouchableOpacity
-            style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+          <Button
+            label={isCreateMode ? 'Create Account' : 'Sign In'}
             onPress={handleSubmit}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={Colors.textInverse} />
-            ) : (
-              <Text style={styles.submitBtnText}>
-                {isCreateMode ? 'Create Account' : 'Sign In'}
-              </Text>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            fullWidth
+            size="lg"
+            style={{ marginBottom: Spacing[4] }}
+          />
 
           <TouchableOpacity
             style={styles.toggleMode}
@@ -244,22 +238,6 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: Spacing[4],
-  },
-  submitBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 28,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing[4],
-  },
-  submitBtnDisabled: {
-    opacity: 0.7,
-  },
-  submitBtnText: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textInverse,
   },
   toggleMode: {
     alignItems: 'center',

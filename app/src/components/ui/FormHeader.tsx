@@ -6,9 +6,9 @@ import { Colors, Spacing, Typography } from '../../theme';
 interface FormHeaderProps {
   title: string;
   onBack: () => void;
-  /** Label for the action button (e.g., "Save", "Create") */
-  actionLabel: string;
-  onAction: () => void;
+  /** Label for the action button (e.g., "Save", "Create"). Omit to hide the action button. */
+  actionLabel?: string;
+  onAction?: () => void;
   actionDisabled?: boolean;
   loading?: boolean;
   /** Icon name for the back button. Defaults to "chevron-back". */
@@ -33,19 +33,23 @@ export function FormHeader({
         <Icon name={backIcon} size={24} color={Colors.textPrimary} />
       </TouchableOpacity>
       <Text style={styles.title}>{title}</Text>
-      <TouchableOpacity
-        onPress={onAction}
-        disabled={loading || actionDisabled}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color={Colors.accent} />
-        ) : (
-          <Text style={[styles.actionText, actionDisabled && styles.actionTextDisabled]}>
-            {actionLabel}
-          </Text>
-        )}
-      </TouchableOpacity>
+      {actionLabel && onAction ? (
+        <TouchableOpacity
+          onPress={onAction}
+          disabled={loading || actionDisabled}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.accent} />
+          ) : (
+            <Text style={[styles.actionText, actionDisabled && styles.actionTextDisabled]}>
+              {actionLabel}
+            </Text>
+          )}
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: 24 }} />
+      )}
     </View>
   );
 }

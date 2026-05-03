@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StatusBar, StyleSheet, Tex
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
+import { Button } from '../../components/ui/Button';
 import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
 import { AddFriendModal } from '../../components/friends/AddFriendModal';
 import { useFriendsStore } from '../../store/friendsStore';
@@ -44,12 +45,8 @@ export function FriendsScreen() {
         </View>
       </TouchableOpacity>
       <View style={styles.requestActions}>
-        <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptRequest(item.id)} activeOpacity={0.8}>
-          <Text style={styles.acceptBtnLabel}>Accept</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectRequest(item.id)} activeOpacity={0.8}>
-          <Text style={styles.rejectBtnLabel}>Decline</Text>
-        </TouchableOpacity>
+        <Button label="Accept" size="sm" onPress={() => acceptRequest(item.id)} style={{ flex: 1 }} />
+        <Button label="Decline" variant="ghost" size="sm" onPress={() => rejectRequest(item.id)} textStyle={{ color: Colors.textSecondary }} style={{ flex: 1 }} />
       </View>
     </View>
   );
@@ -202,9 +199,5 @@ const styles = StyleSheet.create({
   },
   requestUserRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[3] },
   requestActions: { flexDirection: 'row', gap: Spacing[2] },
-  acceptBtn: { flex: 1, backgroundColor: Colors.primary, borderRadius: Radius.md, paddingVertical: Spacing[2], alignItems: 'center' },
-  acceptBtnLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textInverse },
-  rejectBtn: { flex: 1, backgroundColor: Colors.surfaceAlt, borderRadius: Radius.md, paddingVertical: Spacing[2], alignItems: 'center' },
-  rejectBtnLabel: { fontSize: Typography.sm, fontWeight: Typography.medium, color: Colors.textSecondary },
 
 });
