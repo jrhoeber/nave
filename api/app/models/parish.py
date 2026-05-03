@@ -18,6 +18,7 @@ class ParishResponse(BaseModel):
     mass_schedule: Optional[str] = None
     website: Optional[str] = None
     member_count: int = 0
+    group_count: int = 0
     is_parish_admin: bool = False
     created_at: datetime
 

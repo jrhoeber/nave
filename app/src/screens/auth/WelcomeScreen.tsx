@@ -6,8 +6,10 @@ import { getApp } from '@react-native-firebase/app';
 import { GoogleSignin, statusCodes as GoogleStatusCodes } from '@react-native-google-signin/google-signin';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { Colors, Spacing, Typography } from '../../theme';
+import type { AuthNavigationProp } from '../../types/navigation';
 
 GoogleSignin.configure({
   webClientId: '667996115450-9uq4d4jlgpk6p43occmgb3ikv9fr1u6l.apps.googleusercontent.com',
@@ -45,6 +47,7 @@ async function getFirebaseIdToken(
 
 export function WelcomeScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<AuthNavigationProp>();
   const signInWithFirebase = useAuthStore((s) => s.signInWithFirebase);
   const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
   const [error, setError] = useState('');
@@ -163,6 +166,14 @@ export function WelcomeScreen() {
               <Icon name="logo-google" size={20} color={Colors.textPrimary} />
             )}
             <Text style={styles.googleBtnText}>Continue with Google</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EmailSignIn')}
+            disabled={loading !== null}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.emailLink}>Continue with email</Text>
           </TouchableOpacity>
 
           <View style={styles.legal}>
@@ -310,5 +321,10 @@ const styles = StyleSheet.create({
   legalDot: {
     fontSize: 10,
     color: Colors.textLight,
+  },
+  emailLink: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    textDecorationLine: 'underline',
   },
 });

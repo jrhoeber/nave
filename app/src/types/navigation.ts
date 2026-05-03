@@ -17,6 +17,7 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Welcome: undefined;
+  EmailSignIn: undefined;
 };
 
 export type AppTabParamList = {

@@ -83,6 +83,7 @@ def _build_parish(row: dict, admin: bool = False) -> ParishResponse:
         mass_schedule=row.get("mass_schedule"),
         website=row.get("website"),
         member_count=row.get("member_count", 0),
+        group_count=row.get("group_count", 0),
         is_parish_admin=admin,
         created_at=row["created_at"],
     )
@@ -174,7 +175,8 @@ async def get_parish(
 ):
     row = await conn.fetchrow(
         """
-        SELECT p.*, COUNT(u.id) AS member_count
+        SELECT p.*, COUNT(u.id) AS member_count,
+               (SELECT COUNT(*) FROM prayer_groups pg WHERE pg.parish = p.name) AS group_count
         FROM parishes p
         LEFT JOIN users u ON u.parish_id = p.id
         WHERE p.id = $1
@@ -209,7 +211,8 @@ async def update_parish(
 
     row = await conn.fetchrow(
         """
-        SELECT p.*, COUNT(u.id) AS member_count
+        SELECT p.*, COUNT(u.id) AS member_count,
+               (SELECT COUNT(*) FROM prayer_groups pg WHERE pg.parish = p.name) AS group_count
         FROM parishes p
         LEFT JOIN users u ON u.parish_id = p.id
         WHERE p.id = $1

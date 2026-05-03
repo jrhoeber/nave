@@ -104,6 +104,7 @@ export interface Parish {
   state: string;
   diocese: string;
   memberCount: number;
+  groupCount: number;
   avatarUrl?: string;
   coverPhotoUrl?: string;
   streetAddress?: string;

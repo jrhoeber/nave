@@ -7,8 +7,8 @@ from PIL import Image as PilImage
 
 logger = logging.getLogger(__name__)
 
-_SIGNED_URL_TTL = datetime.timedelta(hours=1)
-_SIGNED_URL_CACHE_TTL = 55 * 60  # cache for 55 min (5 min before GCS expiry)
+_SIGNED_URL_TTL = datetime.timedelta(days=7)
+_SIGNED_URL_CACHE_TTL = 6 * 24 * 3600 + 23 * 3600  # cache for 6d23h (1h before GCS expiry)
 
 # object_name -> (signed_url, expiry_epoch)
 _signed_url_cache: dict[str, tuple[str, float]] = {}
@@ -122,6 +122,7 @@ def upload_group_avatar(file_bytes: bytes, group_id: str, content_type: str) -> 
     client.bucket(settings.gcs_bucket_name).blob(object_name).upload_from_string(
         buf.getvalue(), content_type="image/jpeg"
     )
+    _signed_url_cache.pop(object_name, None)
     logger.info("Uploaded group avatar to gs://%s/%s", settings.gcs_bucket_name, object_name)
     return object_name
 
@@ -139,5 +140,6 @@ def upload_parish_cover(file_bytes: bytes, parish_id: str, content_type: str) ->
     client = storage.Client()
     blob = client.bucket(settings.gcs_bucket_name).blob(object_name)
     blob.upload_from_string(file_bytes, content_type=content_type)
+    _signed_url_cache.pop(object_name, None)
     logger.info("Uploaded parish cover to gs://%s/%s", settings.gcs_bucket_name, object_name)
     return object_name

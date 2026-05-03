@@ -58,17 +58,18 @@ export function FriendsScreen() {
 
   const renderFriend = ({ item, index, isLast }: { item: Friendship; index: number; isLast: boolean }) => (
     <TouchableOpacity
-      style={styles.friendRow}
+      style={[styles.friendCard, isLast && styles.friendCardLast]}
       onPress={() => navigation.navigate('UserProfile', { id: item.user.id })}
-      activeOpacity={0.85}
+      activeOpacity={0.97}
     >
-      <Avatar uri={item.user.avatarUrl} name={item.user.displayName} size={50} />
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.user.displayName}</Text>
-        <Text style={styles.userHandle}>@{item.user.username}</Text>
-        {item.user.parish && (
-            <Text style={styles.userParish} numberOfLines={1}>{item.user.parish}</Text>
-        )}
+      <View style={styles.friendRow}>
+        <Avatar uri={item.user.avatarUrl} name={item.user.displayName} size={42} />
+        <View style={styles.userInfo}>
+          <Text style={styles.userName} numberOfLines={1}>{item.user.displayName}</Text>
+          <Text style={styles.userMeta} numberOfLines={1}>
+            @{item.user.username}{item.user.parish ? ` · ${item.user.parish}` : ''}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -176,19 +177,18 @@ const styles = StyleSheet.create({
   // ── List ───────────────────────────────────────────────────────────────────
   list: { paddingBottom: Spacing[10] },
 
+  friendCard: { paddingHorizontal: Spacing[5], paddingVertical: Spacing[4], borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#d8d3cb' },
+  friendCardLast: { borderBottomWidth: 0 },
   friendRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing[3],
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
   },
 
   // ── User info (shared) ────────────────────────────────────────────────────
   userInfo: { flex: 1, minWidth: 0 },
-  userName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
-  userHandle: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 1 },
-  userParish: { fontSize: Typography.xs, color: Colors.textLight, marginTop: Spacing[1] },
+  userName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary, flexShrink: 1 },
+  userMeta: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
 
   // ── Request cards ─────────────────────────────────────────────────────────
   requestCard: {

@@ -81,6 +81,7 @@ interface ApiParish {
   state: string;
   diocese: string;
   member_count: number;
+  group_count: number;
   street_address?: string;
   postal_code?: string;
   established?: number;
@@ -230,6 +231,7 @@ export function mapParish(raw: ApiParish): Parish {
     state: raw.state,
     diocese: raw.diocese,
     memberCount: raw.member_count,
+    groupCount: raw.group_count,
     streetAddress: raw.street_address,
     postalCode: raw.postal_code,
     established: raw.established,

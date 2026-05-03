@@ -186,6 +186,7 @@ export function ImageCropModal({
       const result = await ImageEditor.cropImage(imageUri, {
         offset: { x: rect.x, y: rect.y },
         size: { width: rect.width, height: rect.height },
+        quality: 1,
       });
       onConfirm(typeof result === 'string' ? result : result.uri);
     } catch {

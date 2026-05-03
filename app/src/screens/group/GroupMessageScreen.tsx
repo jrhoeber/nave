@@ -33,6 +33,20 @@ import { GROUP_REACTION_EMOJIS } from '../../types';
 import type { GroupMessageRouteProp, RootNavigationProp } from '../../types/navigation';
 import { api, ApiError, mapGroupMessage } from '../../lib/apiClient';
 
+// ─── Category labels ─────────────────────────────────────────────────────────
+
+const CATEGORY_LABELS: Record<string, string> = {
+  rosary: 'Rosary',
+  scripture_study: 'Scripture Study',
+  mens_group: "Men's Group",
+  womens_group: "Women's Group",
+  youth: 'Youth',
+  young_adults: 'Young Adults',
+  families: 'Families',
+  devotional: 'Devotional',
+  general: 'General',
+};
+
 // ─── Chat palette (maps to app theme) ─────────────────────────────────────────
 
 const D = {
@@ -95,9 +109,6 @@ function formatSeparatorLabel(isoString: string): string {
 }
 
 function buildRenderData(messages: GroupMessage[]): RenderItem[] {
-  // Messages arrive newest-first; the FlatList is inverted so index 0 renders at the bottom.
-  // To show a separator *above* each day's messages, emit it *after* all messages for that day
-  // (i.e. when the day changes), so it sits above them in the inverted view.
   const result: RenderItem[] = [];
   let currentDay = '';
   let currentLabel = '';
@@ -117,8 +128,6 @@ function buildRenderData(messages: GroupMessage[]): RenderItem[] {
   }
 
   // Compute group positions.
-  // Data is newest-first; result[i-1] is newer (renders below), result[i+1] is older (renders above).
-  // bottom = newest in a run (visually lowest), top = oldest in a run (visually highest).
   for (let i = 0; i < result.length; i++) {
     const item = result[i];
     if ('type' in item) continue;
@@ -141,14 +150,19 @@ function buildRenderData(messages: GroupMessage[]): RenderItem[] {
 function DateSeparator({ label }: { label: string }) {
   return (
     <View style={sepStyles.container}>
-      <Text style={sepStyles.label}>{label}</Text>
+      <Text style={sepStyles.label}>{label.toUpperCase()}</Text>
     </View>
   );
 }
 
 const sepStyles = StyleSheet.create({
-  container: { alignItems: 'center', marginTop: Spacing[4], marginBottom: Spacing[1] },
-  label: { fontSize: Typography.xs, color: D.textMuted, fontWeight: Typography.medium },
+  container: { alignItems: 'center', marginTop: Spacing[5], marginBottom: Spacing[2] },
+  label: {
+    fontSize: Typography.xs,
+    color: D.textMuted,
+    fontWeight: Typography.semibold,
+    letterSpacing: 1,
+  },
 });
 
 // ─── Message Context Menu ────────────────────────────────────────────────────
@@ -354,7 +368,7 @@ const ctxStyles = StyleSheet.create({
   },
 });
 
-// ─── Message Bubble ───────────────────────────────────────────────────────────
+// ─── Message Row ─────────────────────────────────────────────────────────────
 
 interface MessageBubbleProps {
   message: GroupMessage;
@@ -368,86 +382,72 @@ interface MessageBubbleProps {
 
 function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPress, onAvatarPress }: MessageBubbleProps) {
   const { toggleReaction } = useGroupChatStore();
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => { setImgError(false); }, [message.imageUrl]);
 
-  // Avatar appears beside the bottom (newest) message in a group, or a solo message.
-  // A spacer keeps text aligned for the other bubbles in the group.
-  const showAvatar = !isOwn && (position === 'solo' || position === 'bottom');
-  // Name + time appear above the top (oldest) message in a group, or a solo message.
-  const showMeta = !isOwn && (position === 'solo' || position === 'top');
-  // Timestamp shown below the last (bottom/solo) own bubble only.
-  const showOwnTime = isOwn && (position === 'solo' || position === 'bottom');
+  const showAvatar = position === 'solo' || position === 'top';
+  const showMeta = position === 'solo' || position === 'top';
 
   return (
-    <View style={[
-      bubbleStyles.row,
-      isOwn && bubbleStyles.rowOwn,
-      position === 'top' && bubbleStyles.rowTop,
-      position === 'middle' && bubbleStyles.rowMiddle,
-      position === 'bottom' && bubbleStyles.rowBottom,
-    ]}>
-      {/* Avatar / spacer column for other-user messages */}
-      {!isOwn && (
-        showAvatar
-          ? <TouchableOpacity style={bubbleStyles.avatarCol} onPress={() => onAvatarPress(message.author.id)} activeOpacity={0.7}><Avatar name={message.author.displayName} uri={message.author.avatarUrl} size={36} /></TouchableOpacity>
-          : <View style={bubbleStyles.avatarSpacer} />
+    <Pressable
+      onLongPress={() => isMember && !message.pending && onLongPress(message.id)}
+      delayLongPress={350}
+      style={[
+        msgStyles.row,
+        showMeta ? msgStyles.rowWithMeta : msgStyles.rowGrouped,
+      ]}
+    >
+      {/* Avatar column */}
+      {showAvatar ? (
+        <TouchableOpacity onPress={() => onAvatarPress(message.author.id)} activeOpacity={0.7}>
+          <Avatar name={message.author.displayName} uri={message.author.avatarUrl} size={40} />
+        </TouchableOpacity>
+      ) : (
+        <View style={msgStyles.avatarSpacer} />
       )}
 
-      {/* Content column */}
-      <View style={[bubbleStyles.contentCol, isOwn && bubbleStyles.contentColOwn]}>
+      {/* Content */}
+      <View style={msgStyles.contentCol}>
         {showMeta && (
-          <View style={bubbleStyles.metaRow}>
-            <Text style={bubbleStyles.senderName}>{message.author.displayName}</Text>
-            <Text style={bubbleStyles.time}>{formatMessageTime(message.createdAt)}</Text>
+          <View style={msgStyles.metaRow}>
+            <Text style={msgStyles.senderName}>{message.author.displayName}</Text>
+            <Text style={msgStyles.time}>{formatMessageTime(message.createdAt)}</Text>
           </View>
         )}
 
-        {/* Bubble */}
-        <Pressable
-          onLongPress={() => isMember && !message.pending && onLongPress(message.id)}
-          delayLongPress={350}
-          style={[
-            bubbleStyles.bubble,
-            isOwn && bubbleStyles.bubbleOwn,
-            !isOwn && position === 'top' && bubbleStyles.bubblePosTopOther,
-            !isOwn && position === 'middle' && bubbleStyles.bubblePosMiddleOther,
-            isOwn && position === 'top' && bubbleStyles.bubblePosTopOwn,
-            isOwn && position === 'middle' && bubbleStyles.bubblePosMiddleOwn,
-          ]}
-        >
-          {message.imageUrl && (
-            <View>
-              <Image
-                source={{ uri: message.imageUrl }}
-                style={bubbleStyles.image}
-                resizeMode="cover"
-              />
-              {message.pending && (
-                <View style={bubbleStyles.pendingOverlay}>
-                  <ActivityIndicator size="small" color="#ffffff" />
-                </View>
-              )}
-            </View>
-          )}
-          {message.content ? <Text style={[bubbleStyles.text, message.imageUrl ? bubbleStyles.caption : null]}>{message.content}</Text> : null}
-        </Pressable>
-
-        {showOwnTime && (
-          <Text style={bubbleStyles.timeOwn}>{formatMessageTime(message.createdAt)}</Text>
+        {message.imageUrl && !imgError && (
+          <View>
+            <Image
+              source={{ uri: message.imageUrl }}
+              style={msgStyles.image}
+              resizeMode="cover"
+              onError={() => setImgError(true)}
+            />
+            {message.pending && (
+              <View style={msgStyles.pendingOverlay}>
+                <ActivityIndicator size="small" color="#ffffff" />
+              </View>
+            )}
+          </View>
         )}
+        {message.imageUrl && imgError && (
+          <View style={[msgStyles.image, msgStyles.imageFallback]}>
+            <Icon name="image-outline" size={32} color={Colors.textLight} />
+          </View>
+        )}
+
+        {message.content ? (
+          <Text style={msgStyles.text}>{message.content}</Text>
+        ) : null}
 
         {/* Reactions */}
         {!message.pending && message.reactions.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={bubbleStyles.reactionsScroll}
-            contentContainerStyle={bubbleStyles.reactionsContent}
-          >
+          <View style={msgStyles.reactionsRow}>
             {message.reactions.map((r) => (
               <TouchableOpacity
                 key={r.emoji}
                 onPress={() => isMember && toggleReaction(groupId, message.id, r.emoji)}
-                style={[chipStyles.chip, isOwn && chipStyles.chipOwn, r.userReacted && (isOwn ? chipStyles.chipActiveOwn : chipStyles.chipActive)]}
+                style={[chipStyles.chip, r.userReacted && chipStyles.chipActive]}
                 activeOpacity={0.7}
               >
                 <Text style={chipStyles.emoji}>{r.emoji}</Text>
@@ -456,95 +456,95 @@ function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPres
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-const bubbleStyles = StyleSheet.create({
+const msgStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing[3],
-    paddingVertical: 5,
+    paddingHorizontal: Spacing[4],
     alignItems: 'flex-start',
+    gap: Spacing[3],
   },
-  rowOwn: { justifyContent: 'flex-end' },
-  // Tighter vertical spacing for grouped messages
-  rowTop:    { paddingTop: 5, paddingBottom: 2 },
-  rowMiddle: { paddingTop: 2, paddingBottom: 2 },
-  rowBottom: { paddingTop: 2, paddingBottom: 5 },
-  avatarCol: { marginRight: 10, marginTop: 2 },
-  // Invisible spacer keeps message text aligned when avatar is hidden
-  avatarSpacer: { width: 36, marginRight: 10 },
+  rowWithMeta: {
+    paddingTop: Spacing[4],
+    paddingBottom: 2,
+  },
+  rowGrouped: {
+    paddingTop: 2,
+    paddingBottom: 2,
+  },
+  avatarSpacer: { width: 40 },
   contentCol: { flex: 1 },
-  contentColOwn: { alignItems: 'flex-end' },
-  metaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 4 },
-  senderName: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: D.text },
-  time: { fontSize: Typography.xs, color: D.textMuted },
-  timeOwn: { fontSize: Typography.xs, color: D.textMuted, marginTop: 3 },
-  bubble: {
-    backgroundColor: D.bubble,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: Spacing[2],
+    marginBottom: 4,
+  },
+  senderName: {
+    fontSize: Typography.base,
+    fontWeight: Typography.bold,
+    color: D.text,
+  },
+  time: {
+    fontSize: Typography.sm,
+    color: D.textMuted,
+  },
+  text: {
+    fontSize: Typography.base,
+    color: D.text,
+    lineHeight: Typography.base * 1.5,
+  },
+  image: {
+    width: '75%',
+    aspectRatio: 1.2,
     borderRadius: Radius.lg,
-    borderTopLeftRadius: 4,
-    paddingHorizontal: Spacing[3],
-    paddingVertical: Spacing[2],
-    alignSelf: 'flex-start',
-    maxWidth: '80%',
-    overflow: 'hidden',
+    marginBottom: 4,
   },
-  bubbleOwn: {
-    backgroundColor: 'rgba(26,43,74,0.08)',
-    alignSelf: 'flex-end',
-    borderTopLeftRadius: Radius.lg,
-    borderTopRightRadius: 4,
+  imageFallback: {
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
-  // Other-user group position overrides (spine = left side)
-  // top: restore tl, cut bl to hint continuation downward
-  bubblePosTopOther:    { borderTopLeftRadius: Radius.lg, borderBottomLeftRadius: 4 },
-  // middle: tl already 4 from base; cut bl too
-  bubblePosMiddleOther: { borderBottomLeftRadius: 4 },
-  // Own-message group position overrides (spine = right side)
-  // top: restore tr, cut br
-  bubblePosTopOwn:    { borderTopRightRadius: Radius.lg, borderBottomRightRadius: 4 },
-  // middle: tr already 4 from bubbleOwn; cut br too
-  bubblePosMiddleOwn: { borderBottomRightRadius: 4 },
-  text: { fontSize: Typography.base, color: D.text, lineHeight: Typography.base * 1.45 },
-  image: { width: 220, height: 220, borderRadius: Radius.md, marginBottom: 2 },
   pendingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.35)',
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  caption: { marginTop: 4 },
-  reactionsScroll: { marginTop: 3 },
-  reactionsContent: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  reactionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+    marginTop: 6,
+  },
 });
 
 const chipStyles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 7,
+    gap: 3,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: Radius.full,
-    backgroundColor: D.bubble,           // same as other-user bubble
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceAlt,
   },
-  chipOwn: {
-    backgroundColor: 'rgba(26,43,74,0.08)', // same as own bubble
-    borderColor: 'rgba(26,43,74,0.14)',
+  chipActive: {
+    backgroundColor: 'rgba(26,43,74,0.10)',
   },
-  // Active state: color only — borderWidth unchanged so layout never shifts
-  chipActive:    { borderColor: Colors.primary },
-  chipActiveOwn: { borderColor: 'rgba(26,43,74,0.45)' },
   emoji: { fontSize: 13 },
-  count: { fontSize: 10, color: Colors.textSecondary, fontWeight: Typography.semibold, lineHeight: 15 },
+  count: {
+    fontSize: Typography.xs,
+    color: Colors.textSecondary,
+    fontWeight: Typography.semibold,
+  },
   countActive: { color: Colors.primary },
 });
 
@@ -607,60 +607,62 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
     setDraftPhoto({ uri: asset.uri!, type: asset.type ?? 'image/jpeg' });
   }, []);
 
-  const placeholder = draftPhoto ? 'Add a caption…' : `Message ${groupName.length > 20 ? groupName.slice(0, 20) + '…' : groupName}`;
+  const placeholder = draftPhoto ? 'Add a caption...' : 'Message ...';
 
   return (
     <View style={[inputStyles.wrapper, { paddingBottom: bottomInset > 0 ? bottomInset : Spacing[3] }]}>
-      {/* + button */}
-      <TouchableOpacity style={inputStyles.plusBtn} activeOpacity={0.7} onPress={handlePickPhoto} disabled={sending}>
-        <Icon name="add" size={22} color={Colors.textPrimary} />
-      </TouchableOpacity>
+      <View style={inputStyles.inputRow}>
+        {/* + button */}
+        <TouchableOpacity style={inputStyles.plusBtn} activeOpacity={0.7} onPress={handlePickPhoto} disabled={sending}>
+          <Icon name="add" size={22} color={Colors.textSecondary} />
+        </TouchableOpacity>
 
-      {/* Pill */}
-      <View style={inputStyles.pillRow}>
-        {/* Photo preview row */}
-        {draftPhoto && (
-          <View style={inputStyles.photoPreviewRow}>
-            <Image source={{ uri: draftPhoto.uri }} style={inputStyles.photoThumb} resizeMode="cover" />
-            <TouchableOpacity
-              style={inputStyles.photoRemoveBtn}
-              onPress={() => setDraftPhoto(null)}
-              activeOpacity={0.8}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <Icon name="close-circle" size={20} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Text + send row */}
-        <View style={inputStyles.textRow}>
-          <TextInput
-            style={inputStyles.input}
-            value={text}
-            onChangeText={setText}
-            placeholder={placeholder}
-            placeholderTextColor={D.textMuted}
-            multiline
-            maxLength={2000}
-            returnKeyType="default"
-            testID="group-message-input"
-          />
-          {canSend && (
-            <TouchableOpacity
-              onPress={handleSend}
-              disabled={sending}
-              style={inputStyles.sendBtn}
-              activeOpacity={0.8}
-              testID="group-send-btn"
-            >
-              {sending
-                ? <ActivityIndicator size="small" color="#ffffff" />
-                : <Icon name="send" size={13} color="#ffffff" />
-              }
-            </TouchableOpacity>
+        {/* Input pill */}
+        <View style={inputStyles.pillRow}>
+          {/* Photo preview row */}
+          {draftPhoto && (
+            <View style={inputStyles.photoPreviewRow}>
+              <Image source={{ uri: draftPhoto.uri }} style={inputStyles.photoThumb} resizeMode="cover" />
+              <TouchableOpacity
+                style={inputStyles.photoRemoveBtn}
+                onPress={() => setDraftPhoto(null)}
+                activeOpacity={0.8}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Icon name="close-circle" size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
           )}
+
+          {/* Text row */}
+          <View style={inputStyles.textRow}>
+            <TextInput
+              style={inputStyles.input}
+              value={text}
+              onChangeText={setText}
+              placeholder={placeholder}
+              placeholderTextColor={D.textMuted}
+              multiline
+              maxLength={2000}
+              returnKeyType="default"
+              testID="group-message-input"
+            />
+          </View>
         </View>
+
+        {/* Send button */}
+        <TouchableOpacity
+          onPress={handleSend}
+          disabled={!canSend}
+          style={[inputStyles.sendBtn, !canSend && inputStyles.sendBtnDisabled]}
+          activeOpacity={0.8}
+          testID="group-send-btn"
+        >
+          {sending
+            ? <ActivityIndicator size="small" color="#ffffff" />
+            : <Icon name="arrow-up" size={18} color="#ffffff" />
+          }
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -668,20 +670,19 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
 
 const inputStyles = StyleSheet.create({
   wrapper: {
+    paddingTop: Spacing[2],
+    backgroundColor: Colors.background,
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: Spacing[3],
-    paddingTop: Spacing[2],
-    backgroundColor: Colors.surface,
     gap: Spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
   },
   plusBtn: {
     width: 36,
     height: 36,
     borderRadius: Radius.full,
-    backgroundColor: Colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2,
@@ -689,10 +690,8 @@ const inputStyles = StyleSheet.create({
   pillRow: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: D.input,
+    backgroundColor: Colors.surfaceAlt,
     borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: D.inputBorder,
     overflow: 'hidden',
   },
   photoPreviewRow: {
@@ -716,7 +715,7 @@ const inputStyles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 40,
     paddingLeft: Spacing[4],
-    paddingRight: Spacing[2],
+    paddingRight: Spacing[3],
   },
   input: {
     flex: 1,
@@ -728,13 +727,16 @@ const inputStyles = StyleSheet.create({
     paddingBottom: 0,
   },
   sendBtn: {
-    width: 26,
-    height: 26,
+    width: 36,
+    height: 36,
     borderRadius: Radius.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 4,
+    marginBottom: 2,
+  },
+  sendBtnDisabled: {
+    opacity: 0.35,
   },
 });
 
@@ -786,13 +788,11 @@ export function GroupMessageScreen() {
   useEffect(() => {
     if (!group?.isMember || !isFocused) return;
 
-    // Seed the ref so polling works even if messages haven't loaded yet (or group is empty)
     if (!latestMessageTimestampRef.current) {
       latestMessageTimestampRef.current = new Date().toISOString();
     }
 
     let intervalId: ReturnType<typeof setInterval> | null = null;
-    // currentState can be null before it's determined asynchronously — treat null/active/inactive as active
     let appIsActive = AppState.currentState !== 'background';
 
     const poll = async () => {
@@ -913,6 +913,9 @@ export function GroupMessageScreen() {
     );
   }
 
+  const categoryLabel = CATEGORY_LABELS[group.category] ?? group.category;
+  const subtitle = `${categoryLabel} · ${group.memberCount} member${group.memberCount !== 1 ? 's' : ''}`;
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -927,18 +930,27 @@ export function GroupMessageScreen() {
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={styles.backBtn}
         >
-          <Icon name="chevron-back" size={26} color={Colors.primary} />
+          <Icon name="chevron-back" size={26} color={Colors.textPrimary} />
         </TouchableOpacity>
 
-        <Avatar name={group.name} size={34} uri={group.avatarUrl} style={styles.headerAvatar} />
-
         <TouchableOpacity
-          style={styles.headerTitleRow}
+          style={styles.headerCenter}
           activeOpacity={0.7}
           onPress={() => navigation.navigate('GroupProfile', { id: groupId })}
         >
-          <Text style={styles.headerName} numberOfLines={1}>{group.name}</Text>
-          <Icon name="chevron-forward" size={14} color={Colors.textSecondary} style={{ marginTop: 1 }} />
+          <Avatar name={group.name} size={38} uri={group.avatarUrl} />
+          <View style={styles.headerTextCol}>
+            <Text style={styles.headerName} numberOfLines={1}>{group.name}</Text>
+            <Text style={styles.headerSub} numberOfLines={1}>{subtitle}</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('GroupProfile', { id: groupId })}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.menuBtn}
+        >
+          <Icon name="ellipsis-horizontal" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -1026,19 +1038,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[3],
     paddingBottom: Spacing[3],
     backgroundColor: Colors.background,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
+  },
+  backBtn: { paddingRight: Spacing[1] },
+  headerCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing[2],
   },
-  backBtn: { paddingRight: 2 },
-  headerAvatar: {},
-  headerTitleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 3 },
+  headerTextCol: {
+    flex: 1,
+  },
   headerName: {
     fontSize: Typography.md,
     fontWeight: Typography.bold,
     color: Colors.textPrimary,
-    flexShrink: 1,
   },
+  headerSub: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  menuBtn: {
+    padding: Spacing[1],
+  },
+
   // List
   listContent: { paddingTop: Spacing[2], paddingBottom: Spacing[2] },
 

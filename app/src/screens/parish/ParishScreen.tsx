@@ -6,6 +6,7 @@ import {
   FlatList,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   Linking,
   ListRenderItemInfo,
   Modal,
@@ -70,91 +71,134 @@ function ParishProfileModal({ parish, visible, onClose, onChangeParish }: {
         {parish && (
           <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={profileStyles.scroll}>
 
-            {/* Top row: church icon + Done */}
-            <View style={profileStyles.topRow}>
+            {/* Header row — spacer + Done */}
+            <View style={profileStyles.headerRow}>
+              <View style={{ width: 40 }} />
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={profileStyles.headerBtn}>
+                <Icon name="close" size={20} color={Colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Church icon ring — centered like avatar */}
+            <View style={profileStyles.iconCenter}>
               <View style={profileStyles.churchIconRing}>
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
                   <Path d="M11.4 2.25h1.2v1.6h1.2v1.2h-1.2v2h-1.2v-2h-1.2v-1.2h1.2z" fill={Colors.accent} />
                   <Path d="M12 7.25 4.5 12.5V20.5a.75.75 0 0 0 .75.75h13.5a.75.75 0 0 0 .75-.75V12.5L12 7.25z" fill="#3d6b4a" />
                   <Path d="M10 21.25v-4.25a2 2 0 0 1 4 0v4.25h-4z" fill="#dce6df" />
                 </Svg>
               </View>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={profileStyles.doneText}>Done</Text>
-              </TouchableOpacity>
             </View>
 
-            {/* Parish name */}
+            {/* Parish name — centered */}
             <Text style={profileStyles.parishName}>{parish.name}</Text>
 
-            {/* Diocese + established */}
-            <View style={profileStyles.dioceseRow}>
-              <Text style={profileStyles.dioceseText}>{parish.diocese?.toUpperCase()}</Text>
+            {/* Diocese — centered */}
+            {parish.diocese && (
+              <Text style={profileStyles.dioceseText}>{parish.diocese}</Text>
+            )}
+
+            {/* Gold divider */}
+            <View style={profileStyles.goldDivider} />
+
+            {/* City, State label — centered uppercase */}
+            <Text style={profileStyles.locationLabel}>
+              {parish.city}, {parish.state}
+            </Text>
+
+            {/* Stats card */}
+            <View style={profileStyles.statsCard}>
+              <View style={profileStyles.statsCol}>
+                <Text style={profileStyles.statsLabel}>PARISHIONERS</Text>
+                <Text style={profileStyles.statsValue}>{parish.memberCount}</Text>
+              </View>
+
+              <View style={profileStyles.statsDivider} />
+
+              <View style={profileStyles.statsCol}>
+                <Text style={profileStyles.statsLabel}>GROUPS</Text>
+                <Text style={profileStyles.statsValue}>{parish.groupCount}</Text>
+              </View>
+
               {parish.established && (
                 <>
-                  <Text style={profileStyles.dioceseDot}> · </Text>
-                  <Text style={profileStyles.establishedText}>EST. {parish.established}</Text>
+                  <View style={profileStyles.statsDivider} />
+                  <View style={profileStyles.statsCol}>
+                    <Text style={profileStyles.statsLabel}>ESTABLISHED</Text>
+                    <Text style={profileStyles.statsValue}>{parish.established}</Text>
+                  </View>
                 </>
               )}
             </View>
 
-            {/* Address */}
-            {parish.streetAddress && (
-              <View style={profileStyles.addressBlock}>
-                <Text style={profileStyles.addressText}>{parish.streetAddress}</Text>
-                <Text style={profileStyles.addressText}>
-                  {parish.city}, {parish.state}{parish.postalCode ? ` ${parish.postalCode}` : ''}
-                </Text>
-              </View>
-            )}
-
-            {/* Member count */}
-            <View style={profileStyles.memberRow}>
-              <Text style={profileStyles.memberText}>
-                {parish.memberCount === 1 ? '1 parishioner' : `${parish.memberCount} parishioners`}
-              </Text>
-            </View>
-
-            {/* Mass Schedule card */}
-            <View style={profileStyles.card}>
-              <Text style={profileStyles.cardLabel}>MASS SCHEDULE</Text>
+            {/* Mass schedule */}
+            <Text style={profileStyles.sectionLabel}>MASS SCHEDULE</Text>
+            <View style={profileStyles.detailsCard}>
               {parish.massSchedule ? (
-                <View>
+                <View style={profileStyles.scheduleContent}>
                   {parish.massSchedule.split('\n').filter(Boolean).map((line, i, arr) => (
                     <View key={i}>
-                      <Text style={profileStyles.massText}>{line}</Text>
-                      {i < arr.length - 1 && <View style={profileStyles.massDivider} />}
+                      <Text style={profileStyles.scheduleText}>{line}</Text>
+                      {i < arr.length - 1 && <View style={profileStyles.detailSep} />}
                     </View>
                   ))}
                 </View>
               ) : (
-                <Text style={profileStyles.massEmptyText}>Visit parish website for mass schedule</Text>
+                <View style={profileStyles.scheduleContent}>
+                  <Text style={profileStyles.detailSubtitle}>Visit parish website for mass schedule</Text>
+                </View>
               )}
             </View>
 
-            {/* Website card */}
-            {parish.website && (
-              <TouchableOpacity
-                style={profileStyles.card}
-                onPress={() => {
-                  if (!parish.website) return;
-                  const url = /^https?:\/\//i.test(parish.website) ? parish.website : `https://${parish.website}`;
-                  Linking.openURL(url);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={profileStyles.cardLabel}>WEBSITE</Text>
-                <View style={profileStyles.websiteRow}>
-                  <Text style={profileStyles.websiteText}>{formatWebsiteDisplay(parish.website)}</Text>
-                  <Text style={profileStyles.websiteArrow}> ↗</Text>
+            {/* Details — address & website */}
+            {(parish.streetAddress || parish.website) && (
+              <>
+                <Text style={profileStyles.sectionLabel}>DETAILS</Text>
+                <View style={profileStyles.detailsCard}>
+                  {parish.streetAddress && (
+                    <View style={profileStyles.detailRow}>
+                      <View style={profileStyles.detailIcon}>
+                        <Icon name="location-outline" size={18} color={Colors.accent} />
+                      </View>
+                      <View style={profileStyles.detailContent}>
+                        <Text style={profileStyles.detailTitle}>{parish.streetAddress}</Text>
+                        <Text style={profileStyles.detailSubtitle}>
+                          {parish.city}, {parish.state}{parish.postalCode ? ` ${parish.postalCode}` : ''}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {parish.website && (
+                    <>
+                      {parish.streetAddress && <View style={profileStyles.detailSep} />}
+                      <TouchableOpacity
+                        style={profileStyles.detailRow}
+                        onPress={() => {
+                          if (!parish.website) return;
+                          const url = /^https?:\/\//i.test(parish.website) ? parish.website : `https://${parish.website}`;
+                          Linking.openURL(url);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={profileStyles.detailIcon}>
+                          <Icon name="globe-outline" size={18} color={Colors.accent} />
+                        </View>
+                        <View style={profileStyles.detailContent}>
+                          <Text style={profileStyles.detailTitle}>{formatWebsiteDisplay(parish.website)}</Text>
+                          <Text style={profileStyles.detailSubtitle}>Visit website</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
-              </TouchableOpacity>
+              </>
             )}
 
-            {/* Change parish */}
+            {/* Change parish — bottom right */}
             <TouchableOpacity style={profileStyles.changeBtn} onPress={onChangeParish} activeOpacity={0.7}>
               <Text style={profileStyles.changeBtnText}>Change parish</Text>
-              <Text style={profileStyles.changeBtnArrow}> →</Text>
+              <Text style={profileStyles.changeBtnArrow}> &rarr;</Text>
             </TouchableOpacity>
 
           </ScrollView>
@@ -316,6 +360,9 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
 
 // ─── Manage parish modal (admin only) ────────────────────────────────────────
 
+const WEBSITE_MAX = 120;
+const SCHEDULE_MAX = 500;
+
 function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover, setUploadingCover }: {
   parish: Parish | null;
   visible: boolean;
@@ -328,18 +375,10 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
   const coverHeight = COVER_BASE_HEIGHT + insets.top;
   const [website, setWebsite] = useState('');
   const [massSchedule, setMassSchedule] = useState('');
-  const [savingWebsite, setSavingWebsite] = useState(false);
-  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [localCoverUri, setLocalCoverUri] = useState<string | null>(null);
   const [cropModalVisible, setCropModalVisible] = useState(false);
   const [pickedImage, setPickedImage] = useState<{ uri: string; width: number; height: number; type: string } | null>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardWillShow', (e) => setKeyboardHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0));
-    return () => { show.remove(); hide.remove(); };
-  }, []);
 
   useEffect(() => {
     if (parish) {
@@ -349,9 +388,13 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
     }
   }, [parish, visible]);
 
+  const hasChanges =
+    website.trim() !== (parish?.website ?? '') ||
+    massSchedule.trim() !== (parish?.massSchedule ?? '');
+
   const handlePickCoverPhoto = async () => {
     if (!parish) return;
-    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, maxWidth: 1600, maxHeight: 900 });
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 1, maxWidth: 2400, maxHeight: 1350 });
     if (result.didCancel || !result.assets?.[0]?.uri) return;
     const asset = result.assets[0];
     setPickedImage({
@@ -385,49 +428,74 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
     setPickedImage(null);
   };
 
-  const handleSaveWebsite = async () => {
+  const handleSave = async () => {
     if (!parish) return;
-    setSavingWebsite(true);
+    setSaving(true);
     try {
-      const raw = await api.updateParish(parish.id, { website: website.trim() || undefined });
+      const raw = await api.updateParish(parish.id, {
+        website: website.trim() || undefined,
+        mass_schedule: massSchedule.trim() || undefined,
+      });
       onUpdated(mapParish(raw));
+      onClose();
     } catch {
-      Alert.alert('Error', 'Failed to save website.');
+      Alert.alert('Error', 'Failed to save changes. Please try again.');
     } finally {
-      setSavingWebsite(false);
+      setSaving(false);
     }
   };
 
-  const handleSaveSchedule = async () => {
-    if (!parish) return;
-    setSavingSchedule(true);
-    try {
-      const raw = await api.updateParish(parish.id, { mass_schedule: massSchedule.trim() || undefined });
-      onUpdated(mapParish(raw));
-    } catch {
-      Alert.alert('Error', 'Failed to save mass schedule.');
-    } finally {
-      setSavingSchedule(false);
+  const handleBack = () => {
+    if (hasChanges) {
+      Alert.alert(
+        'Unsaved Changes',
+        'You have unsaved changes. Are you sure you want to leave?',
+        [
+          { text: 'Keep Editing', style: 'cancel' },
+          { text: 'Discard', style: 'destructive', onPress: onClose },
+        ],
+      );
+    } else {
+      onClose();
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleBack}>
       <View style={manageStyles.container}>
+        {/* Header */}
         <View style={[manageStyles.header, { paddingTop: insets.top || Spacing[4] }]}>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={manageStyles.cancel}>Done</Text>
+          <TouchableOpacity
+            onPress={handleBack}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="chevron-back" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={manageStyles.title}>Manage Parish</Text>
-          <View style={{ width: 48 }} />
+          <Text style={manageStyles.headerTitle}>Manage Parish</Text>
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={saving || !hasChanges}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={Colors.accent} />
+            ) : (
+              <Text style={[manageStyles.saveText, !hasChanges && manageStyles.saveTextDisabled]}>Save</Text>
+            )}
+          </TouchableOpacity>
         </View>
-        <View style={manageStyles.headerDivider} />
 
-        <ScrollView contentContainerStyle={[manageStyles.scroll, keyboardHeight > 0 && { paddingBottom: keyboardHeight }]} keyboardShouldPersistTaps="handled">
-
-          {/* Cover Photo */}
-          <View style={manageStyles.section}>
-            <Text style={manageStyles.sectionTitle}>Cover Photo</Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={manageStyles.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Cover Photo */}
+            <Text style={manageStyles.sectionLabel}>COVER PHOTO</Text>
             <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={[manageStyles.coverPhotoBtn, { height: (SCREEN_WIDTH - 2 * Spacing[5]) * (coverHeight / SCREEN_WIDTH) }]}>
               {(localCoverUri ?? parish?.coverPhotoUrl) ? (
                 <>
@@ -445,64 +513,65 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
                 </>
               ) : (
                 <View style={manageStyles.coverPhotoEmpty}>
-                  <Icon name="camera-outline" size={28} color={Colors.primary} />
+                  <Icon name="camera-outline" size={28} color={Colors.accent} />
                   <Text style={manageStyles.coverPhotoEmptyText}>Add Cover Photo</Text>
                 </View>
               )}
             </TouchableOpacity>
-          </View>
 
-          {/* Website */}
-          <View style={manageStyles.section}>
-            <Text style={manageStyles.sectionTitle}>Website</Text>
-            <TextInput
-              style={manageStyles.input}
-              value={website}
-              onChangeText={setWebsite}
-              placeholder="https://example.com"
-              placeholderTextColor={Colors.textLight}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-            <TouchableOpacity
-              style={[manageStyles.saveBtn, savingWebsite && manageStyles.saveBtnDisabled]}
-              onPress={handleSaveWebsite}
-              disabled={savingWebsite}
-              activeOpacity={0.8}
-            >
-              {savingWebsite
-                ? <ActivityIndicator size="small" color={Colors.textInverse} />
-                : <Text style={manageStyles.saveBtnText}>Save Website</Text>
-              }
-            </TouchableOpacity>
-          </View>
+            {/* Details section */}
+            <Text style={manageStyles.sectionLabel}>DETAILS</Text>
+            <View style={manageStyles.card}>
+              <View style={manageStyles.fieldContainer}>
+                <Text style={manageStyles.fieldLabel}>WEBSITE</Text>
+                <View style={manageStyles.fieldRow}>
+                  <View style={manageStyles.fieldIcon}>
+                    <Icon name="globe-outline" size={13} color={Colors.accent} />
+                  </View>
+                  <TextInput
+                    style={manageStyles.fieldInput}
+                    value={website}
+                    onChangeText={(t) => setWebsite(t.slice(0, WEBSITE_MAX))}
+                    placeholder="https://example.com"
+                    placeholderTextColor={Colors.textLight}
+                    autoCapitalize="none"
+                    keyboardType="url"
+                    maxLength={WEBSITE_MAX}
+                  />
+                </View>
+                <Text style={manageStyles.charCount}>
+                  {website.length}/{WEBSITE_MAX}
+                </Text>
+              </View>
+            </View>
 
-          {/* Mass Schedule */}
-          <View style={manageStyles.section}>
-            <Text style={manageStyles.sectionTitle}>Mass Schedule</Text>
-            <TextInput
-              style={manageStyles.textarea}
-              value={massSchedule}
-              onChangeText={setMassSchedule}
-              placeholder={"Sunday: 8:00 AM, 10:30 AM\nDaily: 7:00 AM"}
-              placeholderTextColor={Colors.textLight}
-              multiline
-              textAlignVertical="top"
-            />
-            <TouchableOpacity
-              style={[manageStyles.saveBtn, savingSchedule && manageStyles.saveBtnDisabled]}
-              onPress={handleSaveSchedule}
-              disabled={savingSchedule}
-              activeOpacity={0.8}
-            >
-              {savingSchedule
-                ? <ActivityIndicator size="small" color={Colors.textInverse} />
-                : <Text style={manageStyles.saveBtnText}>Save Schedule</Text>
-              }
-            </TouchableOpacity>
-          </View>
-
-        </ScrollView>
+            {/* Schedule section */}
+            <Text style={manageStyles.sectionLabel}>SCHEDULE</Text>
+            <View style={manageStyles.card}>
+              <View style={manageStyles.fieldContainer}>
+                <Text style={manageStyles.fieldLabel}>MASS TIMES</Text>
+                <View style={manageStyles.fieldRow}>
+                  <View style={manageStyles.fieldIcon}>
+                    <MCIcon name="clock-outline" size={13} color={Colors.accent} />
+                  </View>
+                  <TextInput
+                    style={[manageStyles.fieldInput, manageStyles.scheduleInput]}
+                    value={massSchedule}
+                    onChangeText={(t) => setMassSchedule(t.slice(0, SCHEDULE_MAX))}
+                    placeholder={"Sunday: 8:00 AM, 10:30 AM\nDaily: 7:00 AM"}
+                    placeholderTextColor={Colors.textLight}
+                    multiline
+                    maxLength={SCHEDULE_MAX}
+                    textAlignVertical="top"
+                  />
+                </View>
+                <Text style={manageStyles.charCount}>
+                  {massSchedule.length}/{SCHEDULE_MAX}
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
 
       {pickedImage && (
@@ -537,6 +606,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   const [editingPost, setEditingPost] = useState<ParishPost | undefined>();
   const [parish, setParish] = useState<Parish | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [coverImgError, setCoverImgError] = useState(false);
   const isParishAdmin = parish?.isParishAdmin ?? false;
 
   const [posts, setPosts] = useState<ParishPost[]>([]);
@@ -547,9 +617,26 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   const hasMore = useRef(true);
   const loadingMoreRef = useRef(false);
 
-  useEffect(() => {
+  // Refresh parish data (including cover photo signed URL) on every focus
+  useFocusEffect(
+    useCallback(() => {
+      api.getParish(parishId)
+        .then((data) => {
+          setParish(mapParish(data));
+          setCoverImgError(false);
+        })
+        .catch(() => {});
+    }, [parishId])
+  );
+
+  // If cover photo fails to load (expired URL), re-fetch parish data for a fresh URL
+  const handleCoverImageError = useCallback(() => {
+    setCoverImgError(true);
     api.getParish(parishId)
-      .then((data) => setParish(mapParish(data)))
+      .then((data) => {
+        setParish(mapParish(data));
+        setCoverImgError(false);
+      })
       .catch(() => {});
   }, [parishId]);
 
@@ -697,14 +784,19 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     }
   }, [parishId]);
 
-  const hasCover = !!parish?.coverPhotoUrl;
+  const hasCover = !!parish?.coverPhotoUrl && !coverImgError;
 
   const ListHeader = useCallback(() => (
     <View>
       {hasCover ? (
         /* Cover photo area */
         <View style={{ height: coverHeight }}>
-          <Image source={{ uri: parish!.coverPhotoUrl! }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <Image
+            source={{ uri: parish!.coverPhotoUrl! }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+            onError={handleCoverImageError}
+          />
           <LinearGradient
             colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)']}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 110 }} />
@@ -738,11 +830,6 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
           </View>
           {/* Parish info overlaid at bottom of cover */}
           <View style={styles.coverNameOverlay}>
-            {parish && (
-              <Text style={styles.coverSubtitle}>
-                Parish · {parish.city}, {parish.state}
-              </Text>
-            )}
             <Text style={styles.coverParishName} numberOfLines={2}>{parishName}</Text>
           </View>
         </View>
@@ -760,11 +847,6 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
               </TouchableOpacity>
             ) : null}
           </View>
-          {parish && (
-            <Text style={styles.noCoverSubtitle}>
-              Parish · {parish.city}, {parish.state}
-            </Text>
-          )}
           <Text style={styles.noCoverParishName} numberOfLines={2}>{parishName}</Text>
         </View>
       )}
@@ -789,7 +871,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         <ActivityIndicator color={Colors.accent} style={styles.initialLoader} />
       )}
     </View>
-  ), [parish, parishName, loadingPosts, isParishAdmin, uploadingCover, hasCover, insets.top]);
+  ), [parish, parishName, loadingPosts, isParishAdmin, uploadingCover, hasCover, coverImgError, handleCoverImageError, insets.top]);
 
   const ListFooter = useCallback(() => (
     posts.length > 0 ? (
@@ -1046,8 +1128,6 @@ const profileStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: {
-    paddingHorizontal: Spacing[6],
-    paddingTop: Spacing[5],
     paddingBottom: Spacing[12],
   },
 
@@ -1055,7 +1135,7 @@ const profileStyles = StyleSheet.create({
   dragIndicatorRow: {
     alignItems: 'center',
     paddingTop: Spacing[2],
-    paddingBottom: Spacing[3],
+    paddingBottom: Spacing[1],
   },
   dragIndicator: {
     width: 36,
@@ -1064,145 +1144,82 @@ const profileStyles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.15)',
   },
 
-  // ── Top row ───────────────────────────────────────────────────────────────
-  topRow: {
+  // ── Header row ────────────────────────────────────────────────────────────
+  headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing[5],
+    alignItems: 'center',
+    paddingHorizontal: Spacing[5],
+    marginBottom: Spacing[4],
   },
-  churchIconRing: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#eceae5',
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  doneText: {
-    fontSize: Typography.md,
-    color: Colors.textPrimary,
-    fontWeight: Typography.medium,
+
+  // ── Church icon (like avatar) ─────────────────────────────────────────────
+  iconCenter: {
+    alignItems: 'center',
+    marginBottom: Spacing[4],
+  },
+  churchIconRing: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: Colors.accent,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.lg,
   },
 
   // ── Parish name ───────────────────────────────────────────────────────────
   parishName: {
-    fontFamily: Typography.fontSerif,
+    fontFamily: 'CormorantGaramond-Regular',
     fontSize: Typography['3xl'],
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
+    color: '#000000',
     lineHeight: Typography['3xl'] * 1.15,
+    textAlign: 'center',
+    marginBottom: Spacing[1],
+    paddingHorizontal: Spacing[6],
+  },
+
+  // ── Diocese ───────────────────────────────────────────────────────────────
+  dioceseText: {
+    fontSize: Typography.base,
+    color: Colors.textSecondary,
+    letterSpacing: 0.3,
+    textAlign: 'center',
+    marginBottom: Spacing[3],
+  },
+
+  // ── Gold divider ──────────────────────────────────────────────────────────
+  goldDivider: {
+    width: 28,
+    height: 2.5,
+    backgroundColor: Colors.accent,
+    alignSelf: 'center',
+    borderRadius: 2,
+    marginBottom: Spacing[3],
+  },
+
+  // ── Location label ────────────────────────────────────────────────────────
+  locationLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.bold,
+    color: Colors.textSecondary,
+    letterSpacing: 1.8,
+    textAlign: 'center',
+    textTransform: 'uppercase',
     marginBottom: Spacing[5],
   },
 
-  // ── Diocese + established ─────────────────────────────────────────────────
-  dioceseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing[4],
-  },
-  dioceseText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    letterSpacing: 1.5,
-  },
-  dioceseDot: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-  },
-  establishedText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.medium,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-
-  // ── Address ───────────────────────────────────────────────────────────────
-  addressBlock: {
-    marginBottom: Spacing[4],
-  },
-  addressText: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    lineHeight: Typography.base * 1.5,
-  },
-
-  // ── Member row ────────────────────────────────────────────────────────────
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing[7],
-  },
-  memberText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-  },
-  memberDot: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-  },
-  inviteText: {
-    fontSize: Typography.sm,
-    color: Colors.textPrimary,
-    fontWeight: Typography.semibold,
-    textDecorationLine: 'underline',
-  },
-
-  // ── Cards (Mass Schedule / Website) ───────────────────────────────────────
-  card: {
-    backgroundColor: '#ffffff',
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.accent + '50',
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing[5],
-    paddingVertical: Spacing[4],
-    marginBottom: Spacing[4],
-  },
-  cardLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: Spacing[3],
-  },
-  massText: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    paddingVertical: Spacing[2],
-  },
-  massDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-  },
-  massEmptyText: {
-    fontSize: Typography.sm,
-    color: Colors.textLight,
-    fontStyle: 'italic',
-  },
-
-  // ── Website ───────────────────────────────────────────────────────────────
-  websiteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.accent,
-    paddingBottom: 4,
-    gap: Spacing[2],
-  },
-  websiteText: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    fontWeight: Typography.semibold,
-  },
-  websiteArrow: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-    fontWeight: Typography.semibold,
-  },
-
-  // ── Change Parish ─────────────────────────────────────────────────────────
+  // ── Change parish CTA ──────────────────────────────────────────────────────
   changeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1211,7 +1228,8 @@ const profileStyles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: Colors.accent + '50',
     paddingBottom: 4,
-    marginTop: Spacing[4],
+    marginHorizontal: Spacing[6],
+    marginTop: Spacing[1],
   },
   changeBtnText: {
     fontSize: Typography.base,
@@ -1222,6 +1240,104 @@ const profileStyles = StyleSheet.create({
     fontSize: Typography.base,
     fontWeight: Typography.semibold,
     color: Colors.textSecondary,
+  },
+
+  // ── Stats card ────────────────────────────────────────────────────────────
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing[5],
+    borderRadius: Radius.md,
+    paddingVertical: Spacing[4],
+    marginBottom: Spacing[6],
+    ...Shadows.sm,
+  },
+  statsCol: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: Spacing[2],
+  },
+  statsDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing[1],
+  },
+  statsLabel: {
+    fontSize: 10,
+    fontWeight: Typography.bold,
+    color: Colors.accent,
+    letterSpacing: 1.2,
+    marginBottom: Spacing[2],
+  },
+  statsValue: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+
+  // ── Section label ─────────────────────────────────────────────────────────
+  sectionLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.bold,
+    color: Colors.textSecondary,
+    letterSpacing: 1.5,
+    marginBottom: Spacing[3],
+    marginHorizontal: Spacing[6],
+  },
+
+  // ── Details card ──────────────────────────────────────────────────────────
+  detailsCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    marginHorizontal: Spacing[5],
+    marginBottom: Spacing[3],
+    overflow: 'hidden',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[4],
+    gap: Spacing[3],
+  },
+  detailIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailContent: {
+    flex: 1,
+  },
+  detailTitle: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+  },
+  detailSubtitle: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  detailSep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginHorizontal: Spacing[4],
+  },
+
+  // ── Mass schedule ─────────────────────────────────────────────────────────
+  scheduleContent: {
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[4],
+  },
+  scheduleText: {
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    paddingVertical: Spacing[2],
   },
 });
 
@@ -1340,84 +1456,109 @@ const composeStyles = StyleSheet.create({
 // ─── Manage parish modal styles ───────────────────────────────────────────────
 
 const manageStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing[4],
-    paddingBottom: Spacing[3],
+    paddingHorizontal: Spacing[5],
+    paddingVertical: Spacing[3],
   },
-  headerDivider: { height: 1, backgroundColor: Colors.border },
-  cancel: {
-    fontSize: Typography.base,
-    color: Colors.primary,
-    fontWeight: Typography.medium,
-    width: 48,
-  },
-  title: {
-    fontSize: Typography.base,
+  headerTitle: {
+    fontSize: Typography.lg,
     fontWeight: Typography.semibold,
     color: Colors.textPrimary,
   },
+  saveText: {
+    fontSize: Typography.base,
+    fontWeight: Typography.bold,
+    color: Colors.primaryDark,
+  },
+  saveTextDisabled: {
+    opacity: 0.4,
+  },
+
   scroll: {
-    padding: Spacing[5],
-    gap: Spacing[2],
     paddingBottom: Spacing[12],
   },
-  section: {
-    marginBottom: Spacing[7],
-    gap: Spacing[3],
+
+  // Sections
+  sectionLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.bold,
+    color: Colors.accent,
+    letterSpacing: 1.5,
+    marginBottom: Spacing[3],
+    marginHorizontal: Spacing[5],
+    marginTop: Spacing[6],
   },
-  sectionTitle: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    marginHorizontal: Spacing[5],
+    marginBottom: Spacing[2],
+    paddingVertical: Spacing[2],
+    paddingHorizontal: Spacing[4],
+  },
+
+  // Fields
+  fieldContainer: {
+    paddingVertical: Spacing[1],
+  },
+  fieldLabel: {
+    fontSize: 10,
+    fontWeight: Typography.bold,
     color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: Spacing[1],
+    letterSpacing: 1.2,
+    marginBottom: 0,
+    marginLeft: 26 + Spacing[3],
   },
-  input: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
-  textarea: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    minHeight: 120,
-  },
-  saveBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing[3],
+  fieldIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceAlt,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing[3],
+    marginTop: 5,
   },
-  saveBtnDisabled: {
-    opacity: 0.55,
-  },
-  saveBtnText: {
-    fontSize: Typography.sm,
+  fieldInput: {
+    flex: 1,
+    fontSize: Typography.base,
     fontWeight: Typography.semibold,
-    color: Colors.textInverse,
+    color: Colors.textPrimary,
+    paddingVertical: Spacing[2],
+    paddingHorizontal: 0,
   },
+  scheduleInput: {
+    minHeight: 80,
+    fontWeight: Typography.regular,
+    lineHeight: Typography.base * 1.5,
+  },
+  charCount: {
+    fontSize: Typography.xs,
+    color: Colors.textLight,
+    textAlign: 'right',
+    marginTop: Spacing[1],
+  },
+
+  // Cover photo
   coverPhotoBtn: {
     borderRadius: Radius.md,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    marginHorizontal: Spacing[5],
+    marginBottom: Spacing[2],
   },
   coverPhotoPreview: {
     width: '100%',
@@ -1443,7 +1584,7 @@ const manageStyles = StyleSheet.create({
   },
   coverPhotoEmptyText: {
     fontSize: Typography.sm,
-    color: Colors.primary,
+    color: Colors.accent,
     fontWeight: Typography.medium,
   },
 });
