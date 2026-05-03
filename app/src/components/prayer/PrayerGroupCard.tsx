@@ -39,11 +39,9 @@ function formatRelativeTime(iso: string): string {
 }
 
 const CATEGORY_CONFIG: Record<PrayerGroupCategory, { label: string; icon: string; color: string }> = {
-  rosary:         { label: 'Rosary',          icon: 'ellipse-outline',    color: '#7c3aed' },
-  scripture_study:{ label: 'Scripture Study', icon: 'book-outline',       color: Colors.success },
+  bible_study:{ label: 'Bible Study',     icon: 'book-outline',       color: Colors.success },
   mens_group:     { label: "Men's Group",     icon: 'shield-outline',     color: Colors.primary },
   womens_group:   { label: "Women's Group",   icon: 'flower-outline',     color: '#ec4899' },
-  youth:          { label: 'Youth',           icon: 'happy-outline',      color: '#f59e0b' },
   young_adults:   { label: 'Young Adults',    icon: 'people-outline',     color: Colors.info },
   families:       { label: 'Families',        icon: 'home-outline',       color: Colors.accentDark },
   devotional:     { label: 'Devotional',      icon: 'heart-outline',      color: '#e11d48' },

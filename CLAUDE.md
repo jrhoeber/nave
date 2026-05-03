@@ -113,6 +113,45 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 
 ---
 
+## Development Guidelines
+
+### Reuse before you build
+
+Before creating new UI or styling from scratch, **check what already exists**:
+
+- **`app/src/components/ui/`** — Generic reusable components (Button, Input, Avatar, TabBadge, EmptyStateBox, FormHeader, FormCard, FormField, SectionLabel, Separator, SearchModal)
+- **`app/src/components/group/`** — Shared group form components (GroupFormFields, CategoryPicker, VisibilityPicker, constants)
+- **`app/src/components/profile/`** — Profile-related components (AboutCard, SettingsModal, EditProfileModal)
+- **`app/src/theme/index.ts`** — Design tokens (Colors, Typography, Spacing, Radius, Shadows, CardList) — always use these instead of hardcoded values
+
+Search for existing components with similar functionality before writing new ones. If a screen already does something similar to what you're building, match its patterns and reuse its components.
+
+### Extract shared components instead of copy-pasting
+
+When two or more screens share the same UI structure (forms, cards, pickers, list rows), extract a shared component rather than duplicating the code. Signs you should extract:
+
+- You're about to copy a block of JSX + styles from one file to another
+- Two files have nearly identical `StyleSheet.create` blocks
+- A UI pattern (e.g., a card with icon rows, a chip picker) appears in multiple screens
+
+Place domain-specific shared components in their feature directory (e.g., `components/group/`). Place truly generic components in `components/ui/`.
+
+### Keep styles consistent across related screens
+
+When building or updating a screen, check sibling screens for established patterns. For example, all profile-type screens (UserProfile, ProfileScreen, GroupProfile) should share the same visual language — avatar ring, gold divider, stats card, details card, section labels. When asked to "match the style of X", use the same design tokens and component structure, not just similar-looking hardcoded values.
+
+### Sync frontend and backend changes
+
+When renaming, adding, or removing values that exist on both frontend and backend (enum values, field names, categories):
+
+- Update the backend model/type (e.g., Pydantic Literal, SQL CHECK constraint)
+- Update the frontend type (e.g., TypeScript union)
+- Update all UI references (labels, maps, configs) across every screen/component
+- **Create a migration** if the database has existing data that needs updating — editing a previously-run migration has no effect
+- Search the full codebase for the old value before considering the rename complete
+
+---
+
 ## File Reference
 
 > **Maintenance rule:** Any time you add, move, rename, or delete a file, update the relevant section below so this index stays accurate.
@@ -247,6 +286,12 @@ Mobile API base URL is set in `app/src/lib/config.ts` (localhost:8000 for dev; A
 | `friends/AddFriendModal.tsx` | pageSheet modal to search users and send friend requests; shows friendship status per result |
 | `ui/Avatar.tsx` | Avatar with initials fallback |
 | `ui/TabBadge.tsx` | Shared red dot badge for nav tab icons (Friends and Groups tabs) |
+| `ui/FormHeader.tsx` | Reusable header with back button, title, and action button (used in form screens/modals) |
+| `ui/FormCard.tsx` | Card container for form sections (surface bg, rounded corners, horizontal margin) |
+| `ui/FormField.tsx` | Icon + label + TextInput + character count field (used in GroupFormFields, ManageParishModal) |
+| `ui/SectionLabel.tsx` | Uppercase accent-colored section label for form sections |
+| `ui/Separator.tsx` | Hairline separator for dividing form fields within cards |
+| `ui/SearchModal.tsx` | Shared pageSheet modal shell with dragger, Cancel header, section label, hero text, and search bar (used by AddFriendModal, AddGroupModal, AddToGroupModal) |
 | `ui/Button.tsx` | Button with variants (primary, secondary, ghost) |
 | `ui/Input.tsx` | Styled text input |
 | `Splash.tsx` | Startup splash screen |

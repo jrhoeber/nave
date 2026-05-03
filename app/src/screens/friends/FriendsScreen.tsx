@@ -103,7 +103,7 @@ export function FriendsScreen() {
       return <Text style={styles.sectionLabel}>YOUR FRIENDS</Text>;
     }
     return (
-      <View style={[CardList.item, item.index === 0 && CardList.itemFirst]}>
+      <View style={[CardList.item, item.index === 0 && CardList.itemFirst, item.isLast && CardList.itemLast]}>
         {renderFriend({ item: item.data, index: item.index, isLast: item.isLast })}
       </View>
     );
@@ -138,7 +138,7 @@ export function FriendsScreen() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-        ListFooterComponent={friends.length > 0 ? <View style={CardList.footer} /> : null}
+        ListFooterComponent={null}
         ListEmptyComponent={!isLoading && friends.length === 0 ? (
           <EmptyStateBox
             title="No friends yet"

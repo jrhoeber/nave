@@ -2,19 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { Avatar } from '../ui/Avatar';
+import { SearchModal } from '../ui/SearchModal';
 import { CardList, Colors, Spacing, Typography } from '../../theme';
 import { api, mapFriendSearchResult } from '../../lib/apiClient';
 import type { FriendSearchResult } from '../../types';
@@ -28,7 +23,6 @@ interface AddFriendModalProps {
 
 export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendModalProps) {
   const navigation = useNavigation<RootNavigationProp>();
-  const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FriendSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -40,8 +34,6 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
       setQuery('');
       setResults([]);
       setPendingIds(new Set());
-    } else {
-      setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [visible]);
 
@@ -98,22 +90,14 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
     return 'Add';
   };
 
-  const friendshipVariant = (item: FriendSearchResult): 'primary' | 'outline' | 'ghost' => {
-    if (item.friendshipStatus === 'accepted') return 'ghost';
-    if (item.friendshipStatus === 'pending') return 'outline';
-    return 'primary';
-  };
-
   const renderResult = ({ item }: { item: FriendSearchResult }) => {
     const label = friendshipLabel(item);
-    const variant = friendshipVariant(item);
-    const disabled = label !== 'Add' || pendingIds.has(item.id);
+    const canAdd = label === 'Add' && !pendingIds.has(item.id);
     const isLoading = pendingIds.has(item.id);
-
     const isLast = results.indexOf(item) === results.length - 1;
 
     return (
-      <View style={[CardList.item, results.indexOf(item) === 0 && CardList.itemFirst]}>
+      <View style={[CardList.item, results.indexOf(item) === 0 && CardList.itemFirst, isLast && CardList.itemLast]}>
         <TouchableOpacity
           style={[styles.userCard, isLast && styles.userCardLast]}
           onPress={() => { onClose(); navigation.navigate('UserProfile', { id: item.id }); }}
@@ -123,12 +107,10 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{item.displayName}</Text>
             <Text style={styles.userMeta} numberOfLines={1}>
-              @{item.username}{item.parish ? ` · ${item.parish}` : ''}
+              @{item.username}{item.parish ? ` \u00B7 ${item.parish}` : ''}
             </Text>
           </View>
-          {disabled ? (
-            <Text style={styles.statusText}>{label}</Text>
-          ) : (
+          {canAdd ? (
             <View onStartShouldSetResponder={() => true}>
               <TouchableOpacity
                 style={styles.addBtn}
@@ -141,6 +123,8 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
                 }
               </TouchableOpacity>
             </View>
+          ) : (
+            <Text style={styles.statusText}>{label}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -148,132 +132,42 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {/* Dragger */}
-        <View style={styles.draggerRow}>
-          <View style={styles.dragger} />
-        </View>
+    <SearchModal
+      visible={visible}
+      onClose={onClose}
+      sectionHeader="ADD FRIEND"
+      heroText={'Walk together\nin faith.'}
+      searchPlaceholder="Search by name or username"
+      query={query}
+      onQueryChange={setQuery}
+    >
+      {searching && (
+        <ActivityIndicator style={styles.loader} color={Colors.primary} />
+      )}
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View />
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.sectionHeader}>ADD FRIEND</Text>
-        <Text style={styles.heroText}>Walk together{'\n'}in faith.</Text>
-
-        {/* Search bar */}
-        <View style={styles.searchContainer}>
-          <Icon name="search-outline" size={16} color={Colors.textSecondary} />
-          <TextInput
-            ref={inputRef}
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search by name or username"
-            placeholderTextColor={Colors.textLight}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="close-circle" size={16} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {searching && (
-          <ActivityIndicator style={styles.loader} color={Colors.primary} />
-        )}
-
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id}
-          renderItem={renderResult}
-          contentContainerStyle={styles.list}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          ListFooterComponent={results.length > 0 ? <View style={CardList.footer} /> : null}
-          ListEmptyComponent={
-            !searching && query.trim().length > 0 ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>No users found for "{query}"</Text>
-              </View>
-            ) : null
-          }
-        />
-      </KeyboardAvoidingView>
-    </Modal>
+      <FlatList
+        data={results}
+        keyExtractor={(item) => item.id}
+        renderItem={renderResult}
+        contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        ListFooterComponent={null}
+        ListEmptyComponent={
+          !searching && query.trim().length > 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No users found for &ldquo;{query}&rdquo;</Text>
+            </View>
+          ) : null
+        }
+      />
+    </SearchModal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-
-  draggerRow: {
-    alignItems: 'center',
-    paddingTop: Spacing[2],
-    paddingBottom: Spacing[1],
-  },
-  dragger: {
-    width: 36,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: Colors.border,
-  },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing[5],
-    paddingBottom: Spacing[1],
-  },
-  cancelText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: '#4b5563', paddingRight: Spacing[1] },
-
-  sectionHeader: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[2],
-  },
-  heroText: {
-    fontFamily: 'CormorantGaramond-Bold',
-    fontSize: 28,
-    color: '#000000',
-    paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[2],
-    paddingBottom: Spacing[1],
-  },
-
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: Spacing[5],
-    marginTop: Spacing[3],
-    marginBottom: Spacing[2],
-    paddingBottom: Spacing[3],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-    gap: Spacing[2],
-  },
-  searchInput: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary, paddingVertical: 0, height: 24 },
-
   loader: { marginTop: Spacing[4] },
   list: { paddingBottom: Spacing[10] },
-
 
   userCard: {
     flexDirection: 'row',

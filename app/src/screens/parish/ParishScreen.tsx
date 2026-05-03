@@ -31,6 +31,10 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { Avatar } from '../../components/ui/Avatar';
 import { ImageCropModal } from '../../components/ui/ImageCropModal';
 import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
+import { FormHeader } from '../../components/ui/FormHeader';
+import { SectionLabel } from '../../components/ui/SectionLabel';
+import { FormCard } from '../../components/ui/FormCard';
+import { FormField } from '../../components/ui/FormField';
 import { ParishPostCard } from '../../components/parish/ParishPostCard';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
@@ -463,26 +467,15 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleBack}>
       <View style={manageStyles.container}>
-        {/* Header */}
-        <View style={[manageStyles.header, { paddingTop: insets.top || Spacing[4] }]}>
-          <TouchableOpacity
-            onPress={handleBack}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Icon name="chevron-back" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={manageStyles.headerTitle}>Manage Parish</Text>
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={saving || !hasChanges}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color={Colors.accent} />
-            ) : (
-              <Text style={[manageStyles.saveText, !hasChanges && manageStyles.saveTextDisabled]}>Save</Text>
-            )}
-          </TouchableOpacity>
+        <View style={{ paddingTop: insets.top || Spacing[4] }}>
+          <FormHeader
+            title="Manage Parish"
+            onBack={handleBack}
+            actionLabel="Save"
+            onAction={handleSave}
+            actionDisabled={!hasChanges}
+            loading={saving}
+          />
         </View>
 
         <KeyboardAvoidingView
@@ -495,7 +488,7 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
             showsVerticalScrollIndicator={false}
           >
             {/* Cover Photo */}
-            <Text style={manageStyles.sectionLabel}>COVER PHOTO</Text>
+            <SectionLabel style={{ marginTop: Spacing[6] }}>COVER PHOTO</SectionLabel>
             <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={[manageStyles.coverPhotoBtn, { height: (SCREEN_WIDTH - 2 * Spacing[5]) * (coverHeight / SCREEN_WIDTH) }]}>
               {(localCoverUri ?? parish?.coverPhotoUrl) ? (
                 <>
@@ -520,56 +513,35 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
             </TouchableOpacity>
 
             {/* Details section */}
-            <Text style={manageStyles.sectionLabel}>DETAILS</Text>
-            <View style={manageStyles.card}>
-              <View style={manageStyles.fieldContainer}>
-                <Text style={manageStyles.fieldLabel}>WEBSITE</Text>
-                <View style={manageStyles.fieldRow}>
-                  <View style={manageStyles.fieldIcon}>
-                    <Icon name="globe-outline" size={13} color={Colors.accent} />
-                  </View>
-                  <TextInput
-                    style={manageStyles.fieldInput}
-                    value={website}
-                    onChangeText={(t) => setWebsite(t.slice(0, WEBSITE_MAX))}
-                    placeholder="https://example.com"
-                    placeholderTextColor={Colors.textLight}
-                    autoCapitalize="none"
-                    keyboardType="url"
-                    maxLength={WEBSITE_MAX}
-                  />
-                </View>
-                <Text style={manageStyles.charCount}>
-                  {website.length}/{WEBSITE_MAX}
-                </Text>
-              </View>
-            </View>
+            <SectionLabel style={{ marginTop: Spacing[6] }}>DETAILS</SectionLabel>
+            <FormCard>
+              <FormField
+                label="WEBSITE"
+                icon="globe-outline"
+                value={website}
+                onChangeText={(t) => setWebsite(t)}
+                maxLength={WEBSITE_MAX}
+                placeholder="https://example.com"
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </FormCard>
 
             {/* Schedule section */}
-            <Text style={manageStyles.sectionLabel}>SCHEDULE</Text>
-            <View style={manageStyles.card}>
-              <View style={manageStyles.fieldContainer}>
-                <Text style={manageStyles.fieldLabel}>MASS TIMES</Text>
-                <View style={manageStyles.fieldRow}>
-                  <View style={manageStyles.fieldIcon}>
-                    <MCIcon name="clock-outline" size={13} color={Colors.accent} />
-                  </View>
-                  <TextInput
-                    style={[manageStyles.fieldInput, manageStyles.scheduleInput]}
-                    value={massSchedule}
-                    onChangeText={(t) => setMassSchedule(t.slice(0, SCHEDULE_MAX))}
-                    placeholder={"Sunday: 8:00 AM, 10:30 AM\nDaily: 7:00 AM"}
-                    placeholderTextColor={Colors.textLight}
-                    multiline
-                    maxLength={SCHEDULE_MAX}
-                    textAlignVertical="top"
-                  />
-                </View>
-                <Text style={manageStyles.charCount}>
-                  {massSchedule.length}/{SCHEDULE_MAX}
-                </Text>
-              </View>
-            </View>
+            <SectionLabel style={{ marginTop: Spacing[6] }}>SCHEDULE</SectionLabel>
+            <FormCard>
+              <FormField
+                label="MASS TIMES"
+                icon="clock-outline"
+                iconElement={<MCIcon name="clock-outline" size={13} color={Colors.accent} />}
+                value={massSchedule}
+                onChangeText={(t) => setMassSchedule(t)}
+                maxLength={SCHEDULE_MAX}
+                placeholder={"Sunday: 8:00 AM, 10:30 AM\nDaily: 7:00 AM"}
+                multiline
+                inputStyle={{ minHeight: 80 }}
+              />
+            </FormCard>
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
@@ -856,7 +828,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 
       {/* Community header — sits outside the post card */}
       <View style={styles.communityHeader}>
-        <Text style={styles.communityTitle}>Community</Text>
+        <Text style={styles.communityTitle}>COMMUNITY</Text>
         <TouchableOpacity
           style={styles.newPostBtn}
           onPress={() => { setEditingPost(undefined); setComposeVisible(true); }}
@@ -874,12 +846,8 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   ), [parish, parishName, loadingPosts, isParishAdmin, uploadingCover, hasCover, coverImgError, handleCoverImageError, insets.top]);
 
   const ListFooter = useCallback(() => (
-    posts.length > 0 ? (
-      <View style={[CardList.footer, styles.cardBottomExtra]}>
-        {loadingMore && <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />}
-      </View>
-    ) : null
-  ), [loadingMore, posts.length]);
+    loadingMore ? <ActivityIndicator color={Colors.primary} style={styles.footerLoader} /> : null
+  ), [loadingMore]);
 
   const ListEmpty = useCallback(() => !loadingPosts ? (
     <EmptyStateBox
@@ -891,7 +859,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   ) : null, [loadingPosts]);
 
   const renderItem = ({ item, index }: ListRenderItemInfo<ParishPost>) => (
-    <View style={[CardList.item, index === 0 && CardList.itemFirst]}>
+    <View style={[CardList.item, index === 0 && CardList.itemFirst, index === posts.length - 1 && CardList.itemLast]}>
       <ParishPostCard
         post={item}
         currentUserId={currentUserId}
@@ -1087,11 +1055,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing[4],
     paddingBottom: Spacing[3],
   },
-  communityTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
+  communityTitle: { fontSize: 12, fontWeight: Typography.semibold, color: Colors.textSecondary, letterSpacing: 1},
   newPostBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1109,11 +1073,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.base,
     fontWeight: Typography.semibold,
     color: Colors.textSecondary,
-  },
-
-  cardBottomExtra: {
-    minHeight: Spacing[5],
-    paddingBottom: Spacing[3],
   },
 
   feedScroll: { paddingBottom: Spacing[10] },
@@ -1461,95 +1420,8 @@ const manageStyles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing[5],
-    paddingVertical: Spacing[3],
-  },
-  headerTitle: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  saveText: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.primaryDark,
-  },
-  saveTextDisabled: {
-    opacity: 0.4,
-  },
-
   scroll: {
     paddingBottom: Spacing[12],
-  },
-
-  // Sections
-  sectionLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-    marginBottom: Spacing[3],
-    marginHorizontal: Spacing[5],
-    marginTop: Spacing[6],
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    marginHorizontal: Spacing[5],
-    marginBottom: Spacing[2],
-    paddingVertical: Spacing[2],
-    paddingHorizontal: Spacing[4],
-  },
-
-  // Fields
-  fieldContainer: {
-    paddingVertical: Spacing[1],
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontWeight: Typography.bold,
-    color: Colors.textSecondary,
-    letterSpacing: 1.2,
-    marginBottom: 0,
-    marginLeft: 26 + Spacing[3],
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  fieldIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing[3],
-    marginTop: 5,
-  },
-  fieldInput: {
-    flex: 1,
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-    paddingVertical: Spacing[2],
-    paddingHorizontal: 0,
-  },
-  scheduleInput: {
-    minHeight: 80,
-    fontWeight: Typography.regular,
-    lineHeight: Typography.base * 1.5,
-  },
-  charCount: {
-    fontSize: Typography.xs,
-    color: Colors.textLight,
-    textAlign: 'right',
-    marginTop: Spacing[1],
   },
 
   // Cover photo

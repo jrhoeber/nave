@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS prayer_groups (
     description      TEXT NOT NULL,
     category         TEXT NOT NULL
                          CHECK (category IN (
-                             'rosary', 'scripture_study', 'mens_group',
-                             'womens_group', 'youth', 'young_adults',
+                             'bible_study', 'mens_group',
+                             'womens_group', 'young_adults',
                              'families', 'devotional', 'general'
                          )),
     avatar_url       TEXT,

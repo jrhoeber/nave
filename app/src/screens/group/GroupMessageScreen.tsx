@@ -9,7 +9,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -29,18 +28,15 @@ import { useGroupChatStore } from '../../store/groupChatStore';
 import { useAuthStore } from '../../store/authStore';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { GroupMessage } from '../../types';
-import { GROUP_REACTION_EMOJIS } from '../../types';
 import type { GroupMessageRouteProp, RootNavigationProp } from '../../types/navigation';
 import { api, ApiError, mapGroupMessage } from '../../lib/apiClient';
 
 // ─── Category labels ─────────────────────────────────────────────────────────
 
 const CATEGORY_LABELS: Record<string, string> = {
-  rosary: 'Rosary',
-  scripture_study: 'Scripture Study',
+  bible_study: 'Bible Study',
   mens_group: "Men's Group",
   womens_group: "Women's Group",
-  youth: 'Youth',
   young_adults: 'Young Adults',
   families: 'Families',
   devotional: 'Devotional',
@@ -180,10 +176,10 @@ interface MessageContextMenuProps {
 function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss, onReport, onDelete }: MessageContextMenuProps) {
   const { toggleReaction } = useGroupChatStore();
 
-  const handleEmoji = useCallback(async (emoji: string) => {
+  const handleHeart = useCallback(async () => {
     if (!message) return;
     onDismiss();
-    await toggleReaction(groupId, message.id, emoji);
+    await toggleReaction(groupId, message.id, '❤️');
   }, [groupId, message, toggleReaction, onDismiss]);
 
   const handleCopy = useCallback(() => {
@@ -206,35 +202,28 @@ function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss
 
   if (!message) return null;
 
+  const hasReacted = message.reactions.some((r) => r.emoji === '❤️' && r.userReacted);
+
   const menuItems: Array<{ label: string; icon: string; onPress: () => void; destructive?: boolean }> = [];
 
+  menuItems.push({
+    label: hasReacted ? 'Unlike' : 'Like',
+    icon: hasReacted ? 'heart' : 'heart-outline',
+    onPress: handleHeart,
+  });
   if (message.content) {
     menuItems.push({ label: 'Copy', icon: 'copy-outline', onPress: handleCopy });
   }
   if (isOwnMessage) {
     menuItems.push({ label: 'Delete', icon: 'trash-outline', onPress: handleDelete, destructive: true });
   } else {
-    menuItems.push({ label: 'Report', icon: '', onPress: handleReport });
+    menuItems.push({ label: 'Report', icon: 'flag-outline', onPress: handleReport });
   }
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable style={ctxStyles.overlay} onPress={onDismiss}>
         <View style={ctxStyles.content} onStartShouldSetResponder={() => true}>
-          {/* Reaction bar */}
-          <View style={ctxStyles.reactionBar}>
-            {GROUP_REACTION_EMOJIS.map((emoji) => (
-              <TouchableOpacity
-                key={emoji}
-                onPress={() => handleEmoji(emoji)}
-                style={ctxStyles.emojiBtn}
-                activeOpacity={0.7}
-              >
-                <Text style={ctxStyles.emoji}>{emoji}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
           {/* Message preview */}
           <View style={ctxStyles.messagePreview}>
             <View style={ctxStyles.messageHeader}>
@@ -265,13 +254,11 @@ function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss
                 <Text style={[ctxStyles.menuLabel, item.destructive && ctxStyles.menuLabelDestructive]}>
                   {item.label}
                 </Text>
-                {item.icon ? (
-                  <Icon
-                    name={item.icon}
-                    size={20}
-                    color={item.destructive ? Colors.error : Colors.textSecondary}
-                  />
-                ) : null}
+                <Icon
+                  name={item.icon}
+                  size={20}
+                  color={item.destructive ? Colors.error : item.label === 'Like' || item.label === 'Unlike' ? '#dc2626' : Colors.textSecondary}
+                />
               </TouchableOpacity>
             ))}
           </View>
@@ -291,20 +278,6 @@ const ctxStyles = StyleSheet.create({
   content: {
     gap: Spacing[2],
   },
-  // Reaction bar
-  reactionBar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing[3],
-    paddingVertical: Spacing[2],
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 2,
-    ...Shadows.md,
-  },
-  emojiBtn: { padding: Spacing[2] },
-  emoji: { fontSize: 26 },
   // Message preview
   messagePreview: {
     backgroundColor: Colors.surface,
@@ -440,24 +413,28 @@ function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPres
           <Text style={msgStyles.text}>{message.content}</Text>
         ) : null}
 
-        {/* Reactions */}
-        {!message.pending && message.reactions.length > 0 && (
-          <View style={msgStyles.reactionsRow}>
-            {message.reactions.map((r) => (
-              <TouchableOpacity
-                key={r.emoji}
-                onPress={() => isMember && toggleReaction(groupId, message.id, r.emoji)}
-                style={[chipStyles.chip, r.userReacted && chipStyles.chipActive]}
-                activeOpacity={0.7}
-              >
-                <Text style={chipStyles.emoji}>{r.emoji}</Text>
-                <Text style={[chipStyles.count, r.userReacted && chipStyles.countActive]}>
-                  {r.count}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        {/* Reactions — simple heart like parish posts */}
+        {!message.pending && (() => {
+          const heartCount = message.reactions.reduce((sum, r) => sum + r.count, 0);
+          const hasReacted = message.reactions.some((r) => r.userReacted);
+          if (heartCount === 0) return null;
+          return (
+            <TouchableOpacity
+              style={msgStyles.heartRow}
+              onPress={() => isMember && toggleReaction(groupId, message.id, '❤️')}
+              activeOpacity={0.6}
+            >
+              <Icon
+                name={hasReacted ? 'heart' : 'heart-outline'}
+                size={14}
+                color={hasReacted ? '#dc2626' : Colors.textSecondary}
+              />
+              <Text style={[msgStyles.heartCount, hasReacted && msgStyles.heartCountActive]}>
+                {heartCount}
+              </Text>
+            </TouchableOpacity>
+          );
+        })()}
       </View>
     </Pressable>
   );
@@ -518,34 +495,20 @@ const msgStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reactionsRow: {
+  heartRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[2],
+    gap: 4,
     marginTop: 6,
   },
-});
-
-const chipStyles = StyleSheet.create({
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.surfaceAlt,
-  },
-  chipActive: {
-    backgroundColor: 'rgba(26,43,74,0.10)',
-  },
-  emoji: { fontSize: 13 },
-  count: {
-    fontSize: Typography.xs,
+  heartCount: {
+    fontSize: Typography.sm,
     color: Colors.textSecondary,
-    fontWeight: Typography.semibold,
+    fontWeight: Typography.medium,
   },
-  countActive: { color: Colors.primary },
+  heartCountActive: {
+    color: '#dc2626',
+  },
 });
 
 

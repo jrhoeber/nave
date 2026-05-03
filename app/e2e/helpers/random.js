@@ -26,7 +26,7 @@ const MESSAGES = [
   'Grateful for God\'s mercy and love.',
 ];
 
-const CATEGORIES = ['rosary', 'scripture_study', 'mens_group', 'womens_group', 'youth', 'young_adults', 'families', 'devotional', 'general'];
+const CATEGORIES = ['bible_study', 'mens_group', 'womens_group', 'young_adults', 'families', 'devotional', 'general'];
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];

@@ -2,16 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
-  StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { PrayerGroupCard } from './PrayerGroupCard';
+import { SearchModal } from '../ui/SearchModal';
 import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
 import { api, mapPrayerGroup } from '../../lib/apiClient';
 import { useAuthStore } from '../../store/authStore';
@@ -50,7 +48,6 @@ export function AddGroupModal({ visible, onClose, onCreateGroup, onJoinGroup, on
     }
   }, [parishName]);
 
-  // Initial load
   useEffect(() => {
     if (visible && parishName) {
       setSearch('');
@@ -58,7 +55,6 @@ export function AddGroupModal({ visible, onClose, onCreateGroup, onJoinGroup, on
     }
   }, [visible, parishName]);
 
-  // Debounced search
   const handleSearch = (text: string) => {
     setSearch(text);
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -71,172 +67,80 @@ export function AddGroupModal({ visible, onClose, onCreateGroup, onJoinGroup, on
     fetchGroups(search);
   };
 
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.container}>
-
-        {/* Dragger */}
-        <View style={styles.draggerRow}>
-          <View style={styles.dragger} />
-        </View>
-
-        {/* Header */}
-        <View style={styles.header}>
-          <View />
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.sectionHeader}>JOIN A GROUP</Text>
-        <Text style={styles.heroText}>Find your circle.</Text>
-
-        {/* Start a group CTA */}
-        <TouchableOpacity
-          style={styles.createRow}
-          onPress={() => { onClose(); onCreateGroup(); }}
-          activeOpacity={0.7}
-        >
-          <View style={styles.createIcon}>
-            <Icon name="add" size={22} color={Colors.textInverse} />
-          </View>
-          <View style={styles.createInfo}>
-            <Text style={styles.createLabel}>Start a group</Text>
-            <Text style={styles.createSub}>Name it, set a cadence, invite a few</Text>
-          </View>
-          <Icon name="chevron-forward" size={18} color={Colors.textSecondary} />
-        </TouchableOpacity>
-
-        {/* Search bar */}
-        <View style={styles.searchContainer}>
-          <Icon name="search-outline" size={16} color={Colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search groups"
-            placeholderTextColor={Colors.textLight}
-            value={search}
-            onChangeText={handleSearch}
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="close-circle" size={16} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Parish groups list */}
-        {!parishName ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>{'\u26EA'}</Text>
-            <Text style={styles.emptyTitle}>Join a parish to see groups</Text>
-            <Text style={styles.emptySubtitle}>Set your parish in your profile to discover local prayer groups.</Text>
-          </View>
-        ) : (
-          <>
-            <Text style={styles.sectionLabel}>
-              {search.length > 0 ? 'RESULTS' : `AT ${parishName.toUpperCase()}`}
-            </Text>
-            {loading ? (
-              <ActivityIndicator style={styles.spinner} color={Colors.primary} />
-            ) : groups.length === 0 ? (
-              <Text style={styles.noResults}>
-                {search.length > 0 ? 'No groups match your search.' : 'No public groups found for your parish yet.'}
-              </Text>
-            ) : (
-              <FlatList
-                data={groups}
-                keyExtractor={(g) => g.id}
-                renderItem={({ item, index }) => (
-                  <View style={[CardList.item, index === 0 && CardList.itemFirst]}>
-                    <PrayerGroupCard
-                      group={item}
-                      onPress={(id) => { onClose(); onOpenGroup(id); }}
-                      onJoin={(id) => handleJoin(id)}
-                      onLeave={leaveGroup}
-                      onEdit={() => {}}
-                      onDelete={deleteGroup}
-                      isLast={index === groups.length - 1}
-                    />
-                  </View>
-                )}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.list}
-                ListFooterComponent={groups.length > 0 ? <View style={CardList.footer} /> : null}
-              />
-            )}
-          </>
-        )}
+  const createRow = (
+    <TouchableOpacity
+      style={styles.createRow}
+      onPress={() => { onClose(); onCreateGroup(); }}
+      activeOpacity={0.7}
+    >
+      <View style={styles.createIcon}>
+        <Icon name="add" size={22} color={Colors.textInverse} />
       </View>
-    </Modal>
+      <View style={styles.createInfo}>
+        <Text style={styles.createLabel}>Start a group</Text>
+        <Text style={styles.createSub}>Name it, set a cadence, invite a few</Text>
+      </View>
+      <Icon name="chevron-forward" size={18} color={Colors.textSecondary} />
+    </TouchableOpacity>
+  );
+
+  return (
+    <SearchModal
+      visible={visible}
+      onClose={onClose}
+      sectionHeader="JOIN A GROUP"
+      heroText="Find your circle."
+      searchPlaceholder="Search groups"
+      query={search}
+      onQueryChange={handleSearch}
+      aboveSearch={createRow}
+    >
+      {!parishName ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>{'\u26EA'}</Text>
+          <Text style={styles.emptyTitle}>Join a parish to see groups</Text>
+          <Text style={styles.emptySubtitle}>Set your parish in your profile to discover local prayer groups.</Text>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.sectionLabel}>
+            {search.length > 0 ? 'RESULTS' : `AT ${parishName.toUpperCase()}`}
+          </Text>
+          {loading ? (
+            <ActivityIndicator style={styles.spinner} color={Colors.primary} />
+          ) : groups.length === 0 ? (
+            <Text style={styles.noResults}>
+              {search.length > 0 ? 'No groups match your search.' : 'No public groups found for your parish yet.'}
+            </Text>
+          ) : (
+            <FlatList
+              data={groups}
+              keyExtractor={(g) => g.id}
+              renderItem={({ item, index }) => (
+                <View style={[CardList.item, index === 0 && CardList.itemFirst, index === groups.length - 1 && CardList.itemLast]}>
+                  <PrayerGroupCard
+                    group={item}
+                    onPress={(id) => { onClose(); onOpenGroup(id); }}
+                    onJoin={(id) => handleJoin(id)}
+                    onLeave={leaveGroup}
+                    onEdit={() => {}}
+                    onDelete={deleteGroup}
+                    isLast={index === groups.length - 1}
+                  />
+                </View>
+              )}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.list}
+              ListFooterComponent={null}
+            />
+          )}
+        </>
+      )}
+    </SearchModal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-
-  draggerRow: {
-    alignItems: 'center',
-    paddingTop: Spacing[2],
-    paddingBottom: Spacing[1],
-  },
-  dragger: {
-    width: 36,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: Colors.border,
-  },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing[5],
-    paddingBottom: Spacing[1],
-  },
-  cancelText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: '#4b5563', paddingRight: Spacing[1] },
-
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: Spacing[5],
-    marginTop: Spacing[3],
-    marginBottom: Spacing[2],
-    paddingBottom: Spacing[3],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-    gap: Spacing[2],
-  },
-  searchIcon: { flexShrink: 0 },
-  searchInput: {
-    flex: 1,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    paddingVertical: 0,
-    height: 24,
-  },
-
-  sectionHeader: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[2],
-  },
-
-  heroText: {
-    fontFamily: 'CormorantGaramond-Regular',
-    fontSize: 28,
-    color: Colors.textPrimary,
-    paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[2],
-    paddingBottom: Spacing[1],
-  },
-
   createRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -267,9 +171,7 @@ const styles = StyleSheet.create({
   },
 
   spinner: { marginTop: Spacing[8] },
-
   list: { paddingBottom: Spacing[10] },
-
 
   emptyState: { alignItems: 'center', paddingVertical: Spacing[16], paddingHorizontal: Spacing[8] },
   emptyIcon: { fontSize: 48, marginBottom: Spacing[4] },

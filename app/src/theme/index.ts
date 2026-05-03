@@ -131,15 +131,9 @@ export const CardList = StyleSheet.create({
     borderTopRightRadius: Radius.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  footer: {
-    backgroundColor: '#ffffff',
+  itemLast: {
     borderBottomLeftRadius: Radius.lg,
     borderBottomRightRadius: Radius.lg,
-    marginHorizontal: Spacing[3],
-    minHeight: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
   },
 });

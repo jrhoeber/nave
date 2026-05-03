@@ -19,25 +19,24 @@ import { AddToGroupModal } from '../../components/prayer/AddToGroupModal';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useAuthStore } from '../../store/authStore';
 import { api, mapPrayerGroup } from '../../lib/apiClient';
-import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
+import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { GroupProfileRouteProp, RootNavigationProp } from '../../types/navigation';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const AVATAR_SIZE = 96;
-const AVATAR_BORDER = 4;
-const AVATAR_TOTAL = AVATAR_SIZE + AVATAR_BORDER * 2;
+const AVATAR_SIZE = 110;
+const AVATAR_BORDER = 2;
+const AVATAR_GAP = 4;
+const AVATAR_TOTAL = AVATAR_SIZE + (AVATAR_BORDER + AVATAR_GAP) * 2;
 
 const CATEGORY_LABELS: Record<string, string> = {
-  rosary: '📿 Rosary',
-  scripture_study: '📖 Scripture Study',
-  mens_group: "🛡️ Men's Group",
-  womens_group: '🌸 Women\'s Group',
-  youth: '😊 Youth',
-  young_adults: '🙌 Young Adults',
-  families: '🏠 Families',
-  devotional: '❤️ Devotional',
-  general: '💬 General',
+  bible_study: 'Bible Study',
+  mens_group: "Men's Group",
+  womens_group: "Women's Group",
+  young_adults: 'Young Adults',
+  families: 'Families',
+  devotional: 'Devotional',
+  general: 'General',
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -57,28 +56,27 @@ interface MemberRowProps {
   isGroupAdmin: boolean;
   canRemove: boolean;
   onRemove: () => void;
-  separator: boolean;
+  onPress: () => void;
+  isLast: boolean;
 }
 
-function MemberRow({ member, isGroupAdmin, canRemove, onRemove, separator }: MemberRowProps) {
+function MemberRow({ member, isGroupAdmin, canRemove, onRemove, onPress, isLast }: MemberRowProps) {
+  const meta = [`@${member.username}`, isGroupAdmin && 'Admin'].filter(Boolean).join(' · ');
   return (
-    <>
+    <TouchableOpacity
+      style={[memberStyles.card, isLast && memberStyles.cardLast]}
+      onPress={onPress}
+      activeOpacity={0.97}
+    >
       <View style={memberStyles.row}>
-        <Avatar name={member.displayName} uri={member.avatarUrl} size={44} />
+        <Avatar name={member.displayName} uri={member.avatarUrl} size={42} />
         <View style={memberStyles.info}>
-          <View style={memberStyles.nameRow}>
-            <Text style={memberStyles.displayName} numberOfLines={1}>{member.displayName}</Text>
-            {isGroupAdmin && (
-              <View style={memberStyles.adminBadge}>
-                <Text style={memberStyles.adminBadgeText}>Admin</Text>
-              </View>
-            )}
-          </View>
-          <Text style={memberStyles.username}>@{member.username}</Text>
+          <Text style={memberStyles.displayName} numberOfLines={1}>{member.displayName}</Text>
+          <Text style={memberStyles.meta} numberOfLines={1}>{meta}</Text>
         </View>
         {canRemove && (
           <TouchableOpacity
-            onPress={onRemove}
+            onPress={(e) => { e.stopPropagation(); onRemove(); }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             activeOpacity={0.6}
           >
@@ -86,47 +84,36 @@ function MemberRow({ member, isGroupAdmin, canRemove, onRemove, separator }: Mem
           </TouchableOpacity>
         )}
       </View>
-      {separator && <View style={memberStyles.separator} />}
-    </>
+    </TouchableOpacity>
   );
 }
 
 const memberStyles = StyleSheet.create({
+  card: {
+    paddingHorizontal: Spacing[5],
+    paddingVertical: Spacing[4],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#d8d3cb',
+  },
+  cardLast: {
+    borderBottomWidth: 0,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
     gap: Spacing[3],
   },
-  info: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2], flexShrink: 1 },
+  info: { flex: 1, minWidth: 0 },
   displayName: {
     fontSize: Typography.base,
     fontWeight: Typography.semibold,
     color: Colors.textPrimary,
     flexShrink: 1,
   },
-  adminBadge: {
-    backgroundColor: Colors.primaryLight + '22',
-    borderRadius: Radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  adminBadgeText: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  username: {
+  meta: {
     fontSize: Typography.sm,
     color: Colors.textSecondary,
     marginTop: 2,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginLeft: Spacing[4] + 44 + Spacing[3],
   },
 });
 
@@ -370,7 +357,7 @@ export function GroupProfileScreen() {
     }
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator color={Colors.primary} />
+        <ActivityIndicator color={Colors.accent} />
       </View>
     );
   }
@@ -380,247 +367,283 @@ export function GroupProfileScreen() {
     year: 'numeric',
   });
 
+  const categoryLabel = CATEGORY_LABELS[group.category] ?? group.category;
+
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}
+      bounces
+    >
+      <StatusBar barStyle="dark-content" />
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: Spacing[12] }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Hero ── */}
-        <View style={[styles.hero, { paddingTop: insets.top + Spacing[3] }]}>
-          <View style={styles.heroRow}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.heroBtn}
-            >
-              <Icon name="chevron-back" size={24} color={Colors.accentLight} />
-            </TouchableOpacity>
-            {isAdmin && (
-              <TouchableOpacity
-                onPress={() => setEditModalVisible(true)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={styles.heroBtn}
-              >
-                <Icon name="settings-outline" size={22} color={Colors.accentLight} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <View style={styles.heroRule} />
-        </View>
-
-        {/* ── Avatar ── */}
-        <View style={styles.avatarAnchor}>
+      {/* ── Header row ── */}
+      <View style={[styles.headerRow, { paddingTop: insets.top + Spacing[3] }]}>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Icon name="chevron-back" size={22} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        {isAdmin ? (
           <TouchableOpacity
-            onPress={handleAvatarPress}
-            disabled={!isAdmin || avatarUploading}
-            activeOpacity={isAdmin ? 0.75 : 1}
+            style={styles.headerBtn}
+            onPress={() => setEditModalVisible(true)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <View style={styles.avatarRing}>
-              {avatarUploading ? (
-                <View style={styles.avatarLoader}>
-                  <ActivityIndicator color={Colors.accent} />
-                </View>
-              ) : (
-                <Avatar uri={group.avatarUrl} name={group.name} size={AVATAR_SIZE} />
-              )}
-            </View>
-            {isAdmin && (
-              <View style={styles.cameraBadge}>
-                <Icon name="camera" size={13} color={Colors.surface} />
-              </View>
-            )}
+            <Icon name="ellipsis-horizontal" size={20} color={Colors.textPrimary} />
           </TouchableOpacity>
-        </View>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
+      </View>
 
-        {/* ── Identity ── */}
-        <View style={styles.identity}>
-          <Text style={styles.groupName}>{group.name}</Text>
-
-          <View style={styles.categoryChip}>
-            <Text style={styles.categoryChipText}>
-              {CATEGORY_LABELS[group.category] ?? group.category}
-            </Text>
+      {/* ── Avatar with gold ring ── */}
+      <View style={styles.avatarCenter}>
+        <TouchableOpacity
+          onPress={handleAvatarPress}
+          disabled={!isAdmin || avatarUploading}
+          activeOpacity={isAdmin ? 0.85 : 1}
+        >
+          <View style={styles.avatarRing}>
+            {avatarUploading ? (
+              <ActivityIndicator color={Colors.accent} />
+            ) : (
+              <Avatar uri={group.avatarUrl} name={group.name} size={AVATAR_SIZE} />
+            )}
           </View>
-
-          {group.parish ? (
-            <View style={styles.parishPill}>
-              <Icon name="business-outline" size={12} color={Colors.accent} />
-              <Text style={styles.parishText} numberOfLines={1}>{group.parish}</Text>
+          {isAdmin && (
+            <View style={styles.cameraBadge}>
+              {avatarUploading
+                ? <ActivityIndicator size="small" color={Colors.textInverse} />
+                : <Icon name="camera-outline" size={14} color={Colors.textPrimary} />
+              }
             </View>
-          ) : null}
-        </View>
+          )}
+        </TouchableOpacity>
+      </View>
 
-        {/* ── Ornament ── */}
-        <View style={styles.ornament}>
-          <View style={styles.ornamentLine} />
-          <View style={styles.ornamentDot} />
-          <View style={styles.ornamentDot} />
-          <View style={styles.ornamentDot} />
-          <View style={styles.ornamentLine} />
-        </View>
+      {/* ── Name ── */}
+      <Text style={styles.groupName}>{group.name}</Text>
 
-        {/* ── Info ── */}
-        <View style={styles.infoSection}>
-          <View style={styles.infoRow}>
-            <Icon name="calendar-outline" size={14} color={Colors.textSecondary} style={styles.infoIcon} />
-            <Text style={styles.infoMeta}>Established </Text>
-            <Text style={styles.infoValue}>{established}</Text>
-          </View>
-          {group.meetingSchedule ? (
-            <View style={styles.infoRow}>
-              <Icon name="time-outline" size={14} color={Colors.textSecondary} style={styles.infoIcon} />
-              <Text style={styles.infoValue} numberOfLines={3}>{group.meetingSchedule}</Text>
-            </View>
-          ) : null}
-        </View>
+      {/* ── Parish ── */}
+      {group.parish ? (
+        <Text style={styles.categoryText}>{group.parish}</Text>
+      ) : null}
 
-        {/* ── Description ── */}
-        {group.description ? (
-          <Text style={styles.description}>{group.description}</Text>
-        ) : null}
+      {/* ── Gold divider ── */}
+      <View style={styles.goldDivider} />
 
-        {/* ── Actions ── */}
+      {/* ── Description ── */}
+      {group.description ? (
+        <Text style={styles.descriptionLabel}>{group.description}</Text>
+      ) : null}
+
+      {/* ── Action buttons ── */}
+      <View style={styles.actionRow}>
         {group.isMember ? (
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.actionBtn} onPress={handleMuteToggle} activeOpacity={0.7}>
+          <>
+            <TouchableOpacity
+              style={styles.actionBtnOutlined}
+              onPress={handleMuteToggle}
+              activeOpacity={0.7}
+            >
               <Icon
                 name={isMuted ? 'notifications-off-outline' : 'notifications-outline'}
-                size={20}
-                color={Colors.primary}
+                size={16}
+                color={Colors.textPrimary}
               />
-              <Text style={styles.actionBtnLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
+              <Text style={styles.actionBtnText}>{isMuted ? 'Unmute' : 'Mute'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionBtn}
+              style={styles.actionBtnOutlined}
               onPress={() => Alert.alert('Coming Soon', 'Sharing will be available in a future update.')}
               activeOpacity={0.7}
             >
-              <Icon name="share-outline" size={20} color={Colors.primary} />
-              <Text style={styles.actionBtnLabel}>Share</Text>
+              <Icon name="share-outline" size={16} color={Colors.textPrimary} />
+              <Text style={styles.actionBtnText}>Share</Text>
             </TouchableOpacity>
 
             {isAdmin ? (
-              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={handleDelete} activeOpacity={0.7}>
-                <Icon name="trash-outline" size={20} color={Colors.error} />
-                <Text style={[styles.actionBtnLabel, styles.actionBtnLabelDanger]}>Delete</Text>
+              <TouchableOpacity
+                style={[styles.actionBtnOutlined, styles.actionBtnDanger]}
+                onPress={handleDelete}
+                activeOpacity={0.7}
+              >
+                <Icon name="trash-outline" size={16} color={Colors.error} />
+                <Text style={[styles.actionBtnText, { color: Colors.error }]}>Delete</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={handleLeave} activeOpacity={0.7}>
-                <Icon name="exit-outline" size={20} color={Colors.error} />
-                <Text style={[styles.actionBtnLabel, styles.actionBtnLabelDanger]}>Leave</Text>
+              <TouchableOpacity
+                style={[styles.actionBtnOutlined, styles.actionBtnDanger]}
+                onPress={handleLeave}
+                activeOpacity={0.7}
+              >
+                <Icon name="exit-outline" size={16} color={Colors.error} />
+                <Text style={[styles.actionBtnText, { color: Colors.error }]}>Leave</Text>
               </TouchableOpacity>
             )}
-          </View>
+          </>
         ) : (
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnJoin, group.isPendingApproval && styles.actionBtnPending]}
-              onPress={async () => {
-                if (group.isPendingApproval || joining) return;
-                setJoining(true);
-                try {
-                  await joinGroup(group.id, group);
-                } catch (e: any) {
-                  Alert.alert('Error', e.message ?? 'Could not join group.');
-                } finally {
-                  setJoining(false);
-                }
-              }}
-              disabled={group.isPendingApproval || joining}
-              activeOpacity={0.7}
-            >
-              {joining ? (
-                <ActivityIndicator size="small" color={Colors.textInverse} />
-              ) : (
-                <Icon name={group.isPendingApproval ? 'time-outline' : 'person-add-outline'} size={20} color={group.isPendingApproval ? Colors.textSecondary : Colors.textInverse} />
-              )}
-              <Text style={[styles.actionBtnLabel, !group.isPendingApproval && styles.actionBtnLabelJoin]}>
-                {group.isPendingApproval ? 'Requested' : 'Join Group'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* ── Pending Requests ── */}
-        {isAdmin && (pendingLoading || pendingMembers.length > 0) && (
-          <View style={styles.membersSection}>
-            <View style={styles.membersSectionHeader}>
-              <Text style={styles.membersSectionTitle}>
-                Requests{pendingMembers.length > 0 ? ` (${pendingMembers.length})` : ''}
-              </Text>
-            </View>
-            {pendingLoading ? (
-              <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing[4] }} />
-            ) : pendingMembers.length === 0 ? (
-              <Text style={styles.emptyText}>No pending requests.</Text>
+          <TouchableOpacity
+            style={[
+              styles.actionBtnOutlined,
+              !group.isPendingApproval && styles.actionBtnJoin,
+              group.isPendingApproval && { opacity: 0.5 },
+            ]}
+            onPress={async () => {
+              if (group.isPendingApproval || joining) return;
+              setJoining(true);
+              try {
+                await joinGroup(group.id, group);
+              } catch (e: any) {
+                Alert.alert('Error', e.message ?? 'Could not join group.');
+              } finally {
+                setJoining(false);
+              }
+            }}
+            disabled={group.isPendingApproval || joining}
+            activeOpacity={0.7}
+          >
+            {joining ? (
+              <ActivityIndicator size="small" color={group.isPendingApproval ? Colors.textSecondary : Colors.textInverse} />
             ) : (
-              pendingMembers.map((member, index) => (
-                <View key={member.id}>
-                  <View style={memberStyles.row}>
-                    <Avatar name={member.displayName} uri={member.avatarUrl} size={44} />
-                    <View style={memberStyles.info}>
-                      <Text style={memberStyles.displayName} numberOfLines={1}>{member.displayName}</Text>
-                      <Text style={memberStyles.username}>@{member.username}</Text>
-                    </View>
-                    <View style={styles.pendingActions}>
-                      <TouchableOpacity
-                        onPress={() => handleRejectMember(member)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text style={styles.pendingDeclineText}>Decline</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => handleApproveMember(member)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text style={styles.pendingApproveText}>Accept</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  {index < pendingMembers.length - 1 && <View style={memberStyles.separator} />}
-                </View>
-              ))
+              <>
+                <Icon
+                  name={group.isPendingApproval ? 'time-outline' : 'person-add-outline'}
+                  size={16}
+                  color={group.isPendingApproval ? Colors.textSecondary : Colors.textInverse}
+                />
+                <Text style={[
+                  styles.actionBtnText,
+                  !group.isPendingApproval && { color: Colors.textInverse },
+                  group.isPendingApproval && { color: Colors.textSecondary },
+                ]}>
+                  {group.isPendingApproval ? 'Requested' : 'Join Group'}
+                </Text>
+              </>
             )}
-          </View>
+          </TouchableOpacity>
         )}
+      </View>
 
-        {/* ── Members ── */}
-        <View style={styles.membersSection}>
-          <View style={styles.membersSectionHeader}>
-            <Text style={styles.membersSectionTitle}>
-              Members ({memberCount})
-            </Text>
-            <TouchableOpacity
-              onPress={() => setAddMemberModalVisible(true)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.addMemberBtn}
-            >
-              <Icon name="person-add-outline" size={18} color={Colors.primary} />
-            </TouchableOpacity>
+      {/* ── Stats card ── */}
+      <View style={styles.statsCard}>
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>MEMBERS</Text>
+          <Text style={styles.statsValueSmall}>{memberCount}</Text>
+        </View>
+
+        <View style={styles.statsDivider} />
+
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>CATEGORY</Text>
+          <Text style={styles.statsValueSmall}>{categoryLabel}</Text>
+        </View>
+
+        <View style={styles.statsDivider} />
+
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>ESTABLISHED</Text>
+          <Text style={styles.statsValueSmall}>{established}</Text>
+        </View>
+      </View>
+
+      {/* ── About ── */}
+      {!!group.meetingSchedule && (
+        <>
+          <Text style={styles.sectionLabel}>ABOUT</Text>
+          <View style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Icon name="time-outline" size={18} color={Colors.accent} />
+              </View>
+              <View style={styles.detailContent}>
+                <Text style={styles.detailTitle}>{group.meetingSchedule}</Text>
+              </View>
+            </View>
           </View>
+        </>
+      )}
 
-          {membersLoading ? (
-            <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing[4] }} />
-          ) : members.length === 0 ? (
-            <Text style={styles.emptyText}>No members found.</Text>
+      {/* ── Pending Requests ── */}
+      {isAdmin && (pendingLoading || pendingMembers.length > 0) && (
+        <>
+          <Text style={styles.sectionLabel}>
+            REQUESTS{pendingMembers.length > 0 ? ` (${pendingMembers.length})` : ''}
+          </Text>
+          {pendingLoading ? (
+            <ActivityIndicator color={Colors.accent} style={{ marginVertical: Spacing[4] }} />
           ) : (
-            members.map((member, index) => (
+            pendingMembers.map((member, index) => (
+              <View key={member.id} style={styles.requestCard}>
+                <TouchableOpacity
+                  style={styles.requestUserRow}
+                  onPress={() => navigation.navigate('UserProfile', { id: member.id })}
+                  activeOpacity={0.85}
+                >
+                  <Avatar name={member.displayName} uri={member.avatarUrl} size={46} />
+                  <View style={memberStyles.info}>
+                    <Text style={memberStyles.displayName} numberOfLines={1}>{member.displayName}</Text>
+                    <Text style={memberStyles.meta}>@{member.username}</Text>
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.requestActions}>
+                  <TouchableOpacity
+                    style={styles.acceptBtn}
+                    onPress={() => handleApproveMember(member)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.acceptBtnLabel}>Accept</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.rejectBtn}
+                    onPress={() => handleRejectMember(member)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.rejectBtnLabel}>Decline</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
+          )}
+        </>
+      )}
+
+      {/* ── Members ── */}
+      <View style={styles.membersSectionHeader}>
+        <Text style={styles.sectionLabel}>MEMBERS ({memberCount})</Text>
+        <TouchableOpacity
+          style={styles.addMemberBtn}
+          onPress={() => setAddMemberModalVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.addMemberBtnText}>+ Add member</Text>
+        </TouchableOpacity>
+      </View>
+      {membersLoading ? (
+        <ActivityIndicator color={Colors.accent} style={{ marginVertical: Spacing[4] }} />
+      ) : members.length === 0 ? (
+        <Text style={styles.emptyText}>No members found.</Text>
+      ) : (
+        <>
+          {members.map((member, index) => (
+            <View key={member.id} style={[CardList.item, index === 0 && CardList.itemFirst, index === members.length - 1 && CardList.itemLast]}>
               <MemberRow
-                key={member.id}
                 member={member}
                 isGroupAdmin={member.id === group.admin.id}
                 canRemove={isAdmin && member.id !== group.admin.id}
                 onRemove={() => handleRemoveMember(member)}
-                separator={index < members.length - 1}
+                onPress={() => navigation.navigate('UserProfile', { id: member.id })}
+                isLast={index === members.length - 1}
               />
-            ))
-          )}
-        </View>
-      </ScrollView>
+            </View>
+          ))}
+        </>
+      )}
 
       {isAdmin && (
         <EditPrayerGroupModal
@@ -640,7 +663,7 @@ export function GroupProfileScreen() {
           setMemberCount((c) => c + 1);
         }}
       />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -650,6 +673,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  scroll: {
+    paddingBottom: Spacing[12],
   },
   centered: {
     flex: 1,
@@ -662,35 +688,27 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Hero
-  hero: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing[5],
-    paddingBottom: AVATAR_TOTAL / 2 + Spacing[6],
-  },
-  heroRow: {
+  // ── Header ──
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing[2],
+    paddingHorizontal: Spacing[5],
+    marginBottom: Spacing[4],
   },
-  heroBtn: {},
-  heroRule: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: Colors.accent,
-    opacity: 0.5,
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
-  // Avatar
-  avatarAnchor: {
+  // ── Avatar ──
+  avatarCenter: {
     alignItems: 'center',
-    marginTop: -(AVATAR_TOTAL / 2),
-    zIndex: 10,
-    marginBottom: Spacing[3],
+    marginBottom: Spacing[4],
   },
   avatarRing: {
     width: AVATAR_TOTAL,
@@ -698,23 +716,19 @@ const styles = StyleSheet.create({
     borderRadius: AVATAR_TOTAL / 2,
     borderWidth: AVATAR_BORDER,
     borderColor: Colors.accent,
-    backgroundColor: Colors.primary,
-    overflow: 'hidden',
-    ...Shadows.lg,
-  },
-  avatarLoader: {
-    flex: 1,
+    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Shadows.lg,
   },
   cameraBadge: {
     position: 'absolute',
     bottom: 2,
     right: 2,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.primaryLight,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -722,197 +736,228 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
 
-  // Identity
-  identity: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing[6],
-    gap: Spacing[2],
-  },
+  // ── Identity ──
   groupName: {
-    fontFamily: Typography.fontSerif,
-    fontSize: Typography['2xl'],
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
+    fontFamily: 'CormorantGaramond-Regular',
+    fontSize: Typography['3xl'],
+    color: '#000000',
+    lineHeight: Typography['3xl'] * 1.15,
+    textAlign: 'center',
+    marginBottom: Spacing[1],
+  },
+  categoryText: {
+    fontSize: Typography.base,
+    color: Colors.textSecondary,
     letterSpacing: 0.3,
     textAlign: 'center',
+    marginBottom: Spacing[3],
   },
-  categoryChip: {
-    backgroundColor: Colors.accent + '18',
-    borderWidth: 1,
-    borderColor: Colors.accent + '40',
-    borderRadius: Radius.full,
-    paddingVertical: 5,
-    paddingHorizontal: Spacing[3],
-  },
-  categoryChipText: {
-    fontSize: Typography.sm,
-    color: Colors.accentDark,
-    fontWeight: Typography.semibold,
-    letterSpacing: 0.2,
-  },
-  parishPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[2],
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: Radius.full,
-    paddingVertical: 5,
-    paddingHorizontal: Spacing[3],
-  },
-  parishText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-    letterSpacing: 0.2,
-    maxWidth: 240,
-  },
-
-  // Ornament
-  ornament: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[2],
-    marginVertical: Spacing[5],
-    marginHorizontal: Spacing[10],
-  },
-  ornamentLine: {
-    flex: 1,
-    height: 1,
+  goldDivider: {
+    width: 28,
+    height: 2.5,
     backgroundColor: Colors.accent,
-    opacity: 0.35,
-  },
-  ornamentDot: {
-    width: 4,
-    height: 4,
+    alignSelf: 'center',
     borderRadius: 2,
-    backgroundColor: Colors.accent,
-    opacity: 0.6,
+    marginBottom: Spacing[3],
   },
-
-  // Info
-  infoSection: {
-    paddingHorizontal: Spacing[6],
-    gap: Spacing[3],
-    marginBottom: Spacing[4],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing[2],
-  },
-  infoIcon: {
-    marginTop: 1,
-  },
-  infoMeta: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-  },
-  infoValue: {
-    fontSize: Typography.sm,
-    color: Colors.textPrimary,
-    fontWeight: Typography.medium,
-    flex: 1,
-  },
-
-  // Description
-  description: {
+  descriptionLabel: {
     fontSize: Typography.base,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Typography.base * Typography.relaxed,
-    paddingHorizontal: Spacing[6],
-    marginBottom: Spacing[6],
+    lineHeight: Typography.base * 1.5,
+    paddingHorizontal: Spacing[8],
+    marginBottom: Spacing[5],
   },
 
-  // Actions
-  actionsRow: {
+  // ── Action buttons ──
+  actionRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing[3],
-    paddingHorizontal: Spacing[5],
     marginBottom: Spacing[6],
+    paddingHorizontal: Spacing[6],
   },
-  actionBtn: {
-    flex: 1,
+  actionBtnOutlined: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[1],
-    paddingVertical: Spacing[3],
-    borderRadius: Radius.md,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
+    gap: Spacing[2],
+    paddingVertical: Spacing[2] + 2,
+    paddingHorizontal: Spacing[5],
+    borderRadius: Radius.full,
+    borderWidth: 1.5,
     borderColor: Colors.border,
-    ...Shadows.sm,
+    backgroundColor: Colors.surface,
   },
-  actionBtnLabel: {
-    fontSize: Typography.xs,
+  actionBtnText: {
+    fontSize: Typography.base,
     fontWeight: Typography.semibold,
-    color: Colors.primary,
-    letterSpacing: 0.2,
+    color: Colors.textPrimary,
   },
   actionBtnDanger: {
-    borderColor: Colors.error + '30',
-    backgroundColor: Colors.error + '08',
-  },
-  actionBtnLabelDanger: {
-    color: Colors.error,
+    borderColor: Colors.error + '40',
   },
   actionBtnJoin: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
-    flex: 0,
-    paddingHorizontal: Spacing[6],
-  },
-  actionBtnPending: {
-    backgroundColor: 'transparent',
-    borderColor: Colors.border,
-  },
-  actionBtnLabelJoin: {
-    color: Colors.textInverse,
   },
 
-  // Members
-  membersSection: {
-    marginTop: Spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+  // ── Stats card ──
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing[5],
+    borderRadius: Radius.md,
+    paddingVertical: Spacing[4],
+    marginBottom: Spacing[6],
+    ...Shadows.sm,
   },
+  statsCol: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: Spacing[2],
+  },
+  statsDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing[1],
+  },
+  statsLabel: {
+    fontSize: 10,
+    fontWeight: Typography.bold,
+    color: Colors.accent,
+    letterSpacing: 1.2,
+    marginBottom: Spacing[2],
+  },
+  statsValueSmall: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+
+  // ── Section label ──
+  sectionLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.bold,
+    color: Colors.textSecondary,
+    letterSpacing: 1.5,
+    marginBottom: Spacing[3],
+    marginHorizontal: Spacing[6],
+  },
+
+  // ── Details card ──
+  detailsCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    marginHorizontal: Spacing[5],
+    marginBottom: Spacing[6],
+    overflow: 'hidden',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[4],
+    gap: Spacing[3],
+  },
+  detailIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailContent: {
+    flex: 1,
+  },
+  detailTitle: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+  },
+  detailSep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginHorizontal: Spacing[4],
+  },
+
+  // ── Members ──
   membersSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing[4],
-    paddingTop: Spacing[4],
-    paddingBottom: Spacing[2],
-  },
-  membersSectionTitle: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    paddingRight: Spacing[6],
+    marginBottom: Spacing[3],
   },
   addMemberBtn: {
-    padding: 2,
-  },
-  pendingActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[4],
+    gap: Spacing[2],
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.accent,
+    paddingBottom: 4,
   },
-  pendingApproveText: {
-    fontSize: Typography.sm,
+  addMemberBtnText: {
+    fontSize: Typography.base,
     fontWeight: Typography.semibold,
-    color: Colors.primary,
+    color: Colors.textPrimary,
   },
-  pendingDeclineText: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.medium,
-    color: Colors.textLight,
+  addMemberBtnArrow: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textSecondary,
   },
   emptyText: {
     fontSize: Typography.base,
     color: Colors.textSecondary,
     textAlign: 'center',
     paddingVertical: Spacing[4],
+  },
+
+  // ── Request cards (matches FriendsScreen) ──
+  requestCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.lg,
+    padding: Spacing[3],
+    marginBottom: Spacing[3],
+    marginHorizontal: Spacing[3],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d8d3cb',
+  },
+  requestUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+    marginBottom: Spacing[3],
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: Spacing[2],
+  },
+  acceptBtn: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing[2],
+    alignItems: 'center',
+  },
+  acceptBtnLabel: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.semibold,
+    color: Colors.textInverse,
+  },
+  rejectBtn: {
+    flex: 1,
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing[2],
+    alignItems: 'center',
+  },
+  rejectBtnLabel: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.medium,
+    color: Colors.textSecondary,
   },
 });

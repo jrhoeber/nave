@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from app.models.user import UserResponse
 
 PrayerGroupCategory = Literal[
-    "rosary", "scripture_study", "mens_group", "womens_group",
-    "youth", "young_adults", "families", "devotional", "general"
+    "bible_study", "mens_group", "womens_group",
+    "young_adults", "families", "devotional", "general"
 ]
 
 

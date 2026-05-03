@@ -121,7 +121,7 @@ export function GroupScreen() {
               <Text style={styles.sectionLabel}>GROUPS AT {(parishName ?? 'YOUR PARISH').toUpperCase()}</Text>
               <>
                 {parishGroups.map((group, index) => (
-                  <View key={group.id} style={[CardList.item, index === 0 && CardList.itemFirst]}>
+                  <View key={group.id} style={[CardList.item, index === 0 && CardList.itemFirst, index === parishGroups.length - 1 && CardList.itemLast]}>
                     <PrayerGroupCard
                       group={group}
                       onPress={(id) => navigation.navigate('GroupProfile', { id })}
@@ -133,7 +133,6 @@ export function GroupScreen() {
                     />
                   </View>
                 ))}
-                <View style={CardList.footer} />
               </>
             </View>
           ) : (
@@ -153,7 +152,7 @@ export function GroupScreen() {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={<Text style={styles.sectionLabel}>YOUR GROUPS</Text>}
           renderItem={({ item, index }: { item: PrayerGroup; index: number }) => (
-            <View style={[CardList.item, index === 0 && CardList.itemFirst]}>
+            <View style={[CardList.item, index === 0 && CardList.itemFirst, index === myGroups.length - 1 && CardList.itemLast]}>
               <PrayerGroupCard
                 group={item}
                 onPress={(id) => navigation.navigate('GroupMessage', { id })}
@@ -173,7 +172,7 @@ export function GroupScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-          ListFooterComponent={myGroups.length > 0 ? <View style={CardList.footer} /> : null}
+          ListFooterComponent={null}
         />
       )}
 

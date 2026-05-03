@@ -22,10 +22,6 @@ import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../th
 import type { ParishComment, ParishPost, ParishReactionType } from '../../types';
 import type { ParishPostDetailRouteProp, RootNavigationProp } from '../../types/navigation';
 
-function CommentCellRenderer({ children, style: cellStyle, ...rest }: any) {
-  return <View {...rest} style={[cellStyle, CardList.item]}>{children}</View>;
-}
-
 export function ParishPostDetailScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
@@ -305,8 +301,10 @@ export function ParishPostDetailScreen() {
     Alert.alert(undefined as any, undefined as any, buttons);
   }, [currentUserId, post, isParishAdmin, handleDeleteComment, handleReportComment]);
 
-  const renderComment = ({ item }: { item: ParishComment }) => {
+  const renderComment = ({ item, index }: { item: ParishComment; index: number }) => {
+    const isLast = index === comments.length - 1;
     return (
+      <View style={[CardList.item, isLast && CardList.itemLast]}>
       <TouchableOpacity
         style={styles.commentCard}
         activeOpacity={0.7}
@@ -359,6 +357,7 @@ export function ParishPostDetailScreen() {
           </View>
         </View>
       </TouchableOpacity>
+      </View>
     );
   };
 
@@ -393,9 +392,7 @@ export function ParishPostDetailScreen() {
   ), [post, currentUserId, isParishAdmin, handleTogglePostReaction, totalCount, loadingComments, navigation]);
 
   const listFooter = useMemo(() => (
-    <View style={[CardList.footer, styles.cardBottomExtra]}>
-      {loadingMore && <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />}
-    </View>
+    loadingMore ? <ActivityIndicator color={Colors.primary} style={styles.footerLoader} /> : null
   ), [loadingMore]);
 
   const listEmpty = useMemo(() => !loadingComments ? (
@@ -440,7 +437,6 @@ export function ParishPostDetailScreen() {
         refreshing={false}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        CellRendererComponent={CommentCellRenderer}
       />
 
       {/* Compose bar */}
@@ -547,10 +543,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
 
-  cardBottomExtra: {
-    minHeight: Spacing[5],
-    paddingBottom: Spacing[3],
-  },
   footerLoader: { marginVertical: Spacing[4] },
 
   // Empty state — matches ParishScreen emptyState

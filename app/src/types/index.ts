@@ -67,11 +67,9 @@ export interface Comment {
 // ─── Prayer Groups ────────────────────────────────────────────────────────────
 
 export type PrayerGroupCategory =
-  | 'rosary'
-  | 'scripture_study'
+  | 'bible_study'
   | 'mens_group'
   | 'womens_group'
-  | 'youth'
   | 'young_adults'
   | 'families'
   | 'devotional'
