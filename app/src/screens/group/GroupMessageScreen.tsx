@@ -933,20 +933,22 @@ export function GroupMessageScreen() {
           ListEmptyComponent={
             isLoading ? null : (
               <View style={styles.empty}>
-                <Text style={styles.emptyIcon}>🙏</Text>
-                <Text style={styles.emptyTitle}>No messages yet</Text>
-                <Text style={styles.emptySub}>Be the first to share a prayer or reflection.</Text>
+                <View style={styles.emptyDividerBottom} />
+                <Text style={styles.emptyTitle}>
+                  {'The room is quiet.\nBe the first to share.'}
+                </Text>
+                <View style={styles.emptyDividerTop} />
               </View>
             )
           }
         />
       ) : (
         <View style={styles.nonMemberContent}>
-          <Text style={styles.emptyIcon}>🔒</Text>
-          <Text style={styles.emptyTitle}>
+          <Text style={styles.nonMemberIcon}>🔒</Text>
+          <Text style={styles.nonMemberTitle}>
             {group.isPendingApproval ? 'Membership pending' : 'Members only'}
           </Text>
-          <Text style={styles.emptySub}>
+          <Text style={styles.nonMemberSub}>
             {group.isPendingApproval
               ? 'Your request to join is pending approval.'
               : 'Join this group to participate in the conversation.'}
@@ -1029,13 +1031,15 @@ const styles = StyleSheet.create({
   },
 
   // List
-  listContent: { paddingTop: Spacing[2], paddingBottom: Spacing[2] },
+  listContent: { paddingTop: Spacing[2], paddingBottom: Spacing[2], flexGrow: 1 },
 
   // Empty / non-member
   empty: {
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing[16],
-    paddingHorizontal: Spacing[8],
+    justifyContent: 'center',
+    paddingHorizontal: Spacing[6],
+    transform: [{ scaleY: -1 }],
   },
   nonMemberContent: {
     flex: 1,
@@ -1044,14 +1048,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[8],
     gap: Spacing[2],
   },
-  emptyIcon: { fontSize: 40, marginBottom: Spacing[2] },
+  emptyDividerTop: {
+    width: 32,
+    height: 2,
+    backgroundColor: Colors.accent,
+    marginTop: Spacing[4],
+    marginBottom: Spacing[4],
+    borderRadius: 1,
+  },
   emptyTitle: {
+    fontFamily: 'Cormorant Garamond',
+    fontStyle: 'italic',
+    fontSize: 22,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    lineHeight: 30,
+  },
+  emptyDividerBottom: {
+    width: 20,
+    height: 2,
+    backgroundColor: Colors.accent,
+    marginTop: Spacing[6],
+    marginBottom: Spacing[4],
+    borderRadius: 1,
+  },
+  nonMemberIcon: { fontSize: 40, marginBottom: Spacing[2] },
+  nonMemberTitle: {
     fontSize: Typography.lg,
     fontWeight: Typography.semibold,
     color: D.text,
     textAlign: 'center',
   },
-  emptySub: {
+  nonMemberSub: {
     fontSize: Typography.base,
     color: D.textMuted,
     textAlign: 'center',

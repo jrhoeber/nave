@@ -477,12 +477,16 @@ export function GroupProfileScreen() {
               </TouchableOpacity>
             )}
           </>
+        ) : group.isPendingApproval ? (
+          <View style={[styles.actionBtnOutlined, { opacity: 0.5 }]}>
+            <Icon name="time-outline" size={16} color={Colors.textSecondary} />
+            <Text style={[styles.actionBtnText, { color: Colors.textSecondary }]}>Pending</Text>
+          </View>
         ) : (
-          <Button
-            label={group.isPendingApproval ? 'Requested' : 'Join Group'}
-            variant={group.isPendingApproval ? 'outline' : 'primary'}
+          <TouchableOpacity
+            style={styles.actionBtnOutlined}
             onPress={async () => {
-              if (group.isPendingApproval || joining) return;
+              if (joining) return;
               setJoining(true);
               try {
                 await joinGroup(group.id, group);
@@ -492,10 +496,18 @@ export function GroupProfileScreen() {
                 setJoining(false);
               }
             }}
-            disabled={group.isPendingApproval}
-            loading={joining}
-            showArrow={!group.isPendingApproval}
-          />
+            disabled={joining}
+            activeOpacity={0.7}
+          >
+            {joining ? (
+              <ActivityIndicator size="small" color={Colors.textPrimary} />
+            ) : (
+              <>
+                <Icon name="people-outline" size={16} color={Colors.textPrimary} />
+                <Text style={styles.actionBtnText}>Join Group</Text>
+              </>
+            )}
+          </TouchableOpacity>
         )}
       </View>
 
@@ -583,7 +595,7 @@ export function GroupProfileScreen() {
       {/* ── Members ── */}
       {isAdmin && pendingMembers.length > 0 && <View style={{ height: Spacing[6] }} />}
       <View style={styles.membersSectionHeader}>
-        <Text style={styles.sectionLabel}>MEMBERS ({memberCount})</Text>
+        <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>MEMBERS ({memberCount})</Text>
         {group.isMember && (
           <TouchableOpacity
             style={styles.addMemberBtn}
