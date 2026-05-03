@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   metaLine: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
   action: { flexShrink: 0 },
   joinBtn: { borderBottomWidth: 2, borderBottomColor: Colors.accent, paddingBottom: 2 },
-  joinBtnText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  joinBtnText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary },
   requestedText: { fontSize: Typography.sm, color: Colors.textSecondary },
   rightMeta: { flexShrink: 0, alignItems: 'flex-end', gap: Spacing[1] },
   titleTime: { fontSize: Typography.xs, color: Colors.textSecondary, flexShrink: 0 },

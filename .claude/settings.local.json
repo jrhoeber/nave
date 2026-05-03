@@ -88,7 +88,18 @@
       "Bash(curl -sL -o /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Regular.ttf \"https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_v86GnM.ttf\")",
       "Bash(cp -f /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Italic.ttf /Users/jordanhoeber/wksp/nave/app/android/app/src/main/assets/fonts/)",
       "Bash(cp -f /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Regular.ttf /Users/jordanhoeber/wksp/nave/app/android/app/src/main/assets/fonts/)",
-      "Bash(yes)"
+      "Bash(yes)",
+      "Bash(curl -sL \"https://github.com/google/fonts/raw/main/ofl/cormorantgaramond/CormorantGaramond-Bold.ttf\" -o /Users/jordanhoeber/wksp/nave/assets/fonts/CormorantGaramond-Bold.ttf)",
+      "Bash(curl -sL -o /Users/jordanhoeber/wksp/nave/assets/fonts/CormorantGaramond-Bold.ttf \"https://raw.githubusercontent.com/google/fonts/main/ofl/cormorantgaramond/CormorantGaramond-Bold.ttf\")",
+      "Bash(curl -vL \"https://raw.githubusercontent.com/google/fonts/main/ofl/cormorantgaramond/CormorantGaramond-Bold.ttf\" -o /dev/null)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/google/fonts/main/ofl/cormorantgaramond/CormorantGaramond-Bold.ttf\" -o /Users/jordanhoeber/wksp/nave/assets/fonts/CormorantGaramond-Bold.ttf --connect-timeout 10 --max-time 30)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(ls:*)",
+      "Bash(shasum /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Bold.ttf)",
+      "Bash(fc-scan --format \"%{postscriptname}\\\\n%{family}\\\\n%{fullname}\\\\n\" /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Bold.ttf)",
+      "Bash(otool -l /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Bold.ttf)",
+      "Bash(curl -sL \"https://fonts.gstatic.com/s/cormorantgaramond/v16/co3YmX5slCNuHLi8bLeY9MK7whWMhyjQEl5fsA.ttf\" -o /tmp/CG-Bold-test.ttf)",
+      "Read(//tmp/**)"
     ]
   }
 }

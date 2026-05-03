@@ -10,7 +10,7 @@ import { usePrayerStore } from '../../store/prayerStore';
 import { useGroupChatStore } from '../../store/groupChatStore';
 import { useAuthStore } from '../../store/authStore';
 import { api, mapGroupMessage, mapPrayerGroup } from '../../lib/apiClient';
-import { Colors, Spacing, Typography } from '../../theme';
+import { CardList, Colors, Spacing, Typography } from '../../theme';
 import type { PrayerGroup } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
@@ -119,9 +119,9 @@ export function GroupScreen() {
           {parishGroups.length > 0 ? (
             <View style={styles.suggestedSection}>
               <Text style={styles.sectionLabel}>GROUPS AT {(parishName ?? 'YOUR PARISH').toUpperCase()}</Text>
-              <View style={styles.suggestedCard}>
+              <>
                 {parishGroups.map((group, index) => (
-                  <View key={group.id} style={[styles.suggestedRow, index === 0 && styles.suggestedRowFirst]}>
+                  <View key={group.id} style={[CardList.item, index === 0 && CardList.itemFirst]}>
                     <PrayerGroupCard
                       group={group}
                       onPress={(id) => navigation.navigate('GroupProfile', { id })}
@@ -133,7 +133,8 @@ export function GroupScreen() {
                     />
                   </View>
                 ))}
-              </View>
+                <View style={CardList.footer} />
+              </>
             </View>
           ) : (
             <EmptyStateBox
@@ -152,7 +153,7 @@ export function GroupScreen() {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={<Text style={styles.sectionLabel}>YOUR GROUPS</Text>}
           renderItem={({ item, index }: { item: PrayerGroup; index: number }) => (
-            <View style={[styles.groupWrapper, index === 0 && styles.groupWrapperFirst]}>
+            <View style={[CardList.item, index === 0 && CardList.itemFirst]}>
               <PrayerGroupCard
                 group={item}
                 onPress={(id) => navigation.navigate('GroupMessage', { id })}
@@ -172,7 +173,7 @@ export function GroupScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-          ListFooterComponent={myGroups.length > 0 ? <View style={styles.cardBottom} /> : null}
+          ListFooterComponent={myGroups.length > 0 ? <View style={CardList.footer} /> : null}
         />
       )}
 
@@ -207,40 +208,7 @@ const styles = StyleSheet.create({
   startGroupArrow: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textSecondary },
   sectionLabel: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textSecondary, letterSpacing: 1, paddingHorizontal: Spacing[5], paddingTop: Spacing[2], paddingBottom: Spacing[3] },
   list: { paddingBottom: Spacing[10] },
-  groupWrapper: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
-  },
-  groupWrapperFirst: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  cardBottom: {
-    backgroundColor: '#ffffff',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginHorizontal: Spacing[3],
-    minHeight: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
-  },
   emptyScroll: { paddingBottom: Spacing[10] },
   emptyCta: { paddingHorizontal: Spacing[5], paddingTop: Spacing[4] },
   suggestedSection: { marginTop: Spacing[2] },
-  suggestedCard: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: Spacing[3],
-    borderRadius: 24,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
-    overflow: 'hidden',
-  },
-  suggestedRow: {},
-  suggestedRowFirst: {},
 });

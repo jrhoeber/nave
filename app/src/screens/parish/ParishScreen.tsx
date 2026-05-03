@@ -32,7 +32,7 @@ import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
 import { ParishPostCard } from '../../components/parish/ParishPostCard';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
-import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
+import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { Parish, ParishPost, ParishReactionType } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
@@ -749,7 +749,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 
   const ListFooter = useCallback(() => (
     posts.length > 0 ? (
-      <View style={styles.cardBottom}>
+      <View style={[CardList.footer, styles.cardBottomExtra]}>
         {loadingMore && <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />}
       </View>
     ) : null
@@ -765,7 +765,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   ) : null, [loadingPosts]);
 
   const renderItem = ({ item, index }: ListRenderItemInfo<ParishPost>) => (
-    <View style={[styles.postWrapper, index === 0 && styles.postWrapperFirst]}>
+    <View style={[CardList.item, index === 0 && CardList.itemFirst]}>
       <ParishPostCard
         post={item}
         currentUserId={currentUserId}
@@ -985,32 +985,9 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Each post row continues the white card
-  postWrapper: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
-  },
-  postWrapperFirst: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-
-  // Bottom of the white card — rounded bottom corners
-  cardBottom: {
-    backgroundColor: '#ffffff',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginHorizontal: Spacing[3],
+  cardBottomExtra: {
     minHeight: Spacing[5],
     paddingBottom: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
   },
 
   feedScroll: { paddingBottom: Spacing[10] },

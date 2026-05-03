@@ -6,7 +6,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
 import { AddFriendModal } from '../../components/friends/AddFriendModal';
 import { useFriendsStore } from '../../store/friendsStore';
-import { Colors, Radius, Spacing, Typography } from '../../theme';
+import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
 import type { Friendship } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
@@ -102,7 +102,7 @@ export function FriendsScreen() {
       return <Text style={styles.sectionLabel}>YOUR FRIENDS</Text>;
     }
     return (
-      <View style={[styles.friendWrapper, item.index === 0 && styles.friendWrapperFirst]}>
+      <View style={[CardList.item, item.index === 0 && CardList.itemFirst]}>
         {renderFriend({ item: item.data, index: item.index, isLast: item.isLast })}
       </View>
     );
@@ -137,7 +137,7 @@ export function FriendsScreen() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-        ListFooterComponent={friends.length > 0 ? <View style={styles.cardBottom} /> : null}
+        ListFooterComponent={friends.length > 0 ? <View style={CardList.footer} /> : null}
         ListEmptyComponent={!isLoading && friends.length === 0 ? (
           <EmptyStateBox
             title="No friends yet"
@@ -176,36 +176,12 @@ const styles = StyleSheet.create({
   // ── List ───────────────────────────────────────────────────────────────────
   list: { paddingBottom: Spacing[10] },
 
-  // ── Friend rows (continuous card, matches Groups) ─────────────────────────
-  friendWrapper: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
-  },
-  friendWrapperFirst: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   friendRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing[3],
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[3],
-  },
-  cardBottom: {
-    backgroundColor: '#ffffff',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginHorizontal: Spacing[3],
-    minHeight: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
   },
 
   // ── User info (shared) ────────────────────────────────────────────────────

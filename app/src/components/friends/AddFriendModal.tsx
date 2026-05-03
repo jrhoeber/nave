@@ -14,9 +14,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../ui/Avatar';
-import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
+import { CardList, Colors, Spacing, Typography } from '../../theme';
 import { api, mapFriendSearchResult } from '../../lib/apiClient';
 import type { FriendSearchResult } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
@@ -28,7 +27,6 @@ interface AddFriendModalProps {
 }
 
 export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendModalProps) {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
   const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useState('');
@@ -80,7 +78,6 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
       );
       onRequestSent?.();
     } catch (e: any) {
-      // If already friends / pending, reflect in UI
       setResults((prev) =>
         prev.map((u) =>
           u.id === item.id
@@ -96,7 +93,7 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
   const friendshipLabel = (item: FriendSearchResult) => {
     if (item.friendshipStatus === 'accepted') return 'Friends';
     if (item.friendshipStatus === 'pending') {
-      return item.isRequester ? 'Requested' : 'Accepts you';
+      return item.isRequester ? 'Pending' : 'Accepts you';
     }
     return 'Add';
   };
@@ -113,44 +110,38 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
     const disabled = label !== 'Add' || pendingIds.has(item.id);
     const isLoading = pendingIds.has(item.id);
 
+    const isLast = results.indexOf(item) === results.length - 1;
+
     return (
-      <View style={styles.userCard}>
+      <View style={[CardList.item, results.indexOf(item) === 0 && CardList.itemFirst]}>
         <TouchableOpacity
-          style={styles.userCardLeft}
+          style={[styles.userCard, isLast && styles.userCardLast]}
           onPress={() => { onClose(); navigation.navigate('UserProfile', { id: item.id }); }}
           activeOpacity={0.7}
         >
-          <Avatar uri={item.avatarUrl} name={item.displayName} size={46} />
+          <Avatar uri={item.avatarUrl} name={item.displayName} size={42} />
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{item.displayName}</Text>
-            <Text style={styles.userHandle}>@{item.username}</Text>
-            {item.parish && (
-              <View style={styles.parishRow}>
-                <Icon name="business-outline" size={11} color={Colors.textLight} />
-                <Text style={styles.userParish} numberOfLines={1}>{item.parish}</Text>
-              </View>
-            )}
+            <Text style={styles.userMeta} numberOfLines={1}>
+              @{item.username}{item.parish ? ` · ${item.parish}` : ''}
+            </Text>
           </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.addBtn,
-            variant === 'outline' && styles.addBtnOutline,
-            variant === 'ghost' && styles.addBtnGhost,
-            disabled && styles.addBtnDisabled,
-          ]}
-          onPress={() => handleAdd(item)}
-          disabled={disabled}
-          activeOpacity={0.75}
-        >
-          {isLoading
-            ? <ActivityIndicator size="small" color={Colors.textInverse} />
-            : <Text style={[
-                styles.addBtnLabel,
-                variant === 'outline' && styles.addBtnLabelOutline,
-                variant === 'ghost' && styles.addBtnLabelGhost,
-              ]}>{label}</Text>
-          }
+          {disabled ? (
+            <Text style={styles.statusText}>{label}</Text>
+          ) : (
+            <View onStartShouldSetResponder={() => true}>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => handleAdd(item)}
+                activeOpacity={0.75}
+              >
+                {isLoading
+                  ? <ActivityIndicator size="small" color={Colors.textPrimary} />
+                  : <Text style={styles.addBtnLabel}>{label}</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -160,25 +151,34 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
-        style={[styles.container, { paddingTop: insets.top }]}
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.toolbar}>
+        {/* Dragger */}
+        <View style={styles.draggerRow}>
+          <View style={styles.dragger} />
+        </View>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <View />
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.toolbarTitle}>Add Friend</Text>
-          <View style={{ width: 60 }} />
         </View>
 
+        <Text style={styles.sectionHeader}>ADD FRIEND</Text>
+        <Text style={styles.heroText}>Walk together{'\n'}in faith.</Text>
+
+        {/* Search bar */}
         <View style={styles.searchContainer}>
-          <Icon name="search-outline" size={17} color={Colors.textSecondary} />
+          <Icon name="search-outline" size={16} color={Colors.textSecondary} />
           <TextInput
             ref={inputRef}
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Name, username, or email..."
+            placeholder="Search by name or username"
             placeholderTextColor={Colors.textLight}
             autoCapitalize="none"
             autoCorrect={false}
@@ -186,7 +186,7 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="close-circle" size={17} color={Colors.textLight} />
+              <Icon name="close-circle" size={16} color={Colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -202,16 +202,11 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          ListFooterComponent={results.length > 0 ? <View style={CardList.footer} /> : null}
           ListEmptyComponent={
             !searching && query.trim().length > 0 ? (
               <View style={styles.empty}>
                 <Text style={styles.emptyText}>No users found for "{query}"</Text>
-              </View>
-            ) : !query.trim() ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyIcon}>🔍</Text>
-                <Text style={styles.emptyTitle}>Find Catholics to connect with</Text>
-                <Text style={styles.emptySubtitle}>Search by name, username, or email address</Text>
               </View>
             ) : null
           }
@@ -223,30 +218,81 @@ export function AddFriendModal({ visible, onClose, onRequestSent }: AddFriendMod
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing[4], paddingVertical: Spacing[3], borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface },
-  cancelText: { fontSize: Typography.base, color: Colors.textSecondary, width: 60 },
-  toolbarTitle: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, margin: Spacing[4], borderRadius: Radius.md, paddingHorizontal: Spacing[3], borderWidth: 1.5, borderColor: Colors.border, gap: Spacing[2] },
-  searchInput: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary, paddingVertical: Spacing[3] },
+
+  draggerRow: {
+    alignItems: 'center',
+    paddingTop: Spacing[2],
+    paddingBottom: Spacing[1],
+  },
+  dragger: {
+    width: 36,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: Colors.border,
+  },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing[5],
+    paddingBottom: Spacing[1],
+  },
+  cancelText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: '#4b5563', paddingRight: Spacing[1] },
+
+  sectionHeader: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.semibold,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    paddingHorizontal: Spacing[5],
+    paddingTop: Spacing[2],
+  },
+  heroText: {
+    fontFamily: 'CormorantGaramond-Bold',
+    fontSize: 28,
+    color: '#000000',
+    paddingHorizontal: Spacing[5],
+    paddingTop: Spacing[2],
+    paddingBottom: Spacing[1],
+  },
+
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing[5],
+    marginTop: Spacing[3],
+    marginBottom: Spacing[2],
+    paddingBottom: Spacing[3],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    gap: Spacing[2],
+  },
+  searchInput: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary, paddingVertical: 0, height: 24 },
+
   loader: { marginTop: Spacing[4] },
-  list: { paddingHorizontal: Spacing[4], paddingBottom: Spacing[10] },
-  userCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing[3], flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[3], ...Shadows.sm },
-  userCardLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing[3], minWidth: 0 },
+  list: { paddingBottom: Spacing[10] },
+
+
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing[5],
+    paddingVertical: Spacing[4],
+    gap: Spacing[3],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#d8d3cb',
+  },
+  userCardLast: { borderBottomWidth: 0 },
   userInfo: { flex: 1, minWidth: 0 },
-  userName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
-  userHandle: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 1 },
-  parishRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: Spacing[1] },
-  userParish: { fontSize: Typography.xs, color: Colors.textLight, flexShrink: 1 },
-  addBtn: { backgroundColor: Colors.primary, paddingHorizontal: Spacing[4], paddingVertical: Spacing[2], borderRadius: Radius.full, minWidth: 72, alignItems: 'center' },
-  addBtnOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Colors.primary },
-  addBtnGhost: { backgroundColor: Colors.surfaceAlt, borderWidth: 0 },
-  addBtnDisabled: { opacity: 0.6 },
-  addBtnLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textInverse },
-  addBtnLabelOutline: { color: Colors.primary },
-  addBtnLabelGhost: { color: Colors.textSecondary },
+  userName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary, marginBottom: 3 },
+  userMeta: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
+
+  addBtn: { borderBottomWidth: 2, borderBottomColor: Colors.accent, paddingBottom: 2 },
+  addBtnLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  statusText: { fontSize: Typography.sm, color: Colors.textSecondary },
+
   empty: { alignItems: 'center', paddingVertical: Spacing[12], paddingHorizontal: Spacing[6] },
-  emptyIcon: { fontSize: 44, marginBottom: Spacing[4] },
-  emptyTitle: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing[2] },
-  emptySubtitle: { fontSize: Typography.sm, color: Colors.textSecondary, textAlign: 'center' },
   emptyText: { fontSize: Typography.base, color: Colors.textSecondary, textAlign: 'center' },
 });

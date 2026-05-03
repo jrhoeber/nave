@@ -9,14 +9,15 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		1A7F36CA2F8C09700048BB07 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A7F36C92F8C09700048BB07 /* GoogleService-Info.plist */; };
+		350398548CD341F99032453F /* CormorantGaramond-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BD2B9AA54E6143D584883728 /* CormorantGaramond-Italic.ttf */; };
 		555D6ACAA76B476D9C58EBA1 /* Montserrat-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C2E42E3920954CB5817001A3 /* Montserrat-Black.ttf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		793346CF592900B22054ACF6 /* libPods-Nave.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AF4CF5260F07C8B4A69A60B /* libPods-Nave.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8D1FB25D9E8C6212CD1EDCF4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		E4013B07FDBF49A481831387 /* Montserrat-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F62EADADC8344CF5AD8772AD /* Montserrat-ExtraBold.ttf */; };
-		350398548CD341F99032453F /* CormorantGaramond-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BD2B9AA54E6143D584883728 /* CormorantGaramond-Italic.ttf */; };
 		8F8362C8EF694884AE4DBE60 /* CormorantGaramond-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AA3EC2FD1408411E90284DAA /* CormorantGaramond-Regular.ttf */; };
+		A1B2C3D4E5F647A8B9C0D1E2 /* CormorantGaramond-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F4E5D6C7B8A9401234567890 /* CormorantGaramond-Bold.ttf */; };
+		E4013B07FDBF49A481831387 /* Montserrat-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F62EADADC8344CF5AD8772AD /* Montserrat-ExtraBold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,12 +31,13 @@
 		694E123D2B86AA61D8869208 /* Pods-Nave.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nave.release.xcconfig"; path = "Target Support Files/Pods-Nave/Pods-Nave.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Nave/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Nave/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		AA3EC2FD1408411E90284DAA /* CormorantGaramond-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "CormorantGaramond-Regular.ttf"; path = "../assets/fonts/CormorantGaramond-Regular.ttf"; sourceTree = "<group>"; };
+		BD2B9AA54E6143D584883728 /* CormorantGaramond-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "CormorantGaramond-Italic.ttf"; path = "../assets/fonts/CormorantGaramond-Italic.ttf"; sourceTree = "<group>"; };
 		C2E42E3920954CB5817001A3 /* Montserrat-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Black.ttf"; path = "../assets/fonts/Montserrat-Black.ttf"; sourceTree = "<group>"; };
 		C3A906D3C65E7BC0DDC7DEEF /* Pods-Nave.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nave.debug.xcconfig"; path = "Target Support Files/Pods-Nave/Pods-Nave.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F4E5D6C7B8A9401234567890 /* CormorantGaramond-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "CormorantGaramond-Bold.ttf"; path = "../assets/fonts/CormorantGaramond-Bold.ttf"; sourceTree = "<group>"; };
 		F62EADADC8344CF5AD8772AD /* Montserrat-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-ExtraBold.ttf"; path = "../assets/fonts/Montserrat-ExtraBold.ttf"; sourceTree = "<group>"; };
-		BD2B9AA54E6143D584883728 /* CormorantGaramond-Italic.ttf */ = {isa = PBXFileReference; name = "CormorantGaramond-Italic.ttf"; path = "../assets/fonts/CormorantGaramond-Italic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		AA3EC2FD1408411E90284DAA /* CormorantGaramond-Regular.ttf */ = {isa = PBXFileReference; name = "CormorantGaramond-Regular.ttf"; path = "../assets/fonts/CormorantGaramond-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +82,7 @@
 				F62EADADC8344CF5AD8772AD /* Montserrat-ExtraBold.ttf */,
 				BD2B9AA54E6143D584883728 /* CormorantGaramond-Italic.ttf */,
 				AA3EC2FD1408411E90284DAA /* CormorantGaramond-Regular.ttf */,
+				F4E5D6C7B8A9401234567890 /* CormorantGaramond-Bold.ttf */,
 			);
 			name = Resources;
 			path = "";
@@ -194,6 +197,7 @@
 				E4013B07FDBF49A481831387 /* Montserrat-ExtraBold.ttf in Resources */,
 				350398548CD341F99032453F /* CormorantGaramond-Italic.ttf in Resources */,
 				8F8362C8EF694884AE4DBE60 /* CormorantGaramond-Regular.ttf in Resources */,
+				A1B2C3D4E5F647A8B9C0D1E2 /* CormorantGaramond-Bold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

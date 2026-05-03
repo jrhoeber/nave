@@ -114,3 +114,32 @@ export const Shadows = {
     elevation: 8,
   },
 } as const;
+
+import { StyleSheet } from 'react-native';
+
+/** Shared card-list container styles for grouped row lists. */
+export const CardList = StyleSheet.create({
+  item: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: Spacing[3],
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d8d3cb',
+  },
+  itemFirst: {
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  footer: {
+    backgroundColor: '#ffffff',
+    borderBottomLeftRadius: Radius.lg,
+    borderBottomRightRadius: Radius.lg,
+    marginHorizontal: Spacing[3],
+    minHeight: Spacing[3],
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d8d3cb',
+  },
+});

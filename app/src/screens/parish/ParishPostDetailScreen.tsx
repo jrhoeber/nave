@@ -18,12 +18,12 @@ import { Avatar } from '../../components/ui/Avatar';
 import { ParishPostCard } from '../../components/parish/ParishPostCard';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParishComment, mapParishPost } from '../../lib/apiClient';
-import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
+import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { ParishComment, ParishPost, ParishReactionType } from '../../types';
 import type { ParishPostDetailRouteProp, RootNavigationProp } from '../../types/navigation';
 
 function CommentCellRenderer({ children, style: cellStyle, ...rest }: any) {
-  return <View {...rest} style={[cellStyle, styles.commentWrapper]}>{children}</View>;
+  return <View {...rest} style={[cellStyle, CardList.item]}>{children}</View>;
 }
 
 export function ParishPostDetailScreen() {
@@ -363,7 +363,7 @@ export function ParishPostDetailScreen() {
   };
 
   const listHeader = useMemo(() => (
-    <View style={styles.cardOuter}>
+    <View style={[CardList.item, CardList.itemFirst, styles.cardOuterExtra]}>
       {post && (
         <ParishPostCard
           post={post}
@@ -393,7 +393,7 @@ export function ParishPostDetailScreen() {
   ), [post, currentUserId, isParishAdmin, handleTogglePostReaction, totalCount, loadingComments, navigation]);
 
   const listFooter = useMemo(() => (
-    <View style={styles.cardBottom}>
+    <View style={[CardList.footer, styles.cardBottomExtra]}>
       {loadingMore && <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />}
     </View>
   ), [loadingMore]);
@@ -521,17 +521,8 @@ const styles = StyleSheet.create({
   // List
   listContent: { paddingBottom: Spacing[10] },
 
-  // Unified card container — post + comments header + comments all live inside
-  cardOuter: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: Spacing[3],
+  cardOuterExtra: {
     marginTop: Spacing[4],
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
   },
 
   // Thin divider inside the card between post and comments
@@ -556,27 +547,9 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
 
-  // Comment wrapper — continues the white card
-  commentWrapper: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
-  },
-
-  // Bottom of the white card — rounded bottom corners, matching ParishScreen cardBottom
-  cardBottom: {
-    backgroundColor: '#ffffff',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginHorizontal: Spacing[3],
+  cardBottomExtra: {
     minHeight: Spacing[5],
     paddingBottom: Spacing[3],
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
   },
   footerLoader: { marginVertical: Spacing[4] },
 
