@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Avatar } from '../../components/ui/Avatar';
+import { ImageCropModal } from '../../components/ui/ImageCropModal';
 import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
 import { ParishPostCard } from '../../components/parish/ParishPostCard';
 import { useAuthStore } from '../../store/authStore';
@@ -37,6 +38,7 @@ import type { Parish, ParishPost, ParishReactionType } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const COVER_BASE_HEIGHT = 300;
 
 // ─── Parish profile modal ─────────────────────────────────────────────────────
 
@@ -323,11 +325,14 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
   setUploadingCover: (v: boolean) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const coverHeight = COVER_BASE_HEIGHT + insets.top;
   const [website, setWebsite] = useState('');
   const [massSchedule, setMassSchedule] = useState('');
   const [savingWebsite, setSavingWebsite] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [localCoverUri, setLocalCoverUri] = useState<string | null>(null);
+  const [cropModalVisible, setCropModalVisible] = useState(false);
+  const [pickedImage, setPickedImage] = useState<{ uri: string; width: number; height: number; type: string } | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
@@ -349,17 +354,35 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, maxWidth: 1600, maxHeight: 900 });
     if (result.didCancel || !result.assets?.[0]?.uri) return;
     const asset = result.assets[0];
-    setLocalCoverUri(asset.uri!);
+    setPickedImage({
+      uri: asset.uri!,
+      width: asset.width ?? 1600,
+      height: asset.height ?? 900,
+      type: asset.type ?? 'image/jpeg',
+    });
+    setCropModalVisible(true);
+  };
+
+  const handleCropConfirm = async (croppedUri: string) => {
+    setCropModalVisible(false);
+    if (!parish || !pickedImage) return;
+    setLocalCoverUri(croppedUri);
     setUploadingCover(true);
     try {
-      const data = await api.uploadParishCoverPhoto(parish.id, asset.uri!, asset.type ?? 'image/jpeg');
+      const data = await api.uploadParishCoverPhoto(parish.id, croppedUri, pickedImage.type);
       onUpdated({ ...parish, coverPhotoUrl: data.cover_photo_url });
     } catch (e: any) {
       setLocalCoverUri(null);
       Alert.alert('Error', e?.message ?? 'Failed to upload cover photo. Please try again.');
     } finally {
       setUploadingCover(false);
+      setPickedImage(null);
     }
+  };
+
+  const handleCropCancel = () => {
+    setCropModalVisible(false);
+    setPickedImage(null);
   };
 
   const handleSaveWebsite = async () => {
@@ -405,7 +428,7 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
           {/* Cover Photo */}
           <View style={manageStyles.section}>
             <Text style={manageStyles.sectionTitle}>Cover Photo</Text>
-            <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={manageStyles.coverPhotoBtn}>
+            <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={[manageStyles.coverPhotoBtn, { height: (SCREEN_WIDTH - 2 * Spacing[5]) * (coverHeight / SCREEN_WIDTH) }]}>
               {(localCoverUri ?? parish?.coverPhotoUrl) ? (
                 <>
                   <Image source={{ uri: localCoverUri ?? parish!.coverPhotoUrl! }} style={manageStyles.coverPhotoPreview} resizeMode="cover" />
@@ -481,6 +504,18 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
 
         </ScrollView>
       </View>
+
+      {pickedImage && (
+        <ImageCropModal
+          visible={cropModalVisible}
+          imageUri={pickedImage.uri}
+          imageWidth={pickedImage.width}
+          imageHeight={pickedImage.height}
+          aspectRatio={SCREEN_WIDTH / coverHeight}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
     </Modal>
   );
 }
@@ -493,6 +528,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   onChangeParish: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const coverHeight = COVER_BASE_HEIGHT + insets.top;
   const navigation = useNavigation<RootNavigationProp>();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [profileVisible, setProfileVisible] = useState(false);
@@ -667,22 +703,21 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     <View>
       {hasCover ? (
         /* Cover photo area */
-        <View style={{ height: 360 + insets.top }}>
+        <View style={{ height: coverHeight }}>
           <Image source={{ uri: parish!.coverPhotoUrl! }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           <LinearGradient
+            colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)']}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 110 }} />
+
+  {/* bottom paper dissolve — note the locations prop */}
+          <LinearGradient
             colors={[
-              'rgba(250,247,243,0)',
-              'rgba(250,247,243,0)',
-              'rgba(250,247,243,0.03)',
-              'rgba(250,247,243,0.12)',
-              'rgba(250,247,243,0.35)',
-              'rgba(250,247,243,0.7)',
-              'rgba(250,247,243,0.92)',
-              'rgba(250,247,243,1)',
+              'rgba(250,247,242,0)',
+              'rgba(250,247,242,0.4)',
+              'rgba(250,247,242,1)'
             ]}
-            locations={[0, 0.65, 0.72, 0.79, 0.86, 0.92, 0.96, 1]}
-            style={StyleSheet.absoluteFill}
-          />
+            locations={[0, 0.55, 1]}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 180 }} />
           {uploadingCover && (
             <View style={styles.coverPhotoUploading}>
               <ActivityIndicator size="small" color={Colors.textInverse} />
@@ -1378,11 +1413,6 @@ const manageStyles = StyleSheet.create({
     color: Colors.textInverse,
   },
   coverPhotoBtn: {
-    height: (() => {
-      const screenWidth = Dimensions.get('window').width;
-      const previewWidth = screenWidth - 2 * Spacing[5];
-      return previewWidth * (360 / screenWidth);
-    })(),
     borderRadius: Radius.md,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
