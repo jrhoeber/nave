@@ -13,7 +13,7 @@ import type { RootStackParamList } from './src/types/navigation';
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
-  const { loadStoredAuth, isLoading, isAuthenticated, user, avatarReady } = useAuthStore();
+  const { loadStoredAuth, isLoading, isAuthenticated } = useAuthStore();
   const fetchFriends = useFriendsStore((s) => s.fetchFriends);
   const [splashDone, setSplashDone] = useState(false);
   const wasAuthenticatedRef = useRef(false);
@@ -43,19 +43,10 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
-  // Dismiss splash when auth is loaded and either: not authenticated, no avatar, or avatar painted
+  // Dismiss splash as soon as auth has finished loading. Avatar paints on its
+  // own — Avatar's initials fallback covers any momentary blank during decode.
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !user?.avatarUrl || avatarReady)) {
-      setSplashDone(true);
-    }
-  }, [isLoading, isAuthenticated, user?.avatarUrl, avatarReady]);
-
-  // Hard fallback — never hang on splash if avatar is slow or broken
-  useEffect(() => {
-    if (!isLoading) {
-      const t = setTimeout(() => setSplashDone(true), 1500);
-      return () => clearTimeout(t);
-    }
+    if (!isLoading) setSplashDone(true);
   }, [isLoading]);
 
   return (

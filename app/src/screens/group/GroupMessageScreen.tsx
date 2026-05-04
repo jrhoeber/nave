@@ -4,7 +4,6 @@ import {
   Alert,
   AppState,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -22,6 +21,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
+import { ImageX } from '../../components/ui/ImageX';
 import { Button } from '../../components/ui/Button';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useGroupChatStore } from '../../store/groupChatStore';
@@ -232,7 +232,7 @@ function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss
               <Text style={ctxStyles.messageTime}>{formatMessageTime(message.createdAt)}</Text>
             </View>
             {message.imageUrl && (
-              <Image source={{ uri: message.imageUrl }} style={ctxStyles.messageImage} resizeMode="cover" />
+              <ImageX source={{ uri: message.imageUrl }} style={ctxStyles.messageImage} contentFit="cover" />
             )}
             {message.content ? (
               <Text style={ctxStyles.messageText}>{message.content}</Text>
@@ -390,10 +390,10 @@ const MessageBubble = React.memo(function MessageBubble({ message, groupId, isMe
 
         {message.imageUrl && !imgError && (
           <View>
-            <Image
+            <ImageX
               source={{ uri: message.imageUrl }}
               style={msgStyles.image}
-              resizeMode="cover"
+              contentFit="cover"
               onError={() => setImgError(true)}
             />
             {message.pending && (
@@ -586,7 +586,7 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
           {/* Photo preview row */}
           {draftPhoto && (
             <View style={inputStyles.photoPreviewRow}>
-              <Image source={{ uri: draftPhoto.uri }} style={inputStyles.photoThumb} resizeMode="cover" />
+              <ImageX source={{ uri: draftPhoto.uri }} style={inputStyles.photoThumb} contentFit="cover" />
               <TouchableOpacity
                 style={inputStyles.photoRemoveBtn}
                 onPress={() => setDraftPhoto(null)}

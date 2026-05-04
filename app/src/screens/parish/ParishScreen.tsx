@@ -1,14 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  FlatList,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Linking,
-  ListRenderItemInfo,
   Modal,
   Platform,
   ScrollView,
@@ -20,8 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import { BlurView } from '@react-native-community/blur';
+import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Svg, { Path } from 'react-native-svg';
@@ -29,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Avatar } from '../../components/ui/Avatar';
+import { ImageX } from '../../components/ui/ImageX';
 import { ImageCropModal } from '../../components/ui/ImageCropModal';
 import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
 import { FormHeader } from '../../components/ui/FormHeader';
@@ -36,6 +33,7 @@ import { SectionLabel } from '../../components/ui/SectionLabel';
 import { FormCard } from '../../components/ui/FormCard';
 import { FormField } from '../../components/ui/FormField';
 import { ParishPostCard } from '../../components/parish/ParishPostCard';
+import { ParishListHeader } from '../../components/parish/ParishListHeader';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
 import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
@@ -417,7 +415,10 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
     setUploadingCover(true);
     try {
       const data = await api.uploadParishCoverPhoto(parish.id, croppedUri, pickedImage.type);
-      onUpdated({ ...parish, coverPhotoUrl: data.cover_photo_url });
+      onUpdated({
+        ...parish,
+        coverPhotoUrl: data.cover_photo_url,
+      });
     } catch (e: any) {
       setLocalCoverUri(null);
       Alert.alert('Error', e?.message ?? 'Failed to upload cover photo. Please try again.');
@@ -492,7 +493,7 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
             <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={[manageStyles.coverPhotoBtn, { height: (SCREEN_WIDTH - 2 * Spacing[5]) * (coverHeight / SCREEN_WIDTH) }]}>
               {(localCoverUri ?? parish?.coverPhotoUrl) ? (
                 <>
-                  <Image source={{ uri: localCoverUri ?? parish!.coverPhotoUrl! }} style={manageStyles.coverPhotoPreview} resizeMode="cover" />
+                  <ImageX source={{ uri: localCoverUri ?? parish!.coverPhotoUrl! }} style={manageStyles.coverPhotoPreview} contentFit="cover" />
                   <View style={manageStyles.coverPhotoOverlay}>
                     {uploadingCover ? (
                       <ActivityIndicator color="#fff" />
@@ -601,8 +602,25 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     }, [parishId])
   );
 
-  // If cover photo fails to load (expired URL), re-fetch parish data for a fresh URL
+  // If the cover photo fails to load (e.g. signed URL expired), refetch the
+  // parish for a fresh URL — but at most once per *URL value*. Without this
+  // ref, a persistently-broken URL produces an infinite loop: image errors →
+  // refetch resolves → setCoverImgError(false) → image re-mounts → errors
+  // again → refetch again. The ref is a stable record of "we already tried
+  // this URL", and only resets when parishId changes (i.e. user navigates).
+  const retriedCoverUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    retriedCoverUrlRef.current = null;
+  }, [parishId]);
   const handleCoverImageError = useCallback(() => {
+    const currentUrl = parish?.coverPhotoUrl;
+    if (!currentUrl) return;
+    if (retriedCoverUrlRef.current === currentUrl) {
+      // Already retried this URL once; give up to avoid a refetch loop.
+      setCoverImgError(true);
+      return;
+    }
+    retriedCoverUrlRef.current = currentUrl;
     setCoverImgError(true);
     api.getParish(parishId)
       .then((data) => {
@@ -610,12 +628,11 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         setCoverImgError(false);
       })
       .catch(() => {});
-  }, [parishId]);
+  }, [parishId, parish?.coverPhotoUrl]);
 
   const fetchPosts = useCallback(async (cursor?: string) => {
     try {
       const data = await api.getParishPosts(parishId, cursor);
-      console.log('[fetchPosts] posts:', data.posts.length, 'next_cursor:', data.next_cursor);
       const mapped = data.posts.map(mapParishPost);
       if (cursor) {
         setPosts((prev) => [...prev, ...mapped]);
@@ -626,8 +643,8 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
       if (!data.next_cursor) {
         hasMore.current = false;
       }
-    } catch (e) {
-      console.log('[fetchPosts] error:', e);
+    } catch {
+      // Network error — keep previous posts displayed.
     }
   }, [parishId]);
 
@@ -652,7 +669,6 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   );
 
   const handleLoadMore = useCallback(async () => {
-    console.log('[loadMore] fired — hasMore:', hasMore.current, 'loading:', loadingMoreRef.current, 'cursor:', nextCursor);
     if (!hasMore.current || loadingMoreRef.current || !nextCursor) return;
     loadingMoreRef.current = true;
     setLoadingMore(true);
@@ -758,92 +774,42 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 
   const hasCover = !!parish?.coverPhotoUrl && !coverImgError;
 
-  const ListHeader = useCallback(() => (
-    <View>
-      {hasCover ? (
-        /* Cover photo area */
-        <View style={{ height: coverHeight }}>
-          <Image
-            source={{ uri: parish!.coverPhotoUrl! }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onError={handleCoverImageError}
-          />
-          <LinearGradient
-            colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)']}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 110 }} />
+  const handleProfilePress = useCallback(() => setProfileVisible(true), []);
+  const handleManagePress = useCallback(() => setManageVisible(true), []);
+  const handleNewPostPress = useCallback(() => {
+    setEditingPost(undefined);
+    setComposeVisible(true);
+  }, []);
 
-  {/* bottom paper dissolve — note the locations prop */}
-          <LinearGradient
-            colors={[
-              'rgba(250,247,242,0)',
-              'rgba(250,247,242,0.4)',
-              'rgba(250,247,242,1)'
-            ]}
-            locations={[0, 0.55, 1]}
-            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 180 }} />
-          {uploadingCover && (
-            <View style={styles.coverPhotoUploading}>
-              <ActivityIndicator size="small" color={Colors.textInverse} />
-            </View>
-          )}
-          {/* Top-right action buttons */}
-          <View style={[styles.coverPhotoActions, { top: insets.top + Spacing[3] }]}>
-            <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
-              <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
-              <MCIcon name="information-outline" size={19} color="rgba(237, 235, 235, 0.9)" />
-            </TouchableOpacity>
-            {isParishAdmin ? (
-              <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.coverPhotoActionBtn}>
-                <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
-                <Icon name="ellipsis-horizontal" size={17} color="rgba(255,255,255,0.9)" />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-          {/* Parish info overlaid at bottom of cover */}
-          <View style={styles.coverNameOverlay}>
-            <Text style={styles.coverParishName} numberOfLines={2}>{parishName}</Text>
-          </View>
-        </View>
-      ) : (
-        /* No cover photo — compact header */
-        <View style={[styles.noCoverHeader, { paddingTop: insets.top + Spacing[3] }]}>
-          {/* Action buttons row */}
-          <View style={styles.noCoverActions}>
-            <TouchableOpacity onPress={() => setProfileVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.noCoverActionBtn}>
-              <MCIcon name="information-outline" size={19} color={Colors.textSecondary} />
-            </TouchableOpacity>
-            {isParishAdmin ? (
-              <TouchableOpacity onPress={() => setManageVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.noCoverActionBtn}>
-                <Icon name="ellipsis-horizontal" size={17} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-          <Text style={styles.noCoverParishName} numberOfLines={2}>{parishName}</Text>
-        </View>
-      )}
-
-      {/* Hairline divider */}
-      <View style={styles.sectionDivider} />
-
-      {/* Community header — sits outside the post card */}
-      <View style={styles.communityHeader}>
-        <Text style={styles.communityTitle}>COMMUNITY</Text>
-        <TouchableOpacity
-          style={styles.newPostBtn}
-          onPress={() => { setEditingPost(undefined); setComposeVisible(true); }}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.newPostText}>+ New post</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loadingPosts && (
-        <ActivityIndicator color={Colors.accent} style={styles.initialLoader} />
-      )}
-    </View>
-  ), [parish, parishName, loadingPosts, isParishAdmin, uploadingCover, hasCover, coverImgError, handleCoverImageError, insets.top]);
+  const headerEl = useMemo(() => (
+    <ParishListHeader
+      coverUrl={parish?.coverPhotoUrl}
+      hasCover={hasCover}
+      coverHeight={coverHeight}
+      parishName={parishName}
+      isParishAdmin={isParishAdmin}
+      uploadingCover={uploadingCover}
+      loadingPosts={loadingPosts}
+      insetTop={insets.top}
+      onCoverError={handleCoverImageError}
+      onProfilePress={handleProfilePress}
+      onManagePress={handleManagePress}
+      onNewPostPress={handleNewPostPress}
+    />
+  ), [
+    parish?.coverPhotoUrl,
+    hasCover,
+    coverHeight,
+    parishName,
+    isParishAdmin,
+    uploadingCover,
+    loadingPosts,
+    insets.top,
+    handleCoverImageError,
+    handleProfilePress,
+    handleManagePress,
+    handleNewPostPress,
+  ]);
 
   const ListFooter = useCallback(() => (
     loadingMore ? <ActivityIndicator color={Colors.primary} style={styles.footerLoader} /> : null
@@ -880,16 +846,15 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     <View style={styles.container}>
       <StatusBar barStyle={hasCover ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
-      <FlatList
+      <FlashList
         data={posts}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={headerEl}
         ListFooterComponent={ListFooter}
         ListEmptyComponent={ListEmpty}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        style={{ flex: 1 }}
         onRefresh={handleRefresh}
         refreshing={refreshing}
         showsVerticalScrollIndicator={false}

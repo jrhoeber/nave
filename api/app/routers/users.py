@@ -7,6 +7,7 @@ from app.models.user import MutualFriendBrief, UserResponse, UserUpdate
 from app.utils.storage import (
     _ALLOWED_CONTENT_TYPES,
     _MAX_AVATAR_BYTES,
+    delete_object,
     get_avatar_signed_url,
     upload_avatar,
 )
@@ -148,13 +149,22 @@ async def upload_my_avatar(
     await check_image_or_raise(conn, image_bytes=file_bytes, user_id=str(current_user["id"]),
                                context_type="image_avatar")
 
+    previous_object = current_user.get("avatar_url")
+
     object_name = upload_avatar(file_bytes, str(current_user["id"]), content_type)
+
+    if not get_avatar_signed_url(object_name):
+        # Don't persist if we can't generate a signed URL — clients have no way to fetch the image.
+        raise HTTPException(status_code=500, detail="Failed to generate signed URL for avatar")
 
     await conn.execute(
         "UPDATE users SET avatar_url = $1, updated_at = NOW() WHERE id = $2",
         object_name,
         current_user["id"],
     )
+
+    # Best-effort: reap the previous object so the bucket doesn't accumulate orphans.
+    delete_object(previous_object)
     row = await conn.fetchrow(
         """
         SELECT u.*, p.name AS parish_name,

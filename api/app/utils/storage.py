@@ -1,6 +1,7 @@
 import datetime
 import logging
 import time
+import uuid
 from io import BytesIO
 
 from PIL import Image as PilImage
@@ -20,7 +21,12 @@ _AVATAR_MAX_PX = 512
 
 
 def upload_avatar(file_bytes: bytes, user_id: str, content_type: str) -> str:
-    """Resize to 128×128, upload to GCS as JPEG. Returns the GCS object name."""
+    """Resize to 512px-max, upload to GCS as JPEG at a unique path. Returns the object name.
+
+    The path includes a per-upload UUID so each upload produces a fresh URL.
+    Callers should best-effort delete the previous object via `delete_object` after
+    the DB row is updated (see upload endpoints).
+    """
     from app.config import settings
     from google.cloud import storage
 
@@ -29,12 +35,11 @@ def upload_avatar(file_bytes: bytes, user_id: str, content_type: str) -> str:
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=85, optimize=True)
 
-    object_name = f"avatars/{user_id}.jpg"
+    object_name = f"avatars/{user_id}/{uuid.uuid4().hex}.jpg"
     client = storage.Client()
     client.bucket(settings.gcs_bucket_name).blob(object_name).upload_from_string(
         buf.getvalue(), content_type="image/jpeg"
     )
-    _signed_url_cache.pop(object_name, None)
     logger.info("Uploaded avatar to gs://%s/%s", settings.gcs_bucket_name, object_name)
     return object_name
 
@@ -108,7 +113,7 @@ def get_avatar_signed_url(object_name: str) -> str | None:
 
 
 def upload_group_avatar(file_bytes: bytes, group_id: str, content_type: str) -> str:
-    """Resize to 128×128, upload to GCS as JPEG for a prayer group. Returns the GCS object name."""
+    """Upload a prayer group avatar to GCS at a unique path. Returns the object name."""
     from app.config import settings
     from google.cloud import storage
 
@@ -117,29 +122,50 @@ def upload_group_avatar(file_bytes: bytes, group_id: str, content_type: str) -> 
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=85, optimize=True)
 
-    object_name = f"group-avatars/{group_id}.jpg"
+    object_name = f"group-avatars/{group_id}/{uuid.uuid4().hex}.jpg"
     client = storage.Client()
     client.bucket(settings.gcs_bucket_name).blob(object_name).upload_from_string(
         buf.getvalue(), content_type="image/jpeg"
     )
-    _signed_url_cache.pop(object_name, None)
     logger.info("Uploaded group avatar to gs://%s/%s", settings.gcs_bucket_name, object_name)
     return object_name
 
 
 def upload_parish_cover(file_bytes: bytes, parish_id: str, content_type: str) -> str:
-    """Upload a parish cover photo to GCS. Returns the GCS object name."""
+    """Upload a parish cover photo to GCS at a unique path. Returns the object name."""
     from app.config import settings
     from google.cloud import storage
 
     ext = content_type.split("/")[-1]
     if ext == "jpeg":
         ext = "jpg"
-    object_name = f"parish-covers/{parish_id}.{ext}"
+    object_name = f"parish-covers/{parish_id}/{uuid.uuid4().hex}.{ext}"
 
     client = storage.Client()
-    blob = client.bucket(settings.gcs_bucket_name).blob(object_name)
-    blob.upload_from_string(file_bytes, content_type=content_type)
-    _signed_url_cache.pop(object_name, None)
+    client.bucket(settings.gcs_bucket_name).blob(object_name).upload_from_string(
+        file_bytes, content_type=content_type
+    )
     logger.info("Uploaded parish cover to gs://%s/%s", settings.gcs_bucket_name, object_name)
     return object_name
+
+
+_MANAGED_PREFIXES = ("avatars/", "group-avatars/", "parish-covers/")
+
+
+def delete_object(object_name: str | None) -> None:
+    """Best-effort delete of a managed GCS object. Swallows all errors.
+
+    Used to reap the previous image after a successful re-upload. Only deletes
+    objects under the managed prefixes — passing any other value is a no-op.
+    """
+    if not object_name or not object_name.startswith(_MANAGED_PREFIXES):
+        return
+    try:
+        from app.config import settings
+        from google.cloud import storage
+
+        storage.Client().bucket(settings.gcs_bucket_name).blob(object_name).delete()
+        _signed_url_cache.pop(object_name, None)
+    except Exception as e:
+        # Don't propagate — orphaned objects are an acceptable failure mode.
+        logger.warning("Failed to delete previous GCS object %s: %s", object_name, e)

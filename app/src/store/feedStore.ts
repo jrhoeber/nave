@@ -1,20 +1,25 @@
 import { create } from 'zustand';
-import type { Post } from '../../types';
+import type { Post } from '../types';
 import { api, mapPost } from '../lib/apiClient';
 
 interface FeedState {
   posts: Post[];
   isLoading: boolean;
+  hasFetched: boolean;
+  lastFetchedAt: number;
   hasMore: boolean;
   cursor: string | null;
   fetchFeed: () => Promise<void>;
   toggleLike: (postId: string) => Promise<void>;
   togglePraying: (postId: string) => Promise<void>;
+  clearAll: () => void;
 }
 
 export const useFeedStore = create<FeedState>((set, get) => ({
   posts: [],
   isLoading: false,
+  hasFetched: false,
+  lastFetchedAt: 0,
   hasMore: true,
   cursor: null,
 
@@ -28,6 +33,8 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         hasMore: data.next_cursor !== null,
         cursor: data.next_cursor,
         isLoading: false,
+        hasFetched: true,
+        lastFetchedAt: Date.now(),
       });
     } catch {
       set({ isLoading: false });
@@ -64,6 +71,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         ),
       }));
     }
+  },
+
+  clearAll: () => {
+    set({ posts: [], isLoading: false, hasFetched: false, lastFetchedAt: 0, hasMore: true, cursor: null });
   },
 
   togglePraying: async (postId: string) => {

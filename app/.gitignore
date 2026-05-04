@@ -47,3 +47,7 @@ __pycache__/
 e2e/artifacts/
 .detox/
 detox-artifacts/
+# Expo
+.expo
+dist/
+web-build/

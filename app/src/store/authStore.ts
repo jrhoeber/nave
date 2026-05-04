@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image } from 'react-native';
-import type { User } from '../../types';
+import { Image } from 'expo-image';
+import type { User } from '../types';
 import { api, mapUser, registerUnauthorizedHandler } from '../lib/apiClient';
 
 interface AuthState {
@@ -69,6 +69,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
     set({ user: null, token: null, isAuthenticated: false, avatarReady: false });
+    // Clear domain stores so a different account never sees the previous user's data.
+    // Lazy require to avoid a startup-time circular dependency between stores.
+    const { useFeedStore } = require('./feedStore');
+    const { usePrayerStore } = require('./prayerStore');
+    const { useGroupChatStore } = require('./groupChatStore');
+    const { useFriendsStore } = require('./friendsStore');
+    const { useBlocksStore } = require('./blocksStore');
+    useFeedStore.getState().clearAll();
+    usePrayerStore.getState().clearAll();
+    useGroupChatStore.getState().clearAll();
+    useFriendsStore.getState().clearAll();
+    useBlocksStore.getState().clearAll();
   },
 
   updateUser: async (patch: Partial<User>) => {

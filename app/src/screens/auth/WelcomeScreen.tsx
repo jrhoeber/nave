@@ -8,6 +8,7 @@ import appleAuth from '@invertase/react-native-apple-authentication';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
+import { log } from '../../lib/log';
 import { NaveLogo } from '../../components/ui/NaveLogo';
 import { Colors, Spacing, Typography } from '../../theme';
 import type { AuthNavigationProp } from '../../types/navigation';
@@ -57,20 +58,20 @@ export function WelcomeScreen() {
     setError('');
     setLoading('google');
     try {
-      console.log('[GoogleSignIn] checking play services...');
+      log.debug('[GoogleSignIn] checking play services...');
       await GoogleSignin.hasPlayServices();
-      console.log('[GoogleSignIn] signing in...');
+      log.debug('[GoogleSignIn] signing in...');
       await GoogleSignin.signIn();
-      console.log('[GoogleSignIn] getting tokens...');
+      log.debug('[GoogleSignIn] getting tokens...');
       const { idToken } = await GoogleSignin.getTokens();
-      console.log('[GoogleSignIn] got idToken:', !!idToken);
+      log.debug('[GoogleSignIn] got idToken:', !!idToken);
       if (!idToken) throw new Error('No ID token from Google');
-      console.log('[GoogleSignIn] exchanging for Firebase token...');
+      log.debug('[GoogleSignIn] exchanging for Firebase token...');
       const firebaseIdToken = await getFirebaseIdToken(idToken, 'google.com');
-      console.log('[GoogleSignIn] got Firebase token, signing in to backend...');
+      log.debug('[GoogleSignIn] got Firebase token, signing in to backend...');
       await signInWithFirebase(firebaseIdToken);
     } catch (err: any) {
-      console.log('[GoogleSignIn] error code:', err.code, 'message:', err.message, err);
+      log.warn('[GoogleSignIn] error', err.code, err.message);
       if (
         err.code === GoogleStatusCodes.SIGN_IN_CANCELLED ||
         err.code === GoogleStatusCodes.IN_PROGRESS

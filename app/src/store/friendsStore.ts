@@ -6,16 +6,19 @@ interface FriendsState {
   friends: Friendship[];
   incomingRequests: Friendship[];
   isLoading: boolean;
+  hasFetched: boolean;
   fetchFriends: () => Promise<void>;
   acceptRequest: (friendshipId: string) => Promise<void>;
   rejectRequest: (friendshipId: string) => Promise<void>;
   removeFriend: (friendshipId: string) => Promise<void>;
+  clearAll: () => void;
 }
 
 export const useFriendsStore = create<FriendsState>((set, get) => ({
   friends: [],
   incomingRequests: [],
   isLoading: false,
+  hasFetched: false,
 
   fetchFriends: async () => {
     set({ isLoading: true });
@@ -27,6 +30,7 @@ export const useFriendsStore = create<FriendsState>((set, get) => ({
       set({
         friends: friendsRes.friends.map(mapFriendship),
         incomingRequests: requestsRes.requests.map(mapFriendship),
+        hasFetched: true,
       });
     } finally {
       set({ isLoading: false });
@@ -49,6 +53,10 @@ export const useFriendsStore = create<FriendsState>((set, get) => ({
     set((s) => ({
       incomingRequests: s.incomingRequests.filter((r) => r.id !== friendshipId),
     }));
+  },
+
+  clearAll: () => {
+    set({ friends: [], incomingRequests: [], isLoading: false, hasFetched: false });
   },
 
   removeFriend: async (friendshipId) => {

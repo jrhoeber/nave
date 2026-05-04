@@ -11,6 +11,7 @@
 
 import { Platform } from 'react-native';
 import { api, mapGroupMessage } from './apiClient';
+import { log } from './log';
 import { useGroupChatStore } from '../store/groupChatStore';
 import { usePrayerStore } from '../store/prayerStore';
 
@@ -63,13 +64,13 @@ export async function registerPushToken(): Promise<void> {
     } = await getModules();
 
     const authStatus = await requestPermission(messagingInstance);
-    console.log('[Push] permission status:', authStatus);
+    log.debug('[Push] permission status:', authStatus);
     const enabled =
       authStatus === AuthorizationStatus.AUTHORIZED ||
       authStatus === AuthorizationStatus.PROVISIONAL;
 
     if (!enabled) {
-      console.log('[Push] permission not granted, skipping token registration');
+      log.debug('[Push] permission not granted, skipping token registration');
       return;
     }
 
@@ -83,19 +84,19 @@ export async function registerPushToken(): Promise<void> {
         await new Promise(res => setTimeout(res, 1000));
       }
       if (!apnsToken) {
-        console.log('[Push] APNs token not available after 10s, skipping');
+        log.debug('[Push] APNs token not available after 10s, skipping');
         return;
       }
-      console.log('[Push] APNs token ready');
+      log.debug('[Push] APNs token ready');
     }
 
     const token = await getToken(messagingInstance);
-    console.log('[Push] FCM token:', token ? token.slice(0, 20) + '...' : 'null');
+    log.debug('[Push] FCM token:', token ? token.slice(0, 20) + '...' : 'null');
     if (!token) return;
 
     const platform = Platform.OS === 'ios' ? 'ios' : 'android';
     await api.registerDeviceToken(token, platform);
-    console.log('[Push] token registered with API');
+    log.debug('[Push] token registered with API');
     _currentToken = token;
 
     // Handle token refresh
@@ -108,7 +109,7 @@ export async function registerPushToken(): Promise<void> {
       }
     });
   } catch (err) {
-    console.log('[Push] registerPushToken error:', err);
+    log.warn('[Push] registerPushToken error:', err);
   }
 }
 

@@ -1,4 +1,7 @@
 {
   "name": "Nave",
-  "displayName": "Nave"
+  "displayName": "Nave",
+  "plugins": [
+    "expo-image"
+  ]
 }

@@ -100,7 +100,10 @@
       "Bash(otool -l /Users/jordanhoeber/wksp/nave/app/assets/fonts/CormorantGaramond-Bold.ttf)",
       "Bash(curl -sL \"https://fonts.gstatic.com/s/cormorantgaramond/v16/co3YmX5slCNuHLi8bLeY9MK7whWMhyjQEl5fsA.ttf\" -o /tmp/CG-Bold-test.ttf)",
       "Read(//tmp/**)",
-      "Bash(npx -p typescript tsc --noEmit)"
+      "Bash(npx -p typescript tsc --noEmit)",
+      "Bash(npx --yes install-expo-modules@latest)",
+      "Bash(npx expo *)",
+      "Bash(git checkout *)"
     ]
   }
 }

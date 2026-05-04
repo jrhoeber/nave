@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrayerGroupCard } from '../../components/prayer/PrayerGroupCard';
@@ -22,6 +23,8 @@ export function GroupScreen() {
   const myGroups = usePrayerStore((s) => s.myGroups);
   const invitations = usePrayerStore((s) => s.invitations);
   const isLoading = usePrayerStore((s) => s.isLoading);
+  const hasFetchedGroups = usePrayerStore((s) => s.hasFetchedGroups);
+  const hasFetchedInvitations = usePrayerStore((s) => s.hasFetchedInvitations);
   const fetchGroups = usePrayerStore((s) => s.fetchGroups);
   const fetchInvitations = usePrayerStore((s) => s.fetchInvitations);
   const acceptInvitation = usePrayerStore((s) => s.acceptInvitation);
@@ -44,9 +47,9 @@ export function GroupScreen() {
   const [parishGroups, setParishGroups] = useState<PrayerGroup[]>([]);
 
   useEffect(() => {
-    fetchGroups();
-    fetchInvitations();
-  }, []);
+    if (!hasFetchedGroups) fetchGroups();
+    if (!hasFetchedInvitations) fetchInvitations();
+  }, [hasFetchedGroups, hasFetchedInvitations, fetchGroups, fetchInvitations]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -54,7 +57,11 @@ export function GroupScreen() {
     setRefreshing(false);
   }, [fetchGroups, fetchInvitations]);
 
-  useFocusEffect(useCallback(() => { fetchInvitations(); }, []));
+  useFocusEffect(useCallback(() => {
+    // Refresh invitations when returning to the tab (cheap, single endpoint).
+    if (hasFetchedInvitations) fetchInvitations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []));
 
   // Fetch public parish groups for the empty state
   useEffect(() => {
@@ -230,7 +237,7 @@ export function GroupScreen() {
         </TouchableOpacity>
       </View>
 
-      {myGroups.length === 0 && invitations.length === 0 && !isLoading ? (
+      {hasFetchedGroups && hasFetchedInvitations && myGroups.length === 0 && invitations.length === 0 && !isLoading ? (
         <ScrollView
           contentContainerStyle={styles.emptyScroll}
           showsVerticalScrollIndicator={false}
@@ -267,11 +274,12 @@ export function GroupScreen() {
           )}
         </ScrollView>
       ) : (
-        <FlatList
+        <FlashList
           testID="groups-list"
           data={listData}
           keyExtractor={keyExtractor}
           renderItem={renderListItem}
+          getItemType={(item) => item.type}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}

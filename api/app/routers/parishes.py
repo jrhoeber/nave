@@ -20,6 +20,7 @@ from app.models.parish import (
 from app.utils.storage import (
     _ALLOWED_CONTENT_TYPES,
     _MAX_AVATAR_BYTES,
+    delete_object,
     get_avatar_signed_url,
     get_signed_url,
     upload_parish_cover,
@@ -250,7 +251,19 @@ async def upload_parish_cover_photo(
     await check_image_or_raise(conn, image_bytes=file_bytes, user_id=str(current_user["id"]),
                                context_type="image_parish_cover")
 
+    previous_row = await conn.fetchrow(
+        "SELECT cover_photo_url FROM parishes WHERE id = $1",
+        parish_id,
+    )
+    previous_object = previous_row["cover_photo_url"] if previous_row else None
+
     object_name = upload_parish_cover(file_bytes, parish_id, content_type)
+
+    signed = get_signed_url(object_name)
+    if not signed:
+        # Don't return an unsigned object_name to the client; that would put a
+        # non-URL string into image-source state and break rendering.
+        raise HTTPException(status_code=500, detail="Failed to generate signed URL for cover photo")
 
     await conn.execute(
         "UPDATE parishes SET cover_photo_url = $1 WHERE id = $2",
@@ -258,8 +271,10 @@ async def upload_parish_cover_photo(
         parish_id,
     )
 
-    signed = get_signed_url(object_name)
-    return {"cover_photo_url": signed or object_name}
+    # Best-effort: reap the previous object so the bucket doesn't accumulate orphans.
+    delete_object(previous_object)
+
+    return {"cover_photo_url": signed}
 
 
 @router.get("/{parish_id}/posts", response_model=ParishPostsResponse)

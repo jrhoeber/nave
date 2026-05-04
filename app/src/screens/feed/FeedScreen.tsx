@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
-import { FlatList, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PostCard } from '../../components/feed/PostCard';
@@ -12,17 +13,27 @@ import { Colors, Spacing, Typography } from '../../theme';
 import type { Post } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
+const FEED_STALE_MS = 30_000;
+
 export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
   const user = useAuthStore((s) => s.user);
   const posts = useFeedStore((s) => s.posts);
   const isLoading = useFeedStore((s) => s.isLoading);
+  const hasFetched = useFeedStore((s) => s.hasFetched);
   const fetchFeed = useFeedStore((s) => s.fetchFeed);
   const toggleLike = useFeedStore((s) => s.toggleLike);
   const togglePraying = useFeedStore((s) => s.togglePraying);
 
-  useEffect(() => { fetchFeed(); }, []);
+  useEffect(() => { if (!hasFetched) fetchFeed(); }, [hasFetched, fetchFeed]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const { lastFetchedAt } = useFeedStore.getState();
+      if (Date.now() - lastFetchedAt > FEED_STALE_MS) fetchFeed();
+    }, [fetchFeed]),
+  );
 
   const openPost = useCallback((id: string) => navigation.navigate('PostDetail', { id }), [navigation]);
   const openAuthor = useCallback((id: string) => navigation.navigate('UserProfile', { id }), [navigation]);
@@ -65,18 +76,14 @@ export function FeedScreen() {
         </TouchableOpacity>
       </TouchableOpacity>
 
-      <FlatList
+      <FlashList
         data={posts}
         keyExtractor={keyExtractor}
         renderItem={renderPost}
-        windowSize={7}
-        initialNumToRender={6}
-        maxToRenderPerBatch={5}
-        updateCellsBatchingPeriod={50}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchFeed} tintColor={Colors.primary} />}
-        ListEmptyComponent={!isLoading ? (
+        ListEmptyComponent={hasFetched && !isLoading ? (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>🕊️</Text>
             <Text style={styles.emptyTitle}>Your feed is quiet</Text>

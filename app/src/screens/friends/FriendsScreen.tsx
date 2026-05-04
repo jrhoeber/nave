@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
@@ -17,6 +18,7 @@ export function FriendsScreen() {
   const friends = useFriendsStore((s) => s.friends);
   const incomingRequests = useFriendsStore((s) => s.incomingRequests);
   const isLoading = useFriendsStore((s) => s.isLoading);
+  const hasFetched = useFriendsStore((s) => s.hasFetched);
   const fetchFriends = useFriendsStore((s) => s.fetchFriends);
   const acceptRequest = useFriendsStore((s) => s.acceptRequest);
   const rejectRequest = useFriendsStore((s) => s.rejectRequest);
@@ -136,15 +138,16 @@ export function FriendsScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
+      <FlashList
         data={listData}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
+        getItemType={(item) => item.type}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         ListFooterComponent={null}
-        ListEmptyComponent={!isLoading && friends.length === 0 ? (
+        ListEmptyComponent={hasFetched && !isLoading && friends.length === 0 ? (
           <EmptyStateBox
             title="No friends yet"
             body="Connect with others in your parish community"

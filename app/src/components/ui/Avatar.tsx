@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Image, Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { Colors, Radius, Typography } from '../../theme';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { ImageX } from './ImageX';
+import { Colors, Typography } from '../../theme';
 
 interface AvatarProps {
   uri?: string;
@@ -22,33 +23,29 @@ function AvatarImpl({
   onLoad,
 }: AvatarProps) {
   const [imgError, setImgError] = useState(false);
-  useEffect(() => { setImgError(false); }, [uri]);
   const initials = name
     ? name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
     : '?';
   const fontSize = size * 0.38;
   const badgeSize = size * 0.28;
 
-  // iOS Image source supports a `cache` hint that maps to NSURLRequest cache policy.
-  // `force-cache` makes a cached avatar reusable across mounts/screens without a refetch.
-  const source = uri
-    ? Platform.OS === 'ios'
-      ? { uri, cache: 'force-cache' as const }
-      : { uri }
-    : undefined;
+  const showImage = !!uri && !imgError;
+  const showFallback = !showImage;
 
   return (
     <View style={[{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }, style]}>
-      <View style={[StyleSheet.absoluteFill, styles.fallback, { borderRadius: size / 2 }]}>
-        <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
-      </View>
-      {source && !imgError && (
-        <Image
-          source={source}
+      {showFallback && (
+        <View style={[StyleSheet.absoluteFill, styles.fallback, { borderRadius: size / 2 }]}>
+          <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
+        </View>
+      )}
+      {showImage && (
+        <ImageX
+          source={{ uri }}
           style={[StyleSheet.absoluteFill, styles.image, { borderRadius: size / 2 }]}
-          resizeMode="cover"
+          contentFit="cover"
           onError={() => setImgError(true)}
-          onLoad={onLoad}
+          onLoad={onLoad ? () => onLoad() : undefined}
         />
       )}
       {showBadge && (

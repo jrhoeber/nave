@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { AppState, View, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BlurView } from '@react-native-community/blur';
@@ -138,6 +138,22 @@ function IconWithBadge({ children, showBadge }: { children: React.ReactNode; sho
   );
 }
 
+function TabBarBackground() {
+  if (Platform.OS === 'ios') {
+    return (
+      <BlurView
+        style={styles.tabBarBackground}
+        blurType="xlight"
+        blurAmount={20}
+        reducedTransparencyFallbackColor="white"
+      />
+    );
+  }
+  return <View style={styles.tabBarFallbackBg} />;
+}
+
+const renderTabBarBackground = () => <TabBarBackground />;
+
 function ProfileTabIcon({ focused }: { focused: boolean }) {
   const user = useAuthStore((s) => s.user);
   const avatar = (
@@ -153,26 +169,13 @@ function ProfileTabIcon({ focused }: { focused: boolean }) {
 export function AppNavigator() {
   const insets = useSafeAreaInsets();
   const incomingRequestCount = useFriendsStore((s) => s.incomingRequests.length);
-  const messagesByGroup = useGroupChatStore((s) => s.messagesByGroup);
-  const lastReadIdByGroup = useGroupChatStore((s) => s.lastReadIdByGroup);
+  const totalUnreadCount = useGroupChatStore((s) => s.totalUnreadCount);
   const hydrateLastRead = useGroupChatStore((s) => s.hydrateLastRead);
   const loadGroupBaseline = useGroupChatStore((s) => s.loadGroupBaseline);
   const myGroups = usePrayerStore((s) => s.myGroups);
   const invitationsCount = usePrayerStore((s) => s.invitations.length);
   const fetchGroups = usePrayerStore((s) => s.fetchGroups);
   const fetchInvitations = usePrayerStore((s) => s.fetchInvitations);
-  const mutedGroupIds = usePrayerStore((s) => s.mutedGroupIds);
-
-  const totalUnreadCount = useMemo(() => {
-    return Object.keys(messagesByGroup).reduce((total, groupId) => {
-      if (mutedGroupIds.has(groupId)) return total;
-      const messages = messagesByGroup[groupId];
-      const lastReadId = lastReadIdByGroup[groupId];
-      if (!messages || !lastReadId) return total;
-      const idx = messages.findIndex((m) => m.id === lastReadId);
-      return total + (idx === -1 ? messages.length : idx);
-    }, 0);
-  }, [messagesByGroup, lastReadIdByGroup, mutedGroupIds]);
   const bottomInset = insets.bottom || 0;
 
   // On mount: restore persisted read positions then fetch groups so the nav badge
@@ -251,17 +254,7 @@ export function AppNavigator() {
           paddingHorizontal: 16,
           elevation: 0,
         },
-        tabBarBackground: () =>
-          Platform.OS === 'ios' ? (
-            <BlurView
-              style={styles.tabBarBackground}
-              blurType="xlight"
-              blurAmount={20}
-              reducedTransparencyFallbackColor="white"
-            />
-          ) : (
-            <View style={styles.tabBarFallbackBg} />
-          ),
+        tabBarBackground: renderTabBarBackground,
         tabBarItemStyle: {
           flex: 1,
           paddingTop: 8,
@@ -314,7 +307,6 @@ export function AppNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          lazy: false,
           tabBarTestID: 'tab-profile',
           tabBarIcon: ({ focused }) => <ProfileTabIcon focused={focused} />,
         }}

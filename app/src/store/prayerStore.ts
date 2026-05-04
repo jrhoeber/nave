@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PrayerGroup, GroupInvitation } from '../../types';
+import type { PrayerGroup, GroupInvitation } from '../types';
 import { api, mapPrayerGroup, mapGroupInvitation } from '../lib/apiClient';
 import { logError } from '../lib/errors';
 
@@ -8,6 +8,8 @@ interface PrayerState {
   myGroups: PrayerGroup[];
   invitations: GroupInvitation[];
   isLoading: boolean;
+  hasFetchedGroups: boolean;
+  hasFetchedInvitations: boolean;
   mutedGroupIds: Set<string>;
   fetchGroups: () => Promise<void>;
   fetchInvitations: () => Promise<void>;
@@ -22,6 +24,7 @@ interface PrayerState {
   loadMuteStatus: (groupId: string) => Promise<void>;
   uploadGroupAvatar: (groupId: string, uri: string, type: string) => Promise<void>;
   removeGroupAvatar: (groupId: string) => Promise<void>;
+  clearAll: () => void;
 }
 
 export const usePrayerStore = create<PrayerState>((set, get) => ({
@@ -29,6 +32,8 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
   myGroups: [],
   invitations: [],
   isLoading: false,
+  hasFetchedGroups: false,
+  hasFetchedInvitations: false,
   mutedGroupIds: new Set<string>(),
 
   fetchGroups: async () => {
@@ -37,7 +42,7 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
     try {
       const myData = await api.getMyGroups();
       const myGroups = myData.groups.map(mapPrayerGroup);
-      set({ groups: myGroups, myGroups, isLoading: false });
+      set({ groups: myGroups, myGroups, isLoading: false, hasFetchedGroups: true });
     } catch (e) {
       logError('prayerStore.fetchGroups', e);
       set({ isLoading: false });
@@ -47,7 +52,7 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
   fetchInvitations: async () => {
     try {
       const data = await api.getMyInvitations();
-      set({ invitations: data.invitations.map(mapGroupInvitation) });
+      set({ invitations: data.invitations.map(mapGroupInvitation), hasFetchedInvitations: true });
     } catch (e) {
       logError('prayerStore.fetchInvitations', e);
     }
@@ -193,6 +198,18 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
     set((state) => {
       const groups = state.groups.map((g) => g.id === groupId ? updated : g);
       return { groups, myGroups: groups.filter((g) => g.isMember) };
+    });
+  },
+
+  clearAll: () => {
+    set({
+      groups: [],
+      myGroups: [],
+      invitations: [],
+      isLoading: false,
+      hasFetchedGroups: false,
+      hasFetchedInvitations: false,
+      mutedGroupIds: new Set<string>(),
     });
   },
 

@@ -8,6 +8,7 @@ interface BlocksState {
   fetchBlockedUsers: () => Promise<void>;
   blockUser: (userId: string) => Promise<void>;
   unblockUser: (userId: string) => Promise<void>;
+  clearAll: () => void;
 }
 
 export const useBlocksStore = create<BlocksState>((set) => ({
@@ -33,5 +34,9 @@ export const useBlocksStore = create<BlocksState>((set) => ({
     set((s) => ({
       blockedUsers: s.blockedUsers.filter((u) => u.id !== userId),
     }));
+  },
+
+  clearAll: () => {
+    set({ blockedUsers: [], isLoading: false });
   },
 }));

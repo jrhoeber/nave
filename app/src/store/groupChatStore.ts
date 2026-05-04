@@ -3,13 +3,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GroupMessage } from '../types';
 import { api, mapGroupMessage, mapMessageReaction } from '../lib/apiClient';
 import { useAuthStore } from './authStore';
+import { usePrayerStore } from './prayerStore';
 
 const LAST_READ_KEY = 'nave_last_read_by_group';
 
-async function persistLastRead(lastReadIdByGroup: Record<string, string>) {
-  try {
-    await AsyncStorage.setItem(LAST_READ_KEY, JSON.stringify(lastReadIdByGroup));
-  } catch {}
+let _persistTimer: ReturnType<typeof setTimeout> | null = null;
+let _pendingPersist: Record<string, string> | null = null;
+
+// Debounce AsyncStorage writes — mark-as-read fires per scroll cycle, no need
+// to hit disk that often.
+function persistLastRead(lastReadIdByGroup: Record<string, string>): void {
+  _pendingPersist = lastReadIdByGroup;
+  if (_persistTimer) return;
+  _persistTimer = setTimeout(() => {
+    _persistTimer = null;
+    const toWrite = _pendingPersist;
+    _pendingPersist = null;
+    if (toWrite) {
+      AsyncStorage.setItem(LAST_READ_KEY, JSON.stringify(toWrite)).catch(() => {});
+    }
+  }, 500);
 }
 
 interface GroupChatState {
@@ -19,6 +32,8 @@ interface GroupChatState {
   loadingByGroup: Record<string, boolean>;
   lastReadIdByGroup: Record<string, string>;
   activePollGroupId: string | null;
+  totalUnreadCount: number;
+  clearAll: () => void;
   setActivePollGroupId: (groupId: string | null) => void;
 
   fetchMessages: (groupId: string) => Promise<void>;
@@ -43,6 +58,7 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
   loadingByGroup: {},
   lastReadIdByGroup: {},
   activePollGroupId: null,
+  totalUnreadCount: 0,
 
   setActivePollGroupId: (groupId: string | null) => set({ activePollGroupId: groupId }),
 
@@ -363,6 +379,18 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     });
   },
 
+  clearAll: () => {
+    set({
+      messagesByGroup: {},
+      cursorByGroup: {},
+      hasMoreByGroup: {},
+      loadingByGroup: {},
+      lastReadIdByGroup: {},
+      activePollGroupId: null,
+      totalUnreadCount: 0,
+    });
+  },
+
   clearGroup: (groupId: string) => {
     set((s) => {
       const messagesByGroup = { ...s.messagesByGroup };
@@ -377,3 +405,46 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     });
   },
 }));
+
+// ─── Derived: totalUnreadCount ───────────────────────────────────────────────
+// Stored as a primitive on the store so subscribers (e.g. AppNavigator's tab
+// badge) can re-render only when the count actually changes — not on every
+// poll-driven `messagesByGroup` reference change.
+
+function computeTotalUnread(state: GroupChatState, mutedIds: Set<string>): number {
+  let total = 0;
+  const { messagesByGroup, lastReadIdByGroup } = state;
+  for (const id of Object.keys(messagesByGroup)) {
+    if (mutedIds.has(id)) continue;
+    const msgs = messagesByGroup[id];
+    const lastRead = lastReadIdByGroup[id];
+    if (!msgs || !lastRead) continue;
+    const idx = msgs.findIndex((m) => m.id === lastRead);
+    total += idx === -1 ? msgs.length : idx;
+  }
+  return total;
+}
+
+function refreshTotalUnread(): void {
+  const state = useGroupChatStore.getState();
+  const mutedIds = usePrayerStore.getState().mutedGroupIds;
+  const next = computeTotalUnread(state, mutedIds);
+  if (next !== state.totalUnreadCount) {
+    useGroupChatStore.setState({ totalUnreadCount: next });
+  }
+}
+
+useGroupChatStore.subscribe((state, prev) => {
+  if (
+    state.messagesByGroup !== prev.messagesByGroup ||
+    state.lastReadIdByGroup !== prev.lastReadIdByGroup
+  ) {
+    refreshTotalUnread();
+  }
+});
+
+usePrayerStore.subscribe((state, prev) => {
+  if (state.mutedGroupIds !== prev.mutedGroupIds) {
+    refreshTotalUnread();
+  }
+});

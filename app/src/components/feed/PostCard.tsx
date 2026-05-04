@@ -1,8 +1,9 @@
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar } from '../../components/ui/Avatar';
+import { ImageX } from '../../components/ui/ImageX';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { Post, PostType } from '../../types';
 
@@ -15,13 +16,24 @@ interface PostCardProps {
   onAuthorPress: (userId: string) => void;
 }
 
-const POST_TYPE_CONFIG: Record<PostType, { label: string; color: string; icon: string }> = {
-  prayer_request: { label: 'Prayer Request', color: '#7c3aed', icon: 'hand-right-outline' },
-  testimony:      { label: 'Testimony',      color: Colors.accentDark, icon: 'star-outline' },
-  event:          { label: 'Event',           color: Colors.info, icon: 'calendar-outline' },
-  scripture:      { label: 'Scripture',       color: Colors.success, icon: 'book-outline' },
-  general:        { label: '',                color: Colors.textSecondary, icon: 'chatbubble-outline' },
-};
+const POST_TYPE_CONFIG: Record<PostType, { label: string; color: string; icon: string; badgeBg: { backgroundColor: string }; badgeText: { color: string } }> = (() => {
+  const base = {
+    prayer_request: { label: 'Prayer Request', color: '#7c3aed', icon: 'hand-right-outline' },
+    testimony: { label: 'Testimony', color: Colors.accentDark, icon: 'star-outline' },
+    event: { label: 'Event', color: Colors.info, icon: 'calendar-outline' },
+    scripture: { label: 'Scripture', color: Colors.success, icon: 'book-outline' },
+    general: { label: '', color: Colors.textSecondary, icon: 'chatbubble-outline' },
+  } as const;
+  const out = {} as Record<PostType, { label: string; color: string; icon: string; badgeBg: { backgroundColor: string }; badgeText: { color: string } }>;
+  (Object.keys(base) as PostType[]).forEach((k) => {
+    out[k] = {
+      ...base[k],
+      badgeBg: { backgroundColor: base[k].color + '18' },
+      badgeText: { color: base[k].color },
+    };
+  });
+  return out;
+})();
 
 function PostCardImpl({ post, onLike, onPray, onComment, onPress, onAuthorPress }: PostCardProps) {
   const typeConfig = POST_TYPE_CONFIG[post.type];
@@ -40,9 +52,9 @@ function PostCardImpl({ post, onLike, onPray, onComment, onPress, onAuthorPress 
           </View>
         </TouchableOpacity>
         {post.type !== 'general' && (
-          <View style={[styles.typeBadge, { backgroundColor: typeConfig.color + '18' }]}>
+          <View style={[styles.typeBadge, typeConfig.badgeBg]}>
             <Icon name={typeConfig.icon} size={11} color={typeConfig.color} />
-            <Text style={[styles.typeLabel, { color: typeConfig.color }]}>{typeConfig.label}</Text>
+            <Text style={[styles.typeLabel, typeConfig.badgeText]}>{typeConfig.label}</Text>
           </View>
         )}
       </View>
@@ -50,7 +62,7 @@ function PostCardImpl({ post, onLike, onPray, onComment, onPress, onAuthorPress 
       <Text style={styles.content}>{post.content}</Text>
 
       {post.imageUrl && (
-        <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
+        <ImageX source={{ uri: post.imageUrl }} style={styles.image} contentFit="cover" />
       )}
 
       <View style={styles.actions}>
