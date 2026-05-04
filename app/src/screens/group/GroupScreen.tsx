@@ -9,6 +9,7 @@ import { AddGroupModal } from '../../components/prayer/AddGroupModal';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
+import { useTabBarContentPadding } from '../../navigation/AppNavigator';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useGroupChatStore } from '../../store/groupChatStore';
 import { useAuthStore } from '../../store/authStore';
@@ -19,6 +20,7 @@ import type { RootNavigationProp } from '../../types/navigation';
 
 export function GroupScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarPadding = useTabBarContentPadding();
   const navigation = useNavigation<RootNavigationProp>();
   const myGroups = usePrayerStore((s) => s.myGroups);
   const invitations = usePrayerStore((s) => s.invitations);
@@ -239,7 +241,7 @@ export function GroupScreen() {
 
       {hasFetchedGroups && hasFetchedInvitations && myGroups.length === 0 && invitations.length === 0 && !isLoading ? (
         <ScrollView
-          contentContainerStyle={styles.emptyScroll}
+          contentContainerStyle={{ paddingBottom: tabBarPadding }}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         >
@@ -280,7 +282,7 @@ export function GroupScreen() {
           keyExtractor={keyExtractor}
           renderItem={renderListItem}
           getItemType={(item) => item.type}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={{ paddingBottom: tabBarPadding }}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
           ListFooterComponent={null}
@@ -317,8 +319,6 @@ const styles = StyleSheet.create({
   startGroupText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
   startGroupArrow: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textSecondary },
   sectionLabel: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textSecondary, letterSpacing: 1, paddingHorizontal: Spacing[5], paddingTop: Spacing[2], paddingBottom: Spacing[3] },
-  list: { paddingBottom: Spacing[10] },
-  emptyScroll: { paddingBottom: Spacing[10] },
   emptyCta: { paddingHorizontal: Spacing[5], paddingTop: Spacing[4] },
   suggestedSection: { marginTop: Spacing[2] },
   invitationCard: {

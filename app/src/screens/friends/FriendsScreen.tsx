@@ -7,6 +7,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
 import { AddFriendModal } from '../../components/friends/AddFriendModal';
+import { useTabBarContentPadding } from '../../navigation/AppNavigator';
 import { useFriendsStore } from '../../store/friendsStore';
 import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
 import type { Friendship } from '../../types';
@@ -14,6 +15,7 @@ import type { RootNavigationProp } from '../../types/navigation';
 
 export function FriendsScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarPadding = useTabBarContentPadding();
   const navigation = useNavigation<RootNavigationProp>();
   const friends = useFriendsStore((s) => s.friends);
   const incomingRequests = useFriendsStore((s) => s.incomingRequests);
@@ -143,7 +145,7 @@ export function FriendsScreen() {
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         getItemType={(item) => item.type}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ paddingBottom: tabBarPadding }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         ListFooterComponent={null}
@@ -183,7 +185,6 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textSecondary, letterSpacing: 1, paddingHorizontal: Spacing[5], paddingTop: Spacing[2], paddingBottom: Spacing[3] },
 
   // ── List ───────────────────────────────────────────────────────────────────
-  list: { paddingBottom: Spacing[10] },
 
   friendCard: { paddingHorizontal: Spacing[5], paddingVertical: Spacing[4], borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.cardBorder },
   friendCardLast: { borderBottomWidth: 0 },

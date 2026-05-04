@@ -24,6 +24,15 @@ const INK_40 = 'rgba(26,26,26,0.4)';
 const HAIR = 'rgba(26,26,26,0.08)';
 const PAPER = Colors.background;
 
+export const TAB_BAR_HEIGHT = 56;
+
+// Bottom padding for scrollable content on tab screens, so the last item
+// clears the floating tab bar plus the device's bottom safe-area inset.
+export function useTabBarContentPadding(extra = 24) {
+  const { bottom } = useSafeAreaInsets();
+  return TAB_BAR_HEIGHT + bottom + extra;
+}
+
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
 const styles = StyleSheet.create({
@@ -249,7 +258,7 @@ export function AppNavigator() {
           backgroundColor: 'transparent',
           borderTopColor: HAIR,
           borderTopWidth: 1,
-          height: 56 + bottomInset,
+          height: TAB_BAR_HEIGHT + bottomInset,
           paddingBottom: bottomInset,
           paddingHorizontal: 16,
           elevation: 0,

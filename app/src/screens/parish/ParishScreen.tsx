@@ -34,6 +34,7 @@ import { FormCard } from '../../components/ui/FormCard';
 import { FormField } from '../../components/ui/FormField';
 import { ParishPostCard } from '../../components/parish/ParishPostCard';
 import { ParishListHeader } from '../../components/parish/ParishListHeader';
+import { useTabBarContentPadding } from '../../navigation/AppNavigator';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
 import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
@@ -571,6 +572,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 }) {
   const insets = useSafeAreaInsets();
   const coverHeight = COVER_BASE_HEIGHT + insets.top;
+  const tabBarPadding = useTabBarContentPadding();
   const navigation = useNavigation<RootNavigationProp>();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [profileVisible, setProfileVisible] = useState(false);
@@ -858,7 +860,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
         onRefresh={handleRefresh}
         refreshing={refreshing}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.feedScroll}
+        contentContainerStyle={{ paddingBottom: tabBarPadding }}
       />
 
       <ParishProfileModal
@@ -1040,7 +1042,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  feedScroll: { paddingBottom: Spacing[10] },
   initialLoader: { marginTop: Spacing[4], marginBottom: Spacing[4] },
   footerLoader: { marginVertical: Spacing[4] },
 
