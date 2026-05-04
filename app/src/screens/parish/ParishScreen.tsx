@@ -44,6 +44,22 @@ import type { RootNavigationProp } from '../../types/navigation';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COVER_BASE_HEIGHT = 300;
 
+// Cover photos are GCS V4 signed URLs whose query-string token rotates on each
+// server-side cache miss. Re-rendering <ImageX> with a different `source.uri`
+// string flashes on device, even though the bitmap is cached. Preserve the
+// previous URL string when the underlying object (path before `?`) is unchanged.
+function mergeParish(prev: Parish | null, next: Parish): Parish {
+  if (!prev?.coverPhotoUrl || !next.coverPhotoUrl) return next;
+  const stripQuery = (u: string) => {
+    const i = u.indexOf('?');
+    return i >= 0 ? u.slice(0, i) : u;
+  };
+  if (stripQuery(prev.coverPhotoUrl) === stripQuery(next.coverPhotoUrl)) {
+    return { ...next, coverPhotoUrl: prev.coverPhotoUrl };
+  }
+  return next;
+}
+
 // ─── Parish profile modal ─────────────────────────────────────────────────────
 
 function ParishProfileModal({ parish, visible, onClose, onChangeParish }: {
@@ -597,7 +613,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     useCallback(() => {
       api.getParish(parishId)
         .then((data) => {
-          setParish(mapParish(data));
+          setParish((prev) => mergeParish(prev, mapParish(data)));
           setCoverImgError(false);
         })
         .catch(() => {});
@@ -626,7 +642,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     setCoverImgError(true);
     api.getParish(parishId)
       .then((data) => {
-        setParish(mapParish(data));
+        setParish((prev) => mergeParish(prev, mapParish(data)));
         setCoverImgError(false);
       })
       .catch(() => {});
