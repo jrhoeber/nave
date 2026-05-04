@@ -129,6 +129,8 @@ export async function unregisterPushToken(): Promise<void> {
 
 type NavigateToGroup = (groupId: string) => void;
 type NavigateToFriends = () => void;
+type NavigateToGroups = () => void;
+type NavigateToGroupProfile = (groupId: string) => void;
 
 /**
  * Set up handlers for notification taps.
@@ -142,6 +144,8 @@ type NavigateToFriends = () => void;
 export async function setupNotificationHandlers(
   navigateToGroup: NavigateToGroup,
   navigateToFriends: NavigateToFriends,
+  navigateToGroups: NavigateToGroups,
+  navigateToGroupProfile: NavigateToGroupProfile,
 ): Promise<void> {
   try {
     const { messagingInstance, onNotificationOpenedApp, getInitialNotification, onMessage } =
@@ -154,6 +158,10 @@ export async function setupNotificationHandlers(
         navigateToGroup(data.groupId);
       } else if (data.type === 'friend_request') {
         navigateToFriends();
+      } else if (data.type === 'group_invite' || data.type === 'group_approved') {
+        navigateToGroups();
+      } else if (data.type === 'group_approval_needed' && data.groupId) {
+        navigateToGroupProfile(data.groupId);
       }
     };
 

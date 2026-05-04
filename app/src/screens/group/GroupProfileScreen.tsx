@@ -145,6 +145,8 @@ export function GroupProfileScreen() {
   const [memberCount, setMemberCount] = useState(group?.memberCount ?? 0);
   const [pendingMembers, setPendingMembers] = useState<Member[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingInvitations, setPendingInvitations] = useState<Array<{ invitationId: string; id: string; username: string; displayName: string; avatarUrl?: string; inviterDisplayName: string }>>([]);
+  const [pendingInvitationsLoading, setPendingInvitationsLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [addMemberModalVisible, setAddMemberModalVisible] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -197,6 +199,25 @@ export function GroupProfileScreen() {
       })
       .catch(() => {})
       .finally(() => setPendingLoading(false));
+  }, [groupId, isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    setPendingInvitationsLoading(true);
+    api
+      .getPendingInvitations(groupId)
+      .then((data) => {
+        setPendingInvitations(data.invitations.map((inv) => ({
+          invitationId: inv.invitation_id,
+          id: inv.id,
+          username: inv.username,
+          displayName: inv.display_name,
+          avatarUrl: inv.avatar_url?.startsWith('http') ? inv.avatar_url : undefined,
+          inviterDisplayName: inv.inviter_display_name,
+        })));
+      })
+      .catch(() => {})
+      .finally(() => setPendingInvitationsLoading(false));
   }, [groupId, isAdmin]);
 
   const handleMuteToggle = async () => {
@@ -327,6 +348,37 @@ export function GroupProfileScreen() {
               setPendingMembers((prev) => prev.filter((m) => m.id !== member.id));
             } catch (e: any) {
               Alert.alert('Error', e.message ?? 'Could not decline request.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleApproveInvitation = async (inv: typeof pendingInvitations[0]) => {
+    try {
+      await api.approveInvitation(groupId, inv.id);
+      setPendingInvitations((prev) => prev.filter((i) => i.id !== inv.id));
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'Could not approve invitation.');
+    }
+  };
+
+  const handleDeclineInvitation = (inv: typeof pendingInvitations[0]) => {
+    Alert.alert(
+      'Decline Invitation',
+      `Decline the invitation for ${inv.displayName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.declineInvitationApproval(groupId, inv.id);
+              setPendingInvitations((prev) => prev.filter((i) => i.id !== inv.id));
+            } catch (e: any) {
+              Alert.alert('Error', e.message ?? 'Could not decline invitation.');
             }
           },
         },
@@ -592,8 +644,50 @@ export function GroupProfileScreen() {
         </>
       )}
 
+      {/* ── Pending Invitations (admin approval) ── */}
+      {isAdmin && (pendingInvitationsLoading || pendingInvitations.length > 0) && (
+        <>
+          <Text style={styles.sectionLabel}>
+            PENDING INVITATIONS{pendingInvitations.length > 0 ? ` (${pendingInvitations.length})` : ''}
+          </Text>
+          {pendingInvitationsLoading ? (
+            <ActivityIndicator color={Colors.accent} style={{ marginVertical: Spacing[4] }} />
+          ) : (
+            pendingInvitations.map((inv, index) => (
+              <View key={inv.id} style={[CardList.item, index === 0 && CardList.itemFirst, index === pendingInvitations.length - 1 && CardList.itemLast]}>
+                <TouchableOpacity
+                  style={styles.requestRow}
+                  onPress={() => navigation.navigate('UserProfile', { id: inv.id })}
+                  activeOpacity={0.85}
+                >
+                  <Avatar name={inv.displayName} uri={inv.avatarUrl} size={42} />
+                  <View style={memberStyles.info}>
+                    <Text style={memberStyles.displayName} numberOfLines={1}>{inv.displayName}</Text>
+                    <Text style={memberStyles.meta}>Invited by {inv.inviterDisplayName}</Text>
+                  </View>
+                  <View style={styles.requestActions}>
+                    <Button
+                      label="Approve"
+                      size="sm"
+                      onPress={() => handleApproveInvitation(inv)}
+                    />
+                    <Button
+                      label="Decline"
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => handleDeclineInvitation(inv)}
+                      textStyle={{ color: Colors.textSecondary }}
+                    />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </>
+      )}
+
       {/* ── Members ── */}
-      {isAdmin && pendingMembers.length > 0 && <View style={{ height: Spacing[6] }} />}
+      {isAdmin && (pendingMembers.length > 0 || pendingInvitations.length > 0) && <View style={{ height: Spacing[6] }} />}
       <View style={styles.membersSectionHeader}>
         <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>MEMBERS ({memberCount})</Text>
         {group.isMember && (
@@ -602,7 +696,7 @@ export function GroupProfileScreen() {
             onPress={() => setAddMemberModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.addMemberBtnText}>+ Add member</Text>
+            <Text style={styles.addMemberBtnText}>+ Invite</Text>
           </TouchableOpacity>
         )}
       </View>

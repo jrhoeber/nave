@@ -31,11 +31,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   profileRing: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     borderWidth: 1.5,
     borderColor: INK,
-    borderRadius: 14,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
 function ChapelIcon({ active }: { active: boolean }) {
   if (active) {
     return (
-      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
         <Path d="M11.4 2.25h1.2v1.6h1.2v1.2h-1.2v2h-1.2v-2h-1.2v-1.2h1.2z" fill={INK} />
         <Path d="M12 7.25 4.5 12.5V20.5a.75.75 0 0 0 .75.75h13.5a.75.75 0 0 0 .75-.75V12.5L12 7.25z" fill={INK} />
         <Path d="M10 21.25v-4.25a2 2 0 0 1 4 0v4.25h-4z" fill={PAPER} />
@@ -63,7 +63,7 @@ function ChapelIcon({ active }: { active: boolean }) {
     );
   }
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
       <Path d="M12 2.5v3.75M10.5 4h3" stroke={INK_40} strokeWidth={1.5} strokeLinecap="round" />
       <Path
         d="M12 7.25 4.5 12.5V20.5a.75.75 0 0 0 .75.75h13.5a.75.75 0 0 0 .75-.75V12.5L12 7.25z"
@@ -81,7 +81,7 @@ function ChapelIcon({ active }: { active: boolean }) {
 function GroupsIcon({ active }: { active: boolean }) {
   if (active) {
     return (
-      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
         <Path
           d="M5.5 9.75A2.75 2.75 0 0 1 8.25 7h8.5A2.75 2.75 0 0 1 19.5 9.75v5.5A2.75 2.75 0 0 1 16.75 18h-3l-2.5 2.25a.5.5 0 0 1-.83-.37V18H8.25A2.75 2.75 0 0 1 5.5 15.25v-5.5z"
           fill={INK}
@@ -90,7 +90,7 @@ function GroupsIcon({ active }: { active: boolean }) {
     );
   }
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
       <Path
         d="M5.5 9.75A2.75 2.75 0 0 1 8.25 7h8.5A2.75 2.75 0 0 1 19.5 9.75v5.5A2.75 2.75 0 0 1 16.75 18h-3l-2.5 2.25a.5.5 0 0 1-.83-.37V18H8.25A2.75 2.75 0 0 1 5.5 15.25v-5.5z"
         stroke={INK_40} strokeWidth={1.6} strokeLinejoin="round"
@@ -103,7 +103,7 @@ function GroupsIcon({ active }: { active: boolean }) {
 function FriendsIcon({ active }: { active: boolean }) {
   if (active) {
     return (
-      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
         <Circle cx={15.25} cy={8.5} r={2.75} fill={INK} />
         <Path d="M11 18c0-2.35 1.9-4.25 4.25-4.25S19.5 15.65 19.5 18v.5h-8.5V18z" fill={INK} />
         <Circle cx={9} cy={9.25} r={3} fill={PAPER} />
@@ -114,7 +114,7 @@ function FriendsIcon({ active }: { active: boolean }) {
     );
   }
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
       <Circle cx={15.25} cy={8.5} r={2.5} stroke={INK_40} strokeWidth={1.4} />
       <Path
         d="M11.5 18c.4-1.95 2.05-3.5 3.75-3.5 1.7 0 3.35 1.55 3.75 3.5"
@@ -141,7 +141,7 @@ function IconWithBadge({ children, showBadge }: { children: React.ReactNode; sho
 function ProfileTabIcon({ focused }: { focused: boolean }) {
   const user = useAuthStore((s) => s.user);
   const avatar = (
-    <Avatar uri={user?.avatarUrl} name={user?.displayName} size={22} />
+    <Avatar uri={user?.avatarUrl} name={user?.displayName} size={24} />
   );
 
   if (focused) {
@@ -157,7 +157,7 @@ export function AppNavigator() {
   const lastReadIdByGroup = useGroupChatStore((s) => s.lastReadIdByGroup);
   const hydrateLastRead = useGroupChatStore((s) => s.hydrateLastRead);
   const loadGroupBaseline = useGroupChatStore((s) => s.loadGroupBaseline);
-  const { myGroups, fetchGroups, mutedGroupIds } = usePrayerStore();
+  const { myGroups, invitations, fetchGroups, fetchInvitations, mutedGroupIds } = usePrayerStore();
 
   const totalUnreadCount = Object.keys(messagesByGroup).reduce((total, groupId) => {
     if (mutedGroupIds.has(groupId)) return total;
@@ -173,6 +173,7 @@ export function AppNavigator() {
   // is accurate before the user ever visits the Groups tab.
   useEffect(() => {
     hydrateLastRead().then(() => fetchGroups());
+    fetchInvitations();
   }, []);
 
   // When the group list loads, fetch message baselines for each member group.
@@ -239,9 +240,9 @@ export function AppNavigator() {
           backgroundColor: 'transparent',
           borderTopColor: HAIR,
           borderTopWidth: 1,
-          height: 52 + bottomInset,
+          height: 56 + bottomInset,
           paddingBottom: bottomInset,
-          paddingHorizontal: 24,
+          paddingHorizontal: 16,
           elevation: 0,
         },
         tabBarBackground: () =>
@@ -257,12 +258,17 @@ export function AppNavigator() {
           ),
         tabBarItemStyle: {
           flex: 1,
-          paddingVertical: 6,
+          paddingTop: 8,
+          gap: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 10.5,
+          fontSize: 11,
           fontWeight: Typography.medium,
-          letterSpacing: 0.15,
+          letterSpacing: 0.1,
+          marginTop: 0,
+        },
+        tabBarIconStyle: {
+          marginBottom: 0,
         },
       }}
     >
@@ -280,7 +286,7 @@ export function AppNavigator() {
         options={{
           tabBarTestID: 'tab-groups',
           tabBarIcon: ({ focused }) => (
-            <IconWithBadge showBadge={totalUnreadCount > 0}>
+            <IconWithBadge showBadge={totalUnreadCount > 0 || invitations.length > 0}>
               <GroupsIcon active={focused} />
             </IconWithBadge>
           ),

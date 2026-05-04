@@ -93,6 +93,15 @@ export interface PrayerGroup {
   createdAt: string;
 }
 
+// ─── Group Invitations ───────────────────────────────────────────────────────
+
+export interface GroupInvitation {
+  id: string;
+  group: PrayerGroup;
+  invitedBy: { id: string; displayName: string; avatarUrl?: string };
+  invitedAt: string;
+}
+
 // ─── Communities (Parishes / Dioceses) ───────────────────────────────────────
 
 export interface Parish {

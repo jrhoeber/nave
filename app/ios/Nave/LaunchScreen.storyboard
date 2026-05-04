@@ -16,27 +16,56 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
+                            <!-- Gold accent line on left edge -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="goldEdge-1">
+                                <rect key="frame" x="0.0" y="0.0" width="3" height="667"/>
+                                <color key="backgroundColor" red="0.788" green="0.659" blue="0.298" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="3" id="goldEdge-w"/>
+                                </constraints>
+                            </view>
+                            <!-- App name -->
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Nave" textAlignment="center" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" minimumFontSize="18" translatesAutoresizingMaskIntoConstraints="NO" id="GJd-Yh-RWb">
-                                <rect key="frame" x="0.0" y="296" width="375" height="53"/>
-                                <fontDescription key="fontDescription" type="boldSystem" pointSize="44"/>
-                                <color key="textColor" red="0.788" green="0.659" blue="0.298" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <rect key="frame" x="0.0" y="296" width="375" height="67"/>
+                                <fontDescription key="fontDescription" name="CormorantGaramond-Regular" family="Cormorant Garamond" pointSize="56"/>
+                                <color key="textColor" red="0.102" green="0.102" blue="0.102" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <!-- Gold divider -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="goldDiv-1">
+                                <rect key="frame" x="171.5" y="375" width="32" height="2"/>
+                                <color key="backgroundColor" red="0.788" green="0.659" blue="0.298" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="32" id="goldDiv-w"/>
+                                    <constraint firstAttribute="height" constant="2" id="goldDiv-h"/>
+                                </constraints>
+                            </view>
+                            <!-- Tagline -->
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="A Catholic Prayer Community" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="9" translatesAutoresizingMaskIntoConstraints="NO" id="MN2-I3-ftu">
-                                <rect key="frame" x="0.0" y="363" width="375" height="20"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
-                                <color key="textColor" red="1" green="1" blue="1" alpha="0.75" colorSpace="custom" customColorSpace="sRGB"/>
+                                <rect key="frame" x="0.0" y="389" width="375" height="16"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                                <color key="textColor" red="0.420" green="0.443" blue="0.502" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
-                        <color key="backgroundColor" red="0.102" green="0.169" blue="0.290" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <!-- Background: #faf7f3 -->
+                        <color key="backgroundColor" red="0.980" green="0.969" blue="0.953" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="Ze5-6b-2t3" firstAttribute="centerX" secondItem="GJd-Yh-RWb" secondAttribute="centerX" id="Q3B-4B-g5h"/>
-                            <constraint firstItem="Ze5-6b-2t3" firstAttribute="centerY" secondItem="GJd-Yh-RWb" secondAttribute="centerY" id="moa-c2-u7t"/>
-                            <constraint firstItem="MN2-I3-ftu" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="akx-eg-2ui"/>
-                            <constraint firstItem="MN2-I3-ftu" firstAttribute="top" secondItem="GJd-Yh-RWb" secondAttribute="bottom" constant="14" id="OZV-Vh-mqD"/>
-                            <constraint firstItem="GJd-Yh-RWb" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" symbolic="YES" id="x7j-FC-K8j"/>
-                            <constraint firstItem="MN2-I3-ftu" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" symbolic="YES" id="i1E-0Y-4RG"/>
+                            <!-- Gold edge: pin to left, top, bottom -->
+                            <constraint firstItem="goldEdge-1" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="ge-lead"/>
+                            <constraint firstItem="goldEdge-1" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="ge-top"/>
+                            <constraint firstItem="goldEdge-1" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="ge-bot"/>
+                            <!-- App name: center horizontally and vertically -->
+                            <constraint firstItem="GJd-Yh-RWb" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="name-cx"/>
+                            <constraint firstItem="GJd-Yh-RWb" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="name-cy"/>
+                            <constraint firstItem="GJd-Yh-RWb" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="name-lead"/>
+                            <!-- Gold divider: center horizontally, below name -->
+                            <constraint firstItem="goldDiv-1" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="div-cx"/>
+                            <constraint firstItem="goldDiv-1" firstAttribute="top" secondItem="GJd-Yh-RWb" secondAttribute="bottom" constant="12" id="div-top"/>
+                            <!-- Tagline: center horizontally, below divider -->
+                            <constraint firstItem="MN2-I3-ftu" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="tag-cx"/>
+                            <constraint firstItem="MN2-I3-ftu" firstAttribute="top" secondItem="goldDiv-1" secondAttribute="bottom" constant="12" id="tag-top"/>
+                            <constraint firstItem="MN2-I3-ftu" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="tag-lead"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
                     </view>

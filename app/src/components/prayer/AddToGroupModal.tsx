@@ -101,9 +101,10 @@ export function AddToGroupModal({
     if (existingMemberIds.has(item.id)) return { text: 'Member', canAdd: false };
     const s = statusMap.get(item.id);
     if (s === 'member') return { text: 'Added', canAdd: false };
+    if (s === 'invited') return { text: 'Invited', canAdd: false };
     if (s === 'pending') return { text: 'Pending', canAdd: false };
-    if (s === 'adding') return { text: 'Add', canAdd: false };
-    return { text: 'Add', canAdd: true };
+    if (s === 'adding') return { text: 'Invite', canAdd: false };
+    return { text: 'Invite', canAdd: true };
   };
 
   const renderResult = ({ item }: { item: FriendSearchResult }) => {
@@ -150,8 +151,8 @@ export function AddToGroupModal({
     <SearchModal
       visible={visible}
       onClose={onClose}
-      sectionHeader="ADD MEMBER"
-      heroText={'Grow your\ncommunity.'}
+      sectionHeader="INVITE"
+      heroText={'Invite to your\ncommunity.'}
       searchPlaceholder="Search by name or username"
       query={query}
       onQueryChange={setQuery}

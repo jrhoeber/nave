@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, StatusBar, StyleSheet, Text } from 'react-native';
+import { Animated, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { NaveLogo } from './ui/NaveLogo';
+import { Colors, Spacing, Typography } from '../theme';
 
 export function Splash({ visible }: { visible: boolean }) {
   const opacity = useRef(new Animated.Value(1)).current;
@@ -12,34 +14,52 @@ export function Splash({ visible }: { visible: boolean }) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.container, { opacity }]} pointerEvents="none">
-      <StatusBar barStyle="light-content" backgroundColor="#1a2b4a" />
-      <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-      <Text style={styles.title}>Nave</Text>
-      <Text style={styles.tagline}>A Catholic Prayer Community</Text>
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+      <View style={styles.goldEdge} />
+      <View style={styles.content}>
+        <NaveLogo size={80} />
+        <Text style={styles.appName}>Nave</Text>
+        <View style={styles.goldDivider} />
+        <Text style={styles.tagline}>A Catholic Prayer Community</Text>
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1a2540',
+    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 20,
+  goldEdge: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: Colors.accent,
   },
-  title: {
-    color: '#c9a84c',
-    fontSize: 44,
-    fontWeight: '700',
-    letterSpacing: 1,
+  content: {
+    alignItems: 'center',
+    gap: Spacing[2],
+  },
+  appName: {
+    fontFamily: 'CormorantGaramond-Regular',
+    fontSize: 56,
+    color: Colors.textPrimary,
+    letterSpacing: -1,
+    lineHeight: 64,
+  },
+  goldDivider: {
+    width: 32,
+    height: 2,
+    backgroundColor: Colors.accent,
+    marginVertical: Spacing[3],
   },
   tagline: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 15,
-    marginTop: 14,
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
   },
 });

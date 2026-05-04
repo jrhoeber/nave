@@ -5,19 +5,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrayerGroupCard } from '../../components/prayer/PrayerGroupCard';
 import { EditPrayerGroupModal } from '../../components/prayer/EditPrayerGroupModal';
 import { AddGroupModal } from '../../components/prayer/AddGroupModal';
+import { Avatar } from '../../components/ui/Avatar';
+import { Button } from '../../components/ui/Button';
 import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useGroupChatStore } from '../../store/groupChatStore';
 import { useAuthStore } from '../../store/authStore';
 import { api, mapGroupMessage, mapPrayerGroup } from '../../lib/apiClient';
-import { CardList, Colors, Spacing, Typography } from '../../theme';
-import type { PrayerGroup } from '../../types';
+import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
+import type { GroupInvitation, PrayerGroup } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
 export function GroupScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const { myGroups, isLoading, fetchGroups, joinGroup, leaveGroup, deleteGroup, muteGroup, unmuteGroup, loadMuteStatus, mutedGroupIds } = usePrayerStore();
+  const { myGroups, invitations, isLoading, fetchGroups, fetchInvitations, acceptInvitation, declineInvitation, joinGroup, leaveGroup, deleteGroup, muteGroup, unmuteGroup, loadMuteStatus, mutedGroupIds } = usePrayerStore();
   const messagesByGroup = useGroupChatStore((s) => s.messagesByGroup);
   const lastReadIdByGroup = useGroupChatStore((s) => s.lastReadIdByGroup);
   const appendNewMessages = useGroupChatStore((s) => s.appendNewMessages);
@@ -30,13 +32,16 @@ export function GroupScreen() {
 
   useEffect(() => {
     fetchGroups();
+    fetchInvitations();
   }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchGroups();
+    await Promise.all([fetchGroups(), fetchInvitations()]);
     setRefreshing(false);
-  }, [fetchGroups]);
+  }, [fetchGroups, fetchInvitations]);
+
+  useFocusEffect(useCallback(() => { fetchInvitations(); }, []));
 
   // Fetch public parish groups for the empty state
   useEffect(() => {
@@ -93,6 +98,75 @@ export function GroupScreen() {
     return idx > 0 ? idx : 0;
   };
 
+  // ─── List data (FriendsScreen pattern) ───────────────────────────────────��─
+
+  type ListItem =
+    | { type: 'invitations-header' }
+    | { type: 'invitation'; data: GroupInvitation }
+    | { type: 'groups-label' }
+    | { type: 'group'; data: PrayerGroup; index: number; isLast: boolean };
+
+  const listData: ListItem[] = [];
+
+  if (invitations.length > 0) {
+    listData.push({ type: 'invitations-header' });
+    invitations.forEach((inv) => listData.push({ type: 'invitation', data: inv }));
+  }
+
+  if (myGroups.length > 0) {
+    listData.push({ type: 'groups-label' });
+    myGroups.forEach((g, i) => listData.push({ type: 'group', data: g, index: i, isLast: i === myGroups.length - 1 }));
+  }
+
+  const renderListItem = ({ item }: { item: ListItem }) => {
+    if (item.type === 'invitations-header') {
+      return <Text style={styles.sectionLabel}>INVITATIONS {invitations.length > 0 ? `\u00B7 ${invitations.length}` : ''}</Text>;
+    }
+    if (item.type === 'invitation') {
+      const inv = item.data;
+      return (
+        <View style={styles.invitationCard}>
+          <TouchableOpacity
+            style={styles.invitationRow}
+            onPress={() => navigation.navigate('GroupProfile', { id: inv.group.id })}
+            activeOpacity={0.85}
+          >
+            <Avatar uri={inv.group.avatarUrl} name={inv.group.name} size={46} />
+            <View style={styles.invitationInfo}>
+              <Text style={styles.invitationName} numberOfLines={1}>{inv.group.name}</Text>
+              <Text style={styles.invitationMeta} numberOfLines={1}>Invited by {inv.invitedBy.displayName}</Text>
+            </View>
+          </TouchableOpacity>
+          <View style={styles.invitationActions}>
+            <Button label="Accept" size="sm" onPress={() => acceptInvitation(inv.group.id)} style={{ flex: 1 }} />
+            <Button label="Decline" variant="ghost" size="sm" onPress={() => declineInvitation(inv.group.id)} textStyle={{ color: Colors.textSecondary }} style={{ flex: 1 }} />
+          </View>
+        </View>
+      );
+    }
+    if (item.type === 'groups-label') {
+      return <Text style={styles.sectionLabel}>YOUR GROUPS</Text>;
+    }
+    return (
+      <View style={[CardList.item, item.index === 0 && CardList.itemFirst, item.isLast && CardList.itemLast]}>
+        <PrayerGroupCard
+          group={item.data}
+          onPress={(id) => navigation.navigate('GroupMessage', { id })}
+          onJoin={joinGroup}
+          onLeave={leaveGroup}
+          onEdit={(id) => setEditingGroup(myGroups.find((g) => g.id === id) ?? null)}
+          onDelete={deleteGroup}
+          onMute={muteGroup}
+          onUnmute={unmuteGroup}
+          isMuted={mutedGroupIds.has(item.data.id)}
+          unreadCount={getUnreadCount(item.data.id)}
+          lastMessageAt={messagesByGroup[item.data.id]?.[0]?.createdAt}
+          isLast={item.isLast}
+        />
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
@@ -109,7 +183,7 @@ export function GroupScreen() {
         </TouchableOpacity>
       </View>
 
-      {myGroups.length === 0 && !isLoading ? (
+      {myGroups.length === 0 && invitations.length === 0 && !isLoading ? (
         <ScrollView
           contentContainerStyle={styles.emptyScroll}
           showsVerticalScrollIndicator={false}
@@ -148,27 +222,14 @@ export function GroupScreen() {
       ) : (
         <FlatList
           testID="groups-list"
-          data={myGroups}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={<Text style={styles.sectionLabel}>YOUR GROUPS</Text>}
-          renderItem={({ item, index }: { item: PrayerGroup; index: number }) => (
-            <View style={[CardList.item, index === 0 && CardList.itemFirst, index === myGroups.length - 1 && CardList.itemLast]}>
-              <PrayerGroupCard
-                group={item}
-                onPress={(id) => navigation.navigate('GroupMessage', { id })}
-                onJoin={joinGroup}
-                onLeave={leaveGroup}
-                onEdit={(id) => setEditingGroup(myGroups.find((g) => g.id === id) ?? null)}
-                onDelete={deleteGroup}
-                onMute={muteGroup}
-                onUnmute={unmuteGroup}
-                isMuted={mutedGroupIds.has(item.id)}
-                unreadCount={getUnreadCount(item.id)}
-                lastMessageAt={messagesByGroup[item.id]?.[0]?.createdAt}
-                isLast={index === myGroups.length - 1}
-              />
-            </View>
-          )}
+          data={listData}
+          keyExtractor={(item) => {
+            if (item.type === 'invitations-header') return 'header-invitations';
+            if (item.type === 'invitation') return `inv-${item.data.id}`;
+            if (item.type === 'groups-label') return 'header-groups';
+            return `group-${item.data.id}`;
+          }}
+          renderItem={renderListItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
@@ -210,4 +271,18 @@ const styles = StyleSheet.create({
   emptyScroll: { paddingBottom: Spacing[10] },
   emptyCta: { paddingHorizontal: Spacing[5], paddingTop: Spacing[4] },
   suggestedSection: { marginTop: Spacing[2] },
+  invitationCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.lg,
+    padding: Spacing[3],
+    marginBottom: Spacing[3],
+    marginHorizontal: Spacing[3],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d8d3cb',
+  },
+  invitationRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[3] },
+  invitationInfo: { flex: 1, minWidth: 0 },
+  invitationName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  invitationMeta: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
+  invitationActions: { flexDirection: 'row', gap: Spacing[2] },
 });

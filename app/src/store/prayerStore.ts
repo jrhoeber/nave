@@ -1,13 +1,17 @@
 import { create } from 'zustand';
-import type { PrayerGroup } from '../../types';
-import { api, mapPrayerGroup } from '../lib/apiClient';
+import type { PrayerGroup, GroupInvitation } from '../../types';
+import { api, mapPrayerGroup, mapGroupInvitation } from '../lib/apiClient';
 
 interface PrayerState {
   groups: PrayerGroup[];
   myGroups: PrayerGroup[];
+  invitations: GroupInvitation[];
   isLoading: boolean;
   mutedGroupIds: Set<string>;
   fetchGroups: () => Promise<void>;
+  fetchInvitations: () => Promise<void>;
+  acceptInvitation: (groupId: string) => Promise<void>;
+  declineInvitation: (groupId: string) => Promise<void>;
   joinGroup: (groupId: string, groupData?: PrayerGroup) => Promise<void>;
   leaveGroup: (groupId: string) => Promise<void>;
   updateGroup: (groupId: string, data: { name?: string; description?: string; category?: PrayerGroup['category']; is_private?: boolean; meeting_schedule?: string }) => Promise<void>;
@@ -22,6 +26,7 @@ interface PrayerState {
 export const usePrayerStore = create<PrayerState>((set, get) => ({
   groups: [],
   myGroups: [],
+  invitations: [],
   isLoading: false,
   mutedGroupIds: new Set<string>(),
 
@@ -34,6 +39,36 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       set({ groups: myGroups, myGroups, isLoading: false });
     } catch {
       set({ isLoading: false });
+    }
+  },
+
+  fetchInvitations: async () => {
+    try {
+      const data = await api.getMyInvitations();
+      set({ invitations: data.invitations.map(mapGroupInvitation) });
+    } catch {
+      // Silently ignore
+    }
+  },
+
+  acceptInvitation: async (groupId: string) => {
+    const prev = get().invitations;
+    set({ invitations: prev.filter((inv) => inv.group.id !== groupId) });
+    try {
+      await api.acceptInvitation(groupId);
+      await get().fetchGroups();
+    } catch {
+      set({ invitations: prev });
+    }
+  },
+
+  declineInvitation: async (groupId: string) => {
+    const prev = get().invitations;
+    set({ invitations: prev.filter((inv) => inv.group.id !== groupId) });
+    try {
+      await api.declineInvitation(groupId);
+    } catch {
+      set({ invitations: prev });
     }
   },
 

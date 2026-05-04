@@ -69,6 +69,17 @@ export default function App() {
                       navigationRef.navigate('App' as any, { screen: 'Friends' } as any);
                     }
                   },
+                  () => {
+                    // Navigate to App tab navigator and switch to Groups tab
+                    if (navigationRef.isReady()) {
+                      navigationRef.navigate('App' as any, { screen: 'Groups' } as any);
+                    }
+                  },
+                  (groupId) => {
+                    if (navigationRef.isReady()) {
+                      navigationRef.navigate('GroupProfile', { id: groupId });
+                    }
+                  },
                 );
               }}
             >

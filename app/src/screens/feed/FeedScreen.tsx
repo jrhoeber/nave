@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PostCard } from '../../components/feed/PostCard';
 import { Avatar } from '../../components/ui/Avatar';
+import { NaveLogo } from '../../components/ui/NaveLogo';
 import { useAuthStore } from '../../store/authStore';
 import { useFeedStore } from '../../store/feedStore';
 import { Colors, Spacing, Typography } from '../../theme';
@@ -34,7 +35,7 @@ export function FeedScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <Text style={styles.logo}>Nave</Text>
+        <NaveLogo size={32} />
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconBtn}>
             <Icon name="notifications-outline" size={24} color={Colors.textPrimary} />
@@ -77,7 +78,6 @@ export function FeedScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing[5], paddingVertical: Spacing[3], borderBottomWidth: 1, borderBottomColor: Colors.border },
-  logo: { fontSize: Typography['2xl'], fontWeight: Typography.extrabold, color: Colors.primary, letterSpacing: -0.5 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
   iconBtn: { padding: Spacing[1] },
   composeRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing[4], paddingVertical: Spacing[3], backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.border, gap: Spacing[3] },

@@ -1,4 +1,4 @@
-Create invite to group functionality. Use feature dev skill! Make sure you check for existing shared components before creating anything from scratch. Do not stray from the design system of the app. If no shared components exist, check other pages for shared components and reuse them. Don't copy paste code unless it's the correct architecture decision.
+Create invite to group functionality. Use feature-dev:feature-dev skill! Make sure you check for existing shared components before creating anything from scratch. Do not stray from the design system of the app. If no shared components exist, check other pages for shared components and reuse them. Don't copy paste code unless it's the correct architecture decision.
 
 Current state
 - Group admins can add users to private groups they own

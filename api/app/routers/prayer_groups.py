@@ -141,6 +141,72 @@ async def my_groups(
     return {"groups": [_build_group(dict(r)) for r in rows]}
 
 
+@router.get("/invitations", response_model=dict)
+async def list_my_invitations(
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    rows = await conn.fetch(
+        """
+        SELECT
+            gi.id AS invitation_id,
+            gi.created_at AS invited_at,
+            pg.id, pg.name, pg.description, pg.category, pg.avatar_url,
+            pg.is_private, pg.created_at,
+            pg.parish, pg.diocese, pg.meeting_schedule,
+            u.id AS admin_id, u.username AS admin_username,
+            u.display_name AS admin_display_name,
+            u.avatar_url AS admin_avatar_url,
+            u.created_at AS admin_created_at,
+            inv.id AS inviter_id,
+            inv.display_name AS inviter_display_name,
+            inv.avatar_url AS inviter_avatar_url,
+            COUNT(DISTINCT pgm.id) FILTER (WHERE pgm.status = 'member') AS member_count
+        FROM group_invitations gi
+        JOIN prayer_groups pg ON pg.id = gi.group_id
+        JOIN users u ON u.id = pg.admin_id
+        JOIN users inv ON inv.id = gi.invited_by
+        LEFT JOIN prayer_group_members pgm ON pgm.group_id = pg.id
+        WHERE gi.user_id = $1 AND gi.status = 'pending'
+        GROUP BY gi.id, pg.id, u.id, inv.id
+        ORDER BY gi.created_at DESC
+        """,
+        current_user["id"],
+    )
+    invitations = []
+    for r in rows:
+        invitations.append({
+            "id": str(r["invitation_id"]),
+            "group": {
+                "id": str(r["id"]),
+                "name": r["name"],
+                "description": r["description"],
+                "category": r["category"],
+                "avatar_url": _resolve_group_avatar(r.get("avatar_url")),
+                "member_count": r.get("member_count", 0) or 0,
+                "is_private": r["is_private"],
+                "admin": {
+                    "id": str(r["admin_id"]),
+                    "username": r["admin_username"],
+                    "display_name": r["admin_display_name"],
+                    "avatar_url": _resolve_avatar(r.get("admin_avatar_url")),
+                    "created_at": r["admin_created_at"].isoformat(),
+                },
+                "parish": r.get("parish"),
+                "diocese": r.get("diocese"),
+                "meeting_schedule": r.get("meeting_schedule"),
+                "created_at": r["created_at"].isoformat(),
+            },
+            "invited_by": {
+                "id": str(r["inviter_id"]),
+                "display_name": r["inviter_display_name"],
+                "avatar_url": _resolve_avatar(r.get("inviter_avatar_url")),
+            },
+            "invited_at": r["invited_at"].isoformat(),
+        })
+    return {"invitations": invitations}
+
+
 @router.post("", response_model=PrayerGroupResponse, status_code=201)
 async def create_group(
     body: PrayerGroupCreate,
@@ -358,38 +424,214 @@ async def list_pending_members(
     return {"members": members}
 
 
-@router.post("/{group_id}/members/{user_id}", response_model=dict)
-async def add_member(
+@router.get("/{group_id}/invitations/pending", response_model=dict)
+async def list_pending_invitations(
+    group_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT admin_id FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if str(pg["admin_id"]) != str(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Only the group admin can view pending invitations")
+    rows = await conn.fetch(
+        """
+        SELECT gi.id AS invitation_id, u.id, u.username, u.display_name, u.avatar_url,
+               inv.display_name AS inviter_display_name, gi.created_at
+        FROM group_invitations gi
+        JOIN users u ON u.id = gi.user_id
+        JOIN users inv ON inv.id = gi.invited_by
+        WHERE gi.group_id = $1 AND gi.status = 'awaiting_approval'
+        ORDER BY gi.created_at ASC
+        """,
+        group_id,
+    )
+    invitations = [
+        {
+            "invitation_id": str(r["invitation_id"]),
+            "id": str(r["id"]),
+            "username": r["username"],
+            "display_name": r["display_name"],
+            "avatar_url": _resolve_avatar(r.get("avatar_url")),
+            "inviter_display_name": r["inviter_display_name"],
+            "requested_at": r["created_at"].isoformat(),
+        }
+        for r in rows
+    ]
+    return {"invitations": invitations}
+
+
+@router.post("/{group_id}/invitations/{user_id}/approve", response_model=dict)
+async def approve_invitation(
     group_id: str,
     user_id: str,
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    pg = await conn.fetchrow("SELECT admin_id, is_private FROM prayer_groups WHERE id = $1", group_id)
+    pg = await conn.fetchrow("SELECT admin_id, name FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if str(pg["admin_id"]) != str(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Only the admin can approve invitations")
+
+    result = await conn.execute(
+        "UPDATE group_invitations SET status = 'pending' WHERE group_id = $1 AND user_id = $2 AND status = 'awaiting_approval'",
+        group_id,
+        user_id,
+    )
+    if result == "UPDATE 0":
+        raise HTTPException(status_code=404, detail="Pending invitation not found")
+
+    # Notify the invitee that their invitation is ready to accept
+    token_rows = await conn.fetch(
+        """
+        SELECT udt.token
+        FROM users u
+        JOIN user_device_tokens udt ON udt.user_id = u.id
+        WHERE u.id = $1
+          AND u.push_notifications_enabled = TRUE
+        """,
+        user_id,
+    )
+    tokens = [r["token"] for r in token_rows]
+    if tokens:
+        from app.utils.push import send_push_notifications
+        import asyncio
+        asyncio.ensure_future(send_push_notifications(
+            tokens=tokens,
+            title="Group Invitation",
+            body=f"You've been invited to join {pg['name']}",
+            data={"type": "group_invite", "groupId": group_id, "groupName": pg["name"]},
+            conn=None,
+        ))
+
+    return {"status": "pending"}
+
+
+@router.post("/{group_id}/invitations/{user_id}/decline-approval", response_model=dict)
+async def decline_invitation_approval(
+    group_id: str,
+    user_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT admin_id FROM prayer_groups WHERE id = $1", group_id)
+    if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if str(pg["admin_id"]) != str(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Only the admin can decline invitations")
+
+    result = await conn.execute(
+        "DELETE FROM group_invitations WHERE group_id = $1 AND user_id = $2 AND status = 'awaiting_approval'",
+        group_id,
+        user_id,
+    )
+    if result == "DELETE 0":
+        raise HTTPException(status_code=404, detail="Pending invitation not found")
+    return {"success": True}
+
+
+@router.post("/{group_id}/members/{user_id}", response_model=dict)
+async def invite_member(
+    group_id: str,
+    user_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    pg = await conn.fetchrow("SELECT admin_id, is_private, name FROM prayer_groups WHERE id = $1", group_id)
     if pg is None:
         raise HTTPException(status_code=404, detail="Prayer group not found")
 
-    existing = await conn.fetchrow(
+    # Caller must be a member of the group
+    caller_mem = await conn.fetchrow(
+        "SELECT status FROM prayer_group_members WHERE group_id = $1 AND user_id = $2 AND status = 'member'",
+        group_id,
+        current_user["id"],
+    )
+    if not caller_mem:
+        raise HTTPException(status_code=403, detail="You must be a member to invite others")
+
+    # Check user isn't already a member
+    existing_member = await conn.fetchrow(
         "SELECT status FROM prayer_group_members WHERE group_id = $1 AND user_id = $2",
         group_id,
         user_id,
     )
-    if existing:
-        raise HTTPException(status_code=409, detail=f"Already {existing['status']}")
+    if existing_member:
+        raise HTTPException(status_code=409, detail=f"Already {existing_member['status']}")
 
-    is_admin = str(pg["admin_id"]) == str(current_user["id"])
-    if pg["is_private"] and not is_admin:
-        new_status = "pending"
-    else:
-        new_status = "member"
-
-    await conn.execute(
-        "INSERT INTO prayer_group_members (group_id, user_id, status) VALUES ($1, $2, $3)",
+    # Check user isn't already invited
+    existing_invite = await conn.fetchrow(
+        "SELECT status FROM group_invitations WHERE group_id = $1 AND user_id = $2 AND status IN ('pending', 'awaiting_approval')",
         group_id,
         user_id,
-        new_status,
     )
-    return {"status": new_status}
+    if existing_invite:
+        raise HTTPException(status_code=409, detail="Already invited")
+
+    is_admin = str(pg["admin_id"]) == str(current_user["id"])
+    needs_approval = pg["is_private"] and not is_admin
+    invite_status = "awaiting_approval" if needs_approval else "pending"
+
+    await conn.execute(
+        "INSERT INTO group_invitations (group_id, user_id, invited_by, status) VALUES ($1, $2, $3, $4)",
+        group_id,
+        user_id,
+        current_user["id"],
+        invite_status,
+    )
+
+    if needs_approval:
+        # Notify admin that a member wants to invite someone
+        inviter_row = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", current_user["id"])
+        invitee_row = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
+        token_rows = await conn.fetch(
+            """
+            SELECT udt.token
+            FROM users u
+            JOIN user_device_tokens udt ON udt.user_id = u.id
+            WHERE u.id = $1
+              AND u.push_notifications_enabled = TRUE
+            """,
+            pg["admin_id"],
+        )
+        tokens = [r["token"] for r in token_rows]
+        if tokens and inviter_row and invitee_row:
+            from app.utils.push import send_push_notifications
+            import asyncio
+            asyncio.ensure_future(send_push_notifications(
+                tokens=tokens,
+                title="Invite Approval Needed",
+                body=f"{inviter_row['display_name']} wants to invite {invitee_row['display_name']} to {pg['name']}",
+                data={"type": "group_approval_needed", "groupId": group_id, "groupName": pg["name"]},
+                conn=None,
+            ))
+    else:
+        # Notify invitee directly
+        token_rows = await conn.fetch(
+            """
+            SELECT udt.token
+            FROM users u
+            JOIN user_device_tokens udt ON udt.user_id = u.id
+            WHERE u.id = $1
+              AND u.push_notifications_enabled = TRUE
+            """,
+            user_id,
+        )
+        tokens = [r["token"] for r in token_rows]
+        if tokens:
+            from app.utils.push import send_push_notifications
+            import asyncio
+            asyncio.ensure_future(send_push_notifications(
+                tokens=tokens,
+                title="Group Invitation",
+                body=f"You've been invited to join {pg['name']}",
+                data={"type": "group_invite", "groupId": group_id, "groupName": pg["name"]},
+                conn=None,
+            ))
+
+    return {"status": "invited"}
 
 
 @router.post("/{group_id}/members/{user_id}/approve", response_model=dict)
@@ -412,6 +654,30 @@ async def approve_member(
     )
     if result == "UPDATE 0":
         raise HTTPException(status_code=404, detail="Pending membership not found")
+
+    # Send push notification to the approved user
+    token_rows = await conn.fetch(
+        """
+        SELECT udt.token
+        FROM users u
+        JOIN user_device_tokens udt ON udt.user_id = u.id
+        WHERE u.id = $1
+          AND u.push_notifications_enabled = TRUE
+        """,
+        user_id,
+    )
+    tokens = [r["token"] for r in token_rows]
+    if tokens:
+        from app.utils.push import send_push_notifications
+        import asyncio
+        asyncio.ensure_future(send_push_notifications(
+            tokens=tokens,
+            title="Welcome to the group!",
+            body=f"You've been approved to join {pg['name']}",
+            data={"type": "group_approved", "groupId": group_id, "groupName": pg["name"]},
+            conn=None,
+        ))
+
     return {"status": "member"}
 
 
@@ -433,6 +699,50 @@ async def remove_member(
         group_id,
         user_id,
     )
+    return {"success": True}
+
+
+@router.post("/{group_id}/invitations/accept", response_model=dict)
+async def accept_invitation(
+    group_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    invitation = await conn.fetchrow(
+        "SELECT id FROM group_invitations WHERE group_id = $1 AND user_id = $2 AND status = 'pending'",
+        group_id,
+        current_user["id"],
+    )
+    if not invitation:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    async with conn.transaction():
+        await conn.execute(
+            "INSERT INTO prayer_group_members (group_id, user_id, status) VALUES ($1, $2, 'member') ON CONFLICT (group_id, user_id) DO NOTHING",
+            group_id,
+            current_user["id"],
+        )
+        await conn.execute(
+            "UPDATE group_invitations SET status = 'accepted' WHERE id = $1",
+            invitation["id"],
+        )
+
+    return {"status": "member"}
+
+
+@router.post("/{group_id}/invitations/decline", response_model=dict)
+async def decline_invitation(
+    group_id: str,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    result = await conn.execute(
+        "DELETE FROM group_invitations WHERE group_id = $1 AND user_id = $2 AND status = 'pending'",
+        group_id,
+        current_user["id"],
+    )
+    if result == "DELETE 0":
+        raise HTTPException(status_code=404, detail="Invitation not found")
     return {"success": True}
 
 

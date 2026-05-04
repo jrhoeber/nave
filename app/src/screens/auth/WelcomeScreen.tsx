@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApp } from '@react-native-firebase/app';
@@ -8,6 +8,7 @@ import appleAuth from '@invertase/react-native-apple-authentication';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
+import { NaveLogo } from '../../components/ui/NaveLogo';
 import { Colors, Spacing, Typography } from '../../theme';
 import type { AuthNavigationProp } from '../../types/navigation';
 
@@ -114,11 +115,7 @@ export function WelcomeScreen() {
       <View style={[styles.container, { paddingTop: insets.top + Spacing[16], paddingBottom: insets.bottom + Spacing[4] }]}>
         {/* Top content */}
         <View style={styles.top}>
-          <Image
-            source={require('../../assets/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <NaveLogo size={80} />
           <Text style={styles.appName}>Nave</Text>
           <View style={styles.goldDivider} />
 
@@ -216,11 +213,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing[2],
     marginBottom: Spacing[10],
-  },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: Spacing[1],
   },
   appName: {
     fontFamily: 'CormorantGaramond-Regular',

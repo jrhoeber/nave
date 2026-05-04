@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, ParishComment, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult, BlockedUser } from '../types';
+import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, ParishComment, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult, BlockedUser, GroupInvitation } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -72,6 +72,13 @@ interface ApiPrayerGroup {
   diocese?: string;
   meeting_schedule?: string;
   created_at: string;
+}
+
+interface ApiGroupInvitation {
+  id: string;
+  group: ApiPrayerGroup;
+  invited_by: { id: string; display_name: string; avatar_url?: string };
+  invited_at: string;
 }
 
 interface ApiParish {
@@ -307,6 +314,19 @@ export function mapPrayerGroup(raw: ApiPrayerGroup): PrayerGroup {
     diocese: raw.diocese,
     meetingSchedule: raw.meeting_schedule,
     createdAt: raw.created_at,
+  };
+}
+
+export function mapGroupInvitation(raw: ApiGroupInvitation): GroupInvitation {
+  return {
+    id: raw.id,
+    group: mapPrayerGroup(raw.group),
+    invitedBy: {
+      id: raw.invited_by.id,
+      displayName: raw.invited_by.display_name,
+      avatarUrl: raw.invited_by.avatar_url?.startsWith('http') ? raw.invited_by.avatar_url : undefined,
+    },
+    invitedAt: raw.invited_at,
   };
 }
 
@@ -633,7 +653,31 @@ export const api = {
   },
 
   addMember(groupId: string, userId: string) {
-    return apiFetch<{ status: 'member' | 'pending' }>(`/prayer-groups/${groupId}/members/${userId}`, { method: 'POST' });
+    return apiFetch<{ status: 'member' | 'pending' | 'invited' }>(`/prayer-groups/${groupId}/members/${userId}`, { method: 'POST' });
+  },
+
+  getMyInvitations() {
+    return apiFetch<{ invitations: ApiGroupInvitation[] }>('/prayer-groups/invitations');
+  },
+
+  acceptInvitation(groupId: string) {
+    return apiFetch<{ status: 'member' | 'pending' }>(`/prayer-groups/${groupId}/invitations/accept`, { method: 'POST' });
+  },
+
+  declineInvitation(groupId: string) {
+    return apiFetch<{ success: boolean }>(`/prayer-groups/${groupId}/invitations/decline`, { method: 'POST' });
+  },
+
+  getPendingInvitations(groupId: string) {
+    return apiFetch<{ invitations: Array<{ invitation_id: string; id: string; username: string; display_name: string; avatar_url?: string; inviter_display_name: string; requested_at: string }> }>(`/prayer-groups/${groupId}/invitations/pending`);
+  },
+
+  approveInvitation(groupId: string, userId: string) {
+    return apiFetch<{ status: string }>(`/prayer-groups/${groupId}/invitations/${userId}/approve`, { method: 'POST' });
+  },
+
+  declineInvitationApproval(groupId: string, userId: string) {
+    return apiFetch<{ success: boolean }>(`/prayer-groups/${groupId}/invitations/${userId}/decline-approval`, { method: 'POST' });
   },
 
   // Parishes

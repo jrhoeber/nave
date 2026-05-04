@@ -100,6 +100,21 @@ CREATE INDEX IF NOT EXISTS idx_pgm_group ON prayer_group_members (group_id);
 CREATE INDEX IF NOT EXISTS idx_pgm_user  ON prayer_group_members (user_id);
 
 -- ============================================================
+-- GROUP INVITATIONS
+-- status: pending (awaiting response) | accepted | declined
+-- ============================================================
+CREATE TABLE IF NOT EXISTS group_invitations (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id    UUID NOT NULL REFERENCES prayer_groups(id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    invited_by  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status      TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'accepted', 'declined', 'awaiting_approval')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (group_id, user_id)
+);
+
+-- ============================================================
 -- PARISH POSTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS parish_posts (
