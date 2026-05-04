@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   // Comment divider
   commentDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#d8d3cb',
+    backgroundColor: Colors.cardBorder,
     marginHorizontal: Spacing[4],
   },
 

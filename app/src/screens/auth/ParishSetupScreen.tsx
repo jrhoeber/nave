@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[4],
     gap: Spacing[3],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#d8d3cb',
+    borderBottomColor: Colors.cardBorder,
   },
   resultRowLast: { borderBottomWidth: 0 },
   resultIcon: {

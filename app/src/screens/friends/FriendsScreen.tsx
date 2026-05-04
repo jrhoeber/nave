@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +14,12 @@ import type { RootNavigationProp } from '../../types/navigation';
 export function FriendsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const { friends, incomingRequests, isLoading, fetchFriends, acceptRequest, rejectRequest } = useFriendsStore();
+  const friends = useFriendsStore((s) => s.friends);
+  const incomingRequests = useFriendsStore((s) => s.incomingRequests);
+  const isLoading = useFriendsStore((s) => s.isLoading);
+  const fetchFriends = useFriendsStore((s) => s.fetchFriends);
+  const acceptRequest = useFriendsStore((s) => s.acceptRequest);
+  const rejectRequest = useFriendsStore((s) => s.rejectRequest);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -79,19 +84,20 @@ export function FriendsScreen() {
     | { type: 'friends-label' }
     | { type: 'friend'; data: Friendship; index: number; isLast: boolean };
 
-  const listData: ListItem[] = [];
+  const listData = useMemo<ListItem[]>(() => {
+    const items: ListItem[] = [];
+    if (incomingRequests.length > 0) {
+      items.push({ type: 'requests-header' });
+      incomingRequests.forEach((r, i) => items.push({ type: 'request', data: r, index: i }));
+    }
+    if (friends.length > 0) {
+      items.push({ type: 'friends-label' });
+      friends.forEach((f, i) => items.push({ type: 'friend', data: f, index: i, isLast: i === friends.length - 1 }));
+    }
+    return items;
+  }, [friends, incomingRequests]);
 
-  if (incomingRequests.length > 0) {
-    listData.push({ type: 'requests-header' });
-    incomingRequests.forEach((r, i) => listData.push({ type: 'request', data: r, index: i }));
-  }
-
-  if (friends.length > 0) {
-    listData.push({ type: 'friends-label' });
-    friends.forEach((f, i) => listData.push({ type: 'friend', data: f, index: i, isLast: i === friends.length - 1 }));
-  }
-
-  const renderItem = ({ item }: { item: ListItem }) => {
+  const renderItem = useCallback(({ item }: { item: ListItem }) => {
     if (item.type === 'requests-header') {
       return <Text style={styles.sectionLabel}>FRIEND REQUESTS · {incomingRequests.length}</Text>;
     }
@@ -104,7 +110,14 @@ export function FriendsScreen() {
         {renderFriend({ item: item.data, index: item.index, isLast: item.isLast })}
       </View>
     );
-  };
+  }, [incomingRequests.length, navigation, acceptRequest, rejectRequest]);
+
+  const keyExtractor = useCallback((item: ListItem) => {
+    if (item.type === 'requests-header') return 'header-requests';
+    if (item.type === 'friends-label') return 'header-friends';
+    if (item.type === 'request') return `req-${item.data.id}`;
+    return `friend-${item.data.id}`;
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -125,12 +138,7 @@ export function FriendsScreen() {
 
       <FlatList
         data={listData}
-        keyExtractor={(item, index) => {
-          if (item.type === 'requests-header') return 'header-requests';
-          if (item.type === 'friends-label') return 'header-friends';
-          if (item.type === 'request') return `req-${item.data.id}`;
-          return `friend-${item.data.id}`;
-        }}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -174,7 +182,7 @@ const styles = StyleSheet.create({
   // ── List ───────────────────────────────────────────────────────────────────
   list: { paddingBottom: Spacing[10] },
 
-  friendCard: { paddingHorizontal: Spacing[5], paddingVertical: Spacing[4], borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#d8d3cb' },
+  friendCard: { paddingHorizontal: Spacing[5], paddingVertical: Spacing[4], borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.cardBorder },
   friendCardLast: { borderBottomWidth: 0 },
   friendRow: {
     flexDirection: 'row',
@@ -195,7 +203,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[3],
     marginHorizontal: Spacing[3],
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
+    borderColor: Colors.cardBorder,
   },
   requestUserRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[3] },
   requestActions: { flexDirection: 'row', gap: Spacing[2] },

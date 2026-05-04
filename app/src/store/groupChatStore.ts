@@ -18,6 +18,8 @@ interface GroupChatState {
   hasMoreByGroup: Record<string, boolean>;
   loadingByGroup: Record<string, boolean>;
   lastReadIdByGroup: Record<string, string>;
+  activePollGroupId: string | null;
+  setActivePollGroupId: (groupId: string | null) => void;
 
   fetchMessages: (groupId: string) => Promise<void>;
   loadMoreMessages: (groupId: string) => Promise<void>;
@@ -40,6 +42,9 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
   hasMoreByGroup: {},
   loadingByGroup: {},
   lastReadIdByGroup: {},
+  activePollGroupId: null,
+
+  setActivePollGroupId: (groupId: string | null) => set({ activePollGroupId: groupId }),
 
   fetchMessages: async (groupId: string) => {
     if (get().loadingByGroup[groupId]) return;

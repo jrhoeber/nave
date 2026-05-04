@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[4],
     gap: Spacing[3],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#d8d3cb',
+    borderBottomColor: Colors.cardBorder,
   },
   userCardLast: { borderBottomWidth: 0 },
   userInfo: { flex: 1, minWidth: 0 },

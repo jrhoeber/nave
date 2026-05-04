@@ -29,6 +29,7 @@ export const Colors = {
   // UI elements
   border: '#e5e0d8',
   borderLight: '#f0ebe3',
+  cardBorder: '#d8d3cb',
   divider: '#e5e7eb',
   overlay: 'rgba(26, 43, 74, 0.6)',
 
@@ -124,7 +125,7 @@ export const CardList = StyleSheet.create({
     marginHorizontal: Spacing[3],
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
+    borderColor: Colors.cardBorder,
   },
   itemFirst: {
     borderTopLeftRadius: Radius.lg,

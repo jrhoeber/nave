@@ -174,7 +174,7 @@ interface MessageContextMenuProps {
 }
 
 function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss, onReport, onDelete }: MessageContextMenuProps) {
-  const { toggleReaction } = useGroupChatStore();
+  const toggleReaction = useGroupChatStore((s) => s.toggleReaction);
 
   const handleHeart = useCallback(async () => {
     if (!message) return;
@@ -353,8 +353,8 @@ interface MessageBubbleProps {
   onAvatarPress: (userId: string) => void;
 }
 
-function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPress, onAvatarPress }: MessageBubbleProps) {
-  const { toggleReaction } = useGroupChatStore();
+const MessageBubble = React.memo(function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPress, onAvatarPress }: MessageBubbleProps) {
+  const toggleReaction = useGroupChatStore((s) => s.toggleReaction);
   const [imgError, setImgError] = useState(false);
   useEffect(() => { setImgError(false); }, [message.imageUrl]);
 
@@ -438,7 +438,7 @@ function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPres
       </View>
     </Pressable>
   );
-}
+});
 
 const msgStyles = StyleSheet.create({
   row: {
@@ -529,7 +529,8 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [draftPhoto, setDraftPhoto] = useState<DraftPhoto | null>(null);
-  const { sendMessage, sendImageMessage } = useGroupChatStore();
+  const sendMessage = useGroupChatStore((s) => s.sendMessage);
+  const sendImageMessage = useGroupChatStore((s) => s.sendImageMessage);
 
   const hasText = text.trim().length > 0;
   const canSend = (hasText || draftPhoto !== null) && !sending;
@@ -711,10 +712,18 @@ export function GroupMessageScreen() {
   const route = useRoute<GroupMessageRouteProp>();
   const groupId = route.params.id;
 
-  const { groups, isLoading: groupsLoading, fetchGroups, joinGroup, leaveGroup } = usePrayerStore();
-  const { user } = useAuthStore();
-  const { messagesByGroup, loadingByGroup, hasMoreByGroup, fetchMessages, loadMoreMessages, clearGroup, markGroupAsRead, appendNewMessages } =
-    useGroupChatStore();
+  const groups = usePrayerStore((s) => s.groups);
+  const groupsLoading = usePrayerStore((s) => s.isLoading);
+  const fetchGroups = usePrayerStore((s) => s.fetchGroups);
+  const joinGroup = usePrayerStore((s) => s.joinGroup);
+  const user = useAuthStore((s) => s.user);
+  const messagesByGroup = useGroupChatStore((s) => s.messagesByGroup);
+  const loadingByGroup = useGroupChatStore((s) => s.loadingByGroup);
+  const hasMoreByGroup = useGroupChatStore((s) => s.hasMoreByGroup);
+  const fetchMessages = useGroupChatStore((s) => s.fetchMessages);
+  const loadMoreMessages = useGroupChatStore((s) => s.loadMoreMessages);
+  const markGroupAsRead = useGroupChatStore((s) => s.markGroupAsRead);
+  const appendNewMessages = useGroupChatStore((s) => s.appendNewMessages);
   const isFocused = useIsFocused();
 
   const group = groups.find((g) => g.id === groupId);
@@ -747,7 +756,8 @@ export function GroupMessageScreen() {
     }
   }, [messages]);
 
-  // 3-second polling for new messages while screen is focused and app is active
+  // Polling for new messages while screen is focused and app is active.
+  // Registers as the "active" group so AppNavigator's 30s pollAll skips it.
   useEffect(() => {
     if (!group?.isMember || !isFocused) return;
 
@@ -755,8 +765,10 @@ export function GroupMessageScreen() {
       latestMessageTimestampRef.current = new Date().toISOString();
     }
 
+    useGroupChatStore.getState().setActivePollGroupId(groupId);
+
     let intervalId: ReturnType<typeof setInterval> | null = null;
-    let appIsActive = AppState.currentState !== 'background';
+    let appIsActive = AppState.currentState === 'active';
 
     const poll = async () => {
       if (!appIsActive) return;
@@ -772,19 +784,26 @@ export function GroupMessageScreen() {
       }
     };
 
-    intervalId = setInterval(poll, 3000);
+    intervalId = setInterval(poll, 5000);
 
     const appStateSub = AppState.addEventListener('change', (state) => {
-      appIsActive = state !== 'background';
+      appIsActive = state === 'active';
+      if (appIsActive) poll();
     });
 
     return () => {
       if (intervalId) clearInterval(intervalId);
       appStateSub.remove();
+      useGroupChatStore.getState().setActivePollGroupId(null);
     };
   }, [groupId, group?.isMember, isFocused]);
 
   const renderData = useMemo(() => buildRenderData(messages), [messages]);
+
+  const keyExtractor = useCallback(
+    (item: RenderItem) => ('type' in item && item.type === 'separator' ? item.id : (item as GroupMessage).id),
+    [],
+  );
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !isLoading) loadMoreMessages(groupId);
@@ -841,10 +860,15 @@ export function GroupMessageScreen() {
     ]);
   }, [groupId]);
 
-  const handleLongPress = useCallback((messageId: string, _authorId: string) => {
+  const handleLongPress = useCallback((messageId: string) => {
     const msg = messages.find((m) => m.id === messageId);
     if (msg) setContextMessage(msg);
   }, [messages]);
+
+  const handleAvatarPress = useCallback(
+    (userId: string) => navigation.navigate('UserProfile', { id: userId }),
+    [navigation],
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: RenderItem }) => {
@@ -859,12 +883,12 @@ export function GroupMessageScreen() {
           isMember={group?.isMember ?? false}
           isOwn={msg.author.id === user?.id}
           position={msg._position ?? 'solo'}
-          onLongPress={(msgId) => handleLongPress(msgId, msg.author.id)}
-          onAvatarPress={(userId) => navigation.navigate('UserProfile', { id: userId })}
+          onLongPress={handleLongPress}
+          onAvatarPress={handleAvatarPress}
         />
       );
     },
-    [groupId, group?.isMember, user?.id, handleLongPress, navigation],
+    [groupId, group?.isMember, user?.id, handleLongPress, handleAvatarPress],
   );
 
   if (!group) {
@@ -921,14 +945,17 @@ export function GroupMessageScreen() {
       {group.isMember ? (
         <FlatList
           data={renderData}
-          keyExtractor={(item) =>
-            'type' in item && item.type === 'separator' ? item.id : (item as GroupMessage).id
-          }
+          keyExtractor={keyExtractor}
           renderItem={renderItem}
           inverted
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.3}
+          windowSize={10}
+          initialNumToRender={15}
+          maxToRenderPerBatch={8}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListFooterComponent={isLoading && hasMore ? <View style={{ height: 20 }} /> : null}
           ListEmptyComponent={
             isLoading ? null : (

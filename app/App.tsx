@@ -24,9 +24,18 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchFriends();
-      registerPushToken();
+      // Defer non-critical work so the initial render isn't competing with
+      // friend-list and FCM I/O. requestIdleCallback yields when the JS thread
+      // is idle; the timeout caps the delay so it always runs reasonably soon.
+      const handle = requestIdleCallback(
+        () => {
+          fetchFriends();
+          registerPushToken();
+        },
+        { timeout: 1500 },
+      );
       wasAuthenticatedRef.current = true;
+      return () => cancelIdleCallback(handle);
     } else if (wasAuthenticatedRef.current) {
       // Was authenticated, now logged out
       unregisterPushToken();
@@ -41,10 +50,10 @@ export default function App() {
     }
   }, [isLoading, isAuthenticated, user?.avatarUrl, avatarReady]);
 
-  // 3-second fallback — never hang if avatar is slow or broken
+  // Hard fallback — never hang on splash if avatar is slow or broken
   useEffect(() => {
     if (!isLoading) {
-      const t = setTimeout(() => setSplashDone(true), 3000);
+      const t = setTimeout(() => setSplashDone(true), 1500);
       return () => clearTimeout(t);
     }
   }, [isLoading]);

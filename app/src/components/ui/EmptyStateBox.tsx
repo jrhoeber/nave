@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing[3],
     borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
+    borderColor: Colors.cardBorder,
     padding: Spacing[5],
   },
   title: {

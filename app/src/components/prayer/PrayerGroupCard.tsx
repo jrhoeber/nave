@@ -52,7 +52,7 @@ function UnreadDot() {
   return <View style={styles.unreadDot} />;
 }
 
-export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDelete, onMute, onUnmute, isMuted = false, unreadCount = 0, lastMessageAt, isLast }: PrayerGroupCardProps & { isLast?: boolean }) {
+function PrayerGroupCardImpl({ group, onPress, onJoin, onLeave, onEdit, onDelete, onMute, onUnmute, isMuted = false, unreadCount = 0, lastMessageAt, isLast }: PrayerGroupCardProps & { isLast?: boolean }) {
   const cat = CATEGORY_CONFIG[group.category];
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isAdmin = group.admin.id === currentUserId;
@@ -174,8 +174,34 @@ export function PrayerGroupCard({ group, onPress, onJoin, onLeave, onEdit, onDel
   );
 }
 
+export const PrayerGroupCard = React.memo(PrayerGroupCardImpl, (prev, next) => {
+  const a = prev.group;
+  const b = next.group;
+  return (
+    a.id === b.id &&
+    a.name === b.name &&
+    a.memberCount === b.memberCount &&
+    a.category === b.category &&
+    a.avatarUrl === b.avatarUrl &&
+    a.isMember === b.isMember &&
+    a.isPendingApproval === b.isPendingApproval &&
+    a.admin?.id === b.admin?.id &&
+    prev.isMuted === next.isMuted &&
+    prev.unreadCount === next.unreadCount &&
+    prev.lastMessageAt === next.lastMessageAt &&
+    prev.isLast === next.isLast &&
+    prev.onPress === next.onPress &&
+    prev.onJoin === next.onJoin &&
+    prev.onLeave === next.onLeave &&
+    prev.onEdit === next.onEdit &&
+    prev.onDelete === next.onDelete &&
+    prev.onMute === next.onMute &&
+    prev.onUnmute === next.onUnmute
+  );
+});
+
 const styles = StyleSheet.create({
-  card: { paddingHorizontal: Spacing[5], paddingVertical: Spacing[4], borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#d8d3cb' },
+  card: { paddingHorizontal: Spacing[5], paddingVertical: Spacing[4], borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.cardBorder },
   cardLast: { borderBottomWidth: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
   info: { flex: 1, minWidth: 0 },

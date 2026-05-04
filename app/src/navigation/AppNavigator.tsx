@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { AppState, View, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BlurView } from '@react-native-community/blur';
@@ -157,16 +157,22 @@ export function AppNavigator() {
   const lastReadIdByGroup = useGroupChatStore((s) => s.lastReadIdByGroup);
   const hydrateLastRead = useGroupChatStore((s) => s.hydrateLastRead);
   const loadGroupBaseline = useGroupChatStore((s) => s.loadGroupBaseline);
-  const { myGroups, invitations, fetchGroups, fetchInvitations, mutedGroupIds } = usePrayerStore();
+  const myGroups = usePrayerStore((s) => s.myGroups);
+  const invitationsCount = usePrayerStore((s) => s.invitations.length);
+  const fetchGroups = usePrayerStore((s) => s.fetchGroups);
+  const fetchInvitations = usePrayerStore((s) => s.fetchInvitations);
+  const mutedGroupIds = usePrayerStore((s) => s.mutedGroupIds);
 
-  const totalUnreadCount = Object.keys(messagesByGroup).reduce((total, groupId) => {
-    if (mutedGroupIds.has(groupId)) return total;
-    const messages = messagesByGroup[groupId];
-    const lastReadId = lastReadIdByGroup[groupId];
-    if (!messages || !lastReadId) return total;
-    const idx = messages.findIndex((m) => m.id === lastReadId);
-    return total + (idx === -1 ? messages.length : idx);
-  }, 0);
+  const totalUnreadCount = useMemo(() => {
+    return Object.keys(messagesByGroup).reduce((total, groupId) => {
+      if (mutedGroupIds.has(groupId)) return total;
+      const messages = messagesByGroup[groupId];
+      const lastReadId = lastReadIdByGroup[groupId];
+      if (!messages || !lastReadId) return total;
+      const idx = messages.findIndex((m) => m.id === lastReadId);
+      return total + (idx === -1 ? messages.length : idx);
+    }, 0);
+  }, [messagesByGroup, lastReadIdByGroup, mutedGroupIds]);
   const bottomInset = insets.bottom || 0;
 
   // On mount: restore persisted read positions then fetch groups so the nav badge
@@ -186,9 +192,9 @@ export function AppNavigator() {
   useEffect(() => {
     const pollAll = async () => {
       if (AppState.currentState !== 'active') return;
-      const { messagesByGroup, appendNewMessages } = useGroupChatStore.getState();
+      const { messagesByGroup, appendNewMessages, activePollGroupId } = useGroupChatStore.getState();
       const { myGroups: groups, mutedGroupIds: muted } = usePrayerStore.getState();
-      for (const g of groups.filter((g) => g.isMember && !muted.has(g.id))) {
+      for (const g of groups.filter((g) => g.isMember && !muted.has(g.id) && g.id !== activePollGroupId)) {
         const messages = messagesByGroup[g.id];
         if (!messages?.length) continue;
         try {
@@ -286,7 +292,7 @@ export function AppNavigator() {
         options={{
           tabBarTestID: 'tab-groups',
           tabBarIcon: ({ focused }) => (
-            <IconWithBadge showBadge={totalUnreadCount > 0 || invitations.length > 0}>
+            <IconWithBadge showBadge={totalUnreadCount > 0 || invitationsCount > 0}>
               <GroupsIcon active={focused} />
             </IconWithBadge>
           ),

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +19,20 @@ import type { RootNavigationProp } from '../../types/navigation';
 export function GroupScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const { myGroups, invitations, isLoading, fetchGroups, fetchInvitations, acceptInvitation, declineInvitation, joinGroup, leaveGroup, deleteGroup, muteGroup, unmuteGroup, loadMuteStatus, mutedGroupIds } = usePrayerStore();
+  const myGroups = usePrayerStore((s) => s.myGroups);
+  const invitations = usePrayerStore((s) => s.invitations);
+  const isLoading = usePrayerStore((s) => s.isLoading);
+  const fetchGroups = usePrayerStore((s) => s.fetchGroups);
+  const fetchInvitations = usePrayerStore((s) => s.fetchInvitations);
+  const acceptInvitation = usePrayerStore((s) => s.acceptInvitation);
+  const declineInvitation = usePrayerStore((s) => s.declineInvitation);
+  const joinGroup = usePrayerStore((s) => s.joinGroup);
+  const leaveGroup = usePrayerStore((s) => s.leaveGroup);
+  const deleteGroup = usePrayerStore((s) => s.deleteGroup);
+  const muteGroup = usePrayerStore((s) => s.muteGroup);
+  const unmuteGroup = usePrayerStore((s) => s.unmuteGroup);
+  const loadMuteStatus = usePrayerStore((s) => s.loadMuteStatus);
+  const mutedGroupIds = usePrayerStore((s) => s.mutedGroupIds);
   const messagesByGroup = useGroupChatStore((s) => s.messagesByGroup);
   const lastReadIdByGroup = useGroupChatStore((s) => s.lastReadIdByGroup);
   const appendNewMessages = useGroupChatStore((s) => s.appendNewMessages);
@@ -53,9 +66,14 @@ export function GroupScreen() {
   }, [myGroups.length, parishName]);
 
   // Load mute status for all member groups when the list changes
+  const memberIdsKey = useMemo(
+    () => myGroups.filter((g) => g.isMember).map((g) => g.id).join(','),
+    [myGroups],
+  );
   useEffect(() => {
     myGroups.filter((g) => g.isMember).forEach((g) => loadMuteStatus(g.id));
-  }, [myGroups.map((g) => g.id).join(',')]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberIdsKey]);
 
   // When myGroups first loads (or changes), establish a read baseline for each
   // member group that hasn't been loaded yet. Idempotent — no-op if already done.
@@ -106,19 +124,26 @@ export function GroupScreen() {
     | { type: 'groups-label' }
     | { type: 'group'; data: PrayerGroup; index: number; isLast: boolean };
 
-  const listData: ListItem[] = [];
+  const listData = useMemo<ListItem[]>(() => {
+    const items: ListItem[] = [];
+    if (invitations.length > 0) {
+      items.push({ type: 'invitations-header' });
+      invitations.forEach((inv) => items.push({ type: 'invitation', data: inv }));
+    }
+    if (myGroups.length > 0) {
+      items.push({ type: 'groups-label' });
+      myGroups.forEach((g, i) => items.push({ type: 'group', data: g, index: i, isLast: i === myGroups.length - 1 }));
+    }
+    return items;
+  }, [invitations, myGroups]);
 
-  if (invitations.length > 0) {
-    listData.push({ type: 'invitations-header' });
-    invitations.forEach((inv) => listData.push({ type: 'invitation', data: inv }));
-  }
+  const openGroupChat = useCallback((id: string) => navigation.navigate('GroupMessage', { id }), [navigation]);
+  const onEditGroup = useCallback(
+    (id: string) => setEditingGroup(myGroups.find((g) => g.id === id) ?? null),
+    [myGroups],
+  );
 
-  if (myGroups.length > 0) {
-    listData.push({ type: 'groups-label' });
-    myGroups.forEach((g, i) => listData.push({ type: 'group', data: g, index: i, isLast: i === myGroups.length - 1 }));
-  }
-
-  const renderListItem = ({ item }: { item: ListItem }) => {
+  const renderListItem = useCallback(({ item }: { item: ListItem }) => {
     if (item.type === 'invitations-header') {
       return <Text style={styles.sectionLabel}>INVITATIONS {invitations.length > 0 ? `\u00B7 ${invitations.length}` : ''}</Text>;
     }
@@ -151,10 +176,10 @@ export function GroupScreen() {
       <View style={[CardList.item, item.index === 0 && CardList.itemFirst, item.isLast && CardList.itemLast]}>
         <PrayerGroupCard
           group={item.data}
-          onPress={(id) => navigation.navigate('GroupMessage', { id })}
+          onPress={openGroupChat}
           onJoin={joinGroup}
           onLeave={leaveGroup}
-          onEdit={(id) => setEditingGroup(myGroups.find((g) => g.id === id) ?? null)}
+          onEdit={onEditGroup}
           onDelete={deleteGroup}
           onMute={muteGroup}
           onUnmute={unmuteGroup}
@@ -165,7 +190,29 @@ export function GroupScreen() {
         />
       </View>
     );
-  };
+  }, [
+    invitations.length,
+    navigation,
+    acceptInvitation,
+    declineInvitation,
+    openGroupChat,
+    joinGroup,
+    leaveGroup,
+    onEditGroup,
+    deleteGroup,
+    muteGroup,
+    unmuteGroup,
+    mutedGroupIds,
+    messagesByGroup,
+    lastReadIdByGroup,
+  ]);
+
+  const keyExtractor = useCallback((item: ListItem) => {
+    if (item.type === 'invitations-header') return 'header-invitations';
+    if (item.type === 'invitation') return `inv-${item.data.id}`;
+    if (item.type === 'groups-label') return 'header-groups';
+    return `group-${item.data.id}`;
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -223,12 +270,7 @@ export function GroupScreen() {
         <FlatList
           testID="groups-list"
           data={listData}
-          keyExtractor={(item) => {
-            if (item.type === 'invitations-header') return 'header-invitations';
-            if (item.type === 'invitation') return `inv-${item.data.id}`;
-            if (item.type === 'groups-label') return 'header-groups';
-            return `group-${item.data.id}`;
-          }}
+          keyExtractor={keyExtractor}
           renderItem={renderListItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -278,7 +320,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[3],
     marginHorizontal: Spacing[3],
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d3cb',
+    borderColor: Colors.cardBorder,
   },
   invitationRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[3] },
   invitationInfo: { flex: 1, minWidth: 0 },

@@ -20,6 +20,7 @@ import { AddToGroupModal } from '../../components/prayer/AddToGroupModal';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useAuthStore } from '../../store/authStore';
 import { api, mapPrayerGroup } from '../../lib/apiClient';
+import { errorMessage } from '../../lib/errors';
 import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { GroupProfileRouteProp, RootNavigationProp } from '../../types/navigation';
 
@@ -66,7 +67,7 @@ function MemberRow({ member, isGroupAdmin, canRemove, onRemove, onPress, isLast 
 
   const handleLongPress = () => {
     if (!canRemove) return;
-    Alert.alert(undefined as any, undefined as any, [
+    Alert.alert('', '', [
       { text: 'Remove from Group', style: 'destructive', onPress: onRemove },
       { text: 'Cancel', style: 'cancel' },
     ]);
@@ -96,7 +97,7 @@ const memberStyles = StyleSheet.create({
     paddingHorizontal: Spacing[5],
     paddingVertical: Spacing[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#d8d3cb',
+    borderBottomColor: Colors.cardBorder,
   },
   cardLast: {
     borderBottomWidth: 0,
@@ -241,8 +242,8 @@ export function GroupProfileScreen() {
             try {
               await leaveGroup(groupId);
               navigation.navigate('App');
-            } catch (e: any) {
-              Alert.alert('Error', e.message ?? 'Could not leave group.');
+            } catch (e) {
+              Alert.alert('Error', errorMessage(e, 'Could not leave group.'));
             }
           },
         },
@@ -263,8 +264,8 @@ export function GroupProfileScreen() {
             try {
               await deleteGroup(groupId);
               navigation.navigate('App');
-            } catch (e: any) {
-              Alert.alert('Error', e.message ?? 'Could not delete group.');
+            } catch (e) {
+              Alert.alert('Error', errorMessage(e, 'Could not delete group.'));
             }
           },
         },
@@ -294,8 +295,8 @@ export function GroupProfileScreen() {
     setAvatarUploading(true);
     try {
       await uploadGroupAvatar(groupId, asset.uri, asset.type);
-    } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Failed to upload photo.');
+    } catch (e) {
+      Alert.alert('Error', errorMessage(e, 'Failed to upload photo.'));
     } finally {
       setAvatarUploading(false);
     }
@@ -305,8 +306,8 @@ export function GroupProfileScreen() {
     setAvatarUploading(true);
     try {
       await removeGroupAvatar(groupId);
-    } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Failed to remove photo.');
+    } catch (e) {
+      Alert.alert('Error', errorMessage(e, 'Failed to remove photo.'));
     } finally {
       setAvatarUploading(false);
     }
@@ -317,8 +318,8 @@ export function GroupProfileScreen() {
       await api.removeMember(groupId, member.id);
       setMembers((prev) => prev.filter((m) => m.id !== member.id));
       setMemberCount((c: number) => Math.max(0, c - 1));
-    } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Could not remove member.');
+    } catch (e) {
+      Alert.alert('Error', errorMessage(e, 'Could not remove member.'));
     }
   };
 
@@ -328,8 +329,8 @@ export function GroupProfileScreen() {
       setPendingMembers((prev) => prev.filter((m) => m.id !== member.id));
       setMembers((prev) => [...prev, member]);
       setMemberCount((c) => c + 1);
-    } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Could not approve request.');
+    } catch (e) {
+      Alert.alert('Error', errorMessage(e, 'Could not approve request.'));
     }
   };
 
@@ -346,8 +347,8 @@ export function GroupProfileScreen() {
             try {
               await api.removeMember(groupId, member.id);
               setPendingMembers((prev) => prev.filter((m) => m.id !== member.id));
-            } catch (e: any) {
-              Alert.alert('Error', e.message ?? 'Could not decline request.');
+            } catch (e) {
+              Alert.alert('Error', errorMessage(e, 'Could not decline request.'));
             }
           },
         },
@@ -359,8 +360,8 @@ export function GroupProfileScreen() {
     try {
       await api.approveInvitation(groupId, inv.id);
       setPendingInvitations((prev) => prev.filter((i) => i.id !== inv.id));
-    } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Could not approve invitation.');
+    } catch (e) {
+      Alert.alert('Error', errorMessage(e, 'Could not approve invitation.'));
     }
   };
 
@@ -377,8 +378,8 @@ export function GroupProfileScreen() {
             try {
               await api.declineInvitationApproval(groupId, inv.id);
               setPendingInvitations((prev) => prev.filter((i) => i.id !== inv.id));
-            } catch (e: any) {
-              Alert.alert('Error', e.message ?? 'Could not decline invitation.');
+            } catch (e) {
+              Alert.alert('Error', errorMessage(e, 'Could not decline invitation.'));
             }
           },
         },
@@ -542,8 +543,8 @@ export function GroupProfileScreen() {
               setJoining(true);
               try {
                 await joinGroup(group.id, group);
-              } catch (e: any) {
-                Alert.alert('Error', e.message ?? 'Could not join group.');
+              } catch (e) {
+                Alert.alert('Error', errorMessage(e, 'Could not join group.'));
               } finally {
                 setJoining(false);
               }

@@ -16,20 +16,29 @@ export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
   const user = useAuthStore((s) => s.user);
-  const { posts, isLoading, fetchFeed, toggleLike, togglePraying } = useFeedStore();
+  const posts = useFeedStore((s) => s.posts);
+  const isLoading = useFeedStore((s) => s.isLoading);
+  const fetchFeed = useFeedStore((s) => s.fetchFeed);
+  const toggleLike = useFeedStore((s) => s.toggleLike);
+  const togglePraying = useFeedStore((s) => s.togglePraying);
 
   useEffect(() => { fetchFeed(); }, []);
+
+  const openPost = useCallback((id: string) => navigation.navigate('PostDetail', { id }), [navigation]);
+  const openAuthor = useCallback((id: string) => navigation.navigate('UserProfile', { id }), [navigation]);
 
   const renderPost = useCallback(({ item }: { item: Post }) => (
     <PostCard
       post={item}
       onLike={toggleLike}
       onPray={togglePraying}
-      onComment={(id) => navigation.navigate('PostDetail', { id })}
-      onPress={(id) => navigation.navigate('PostDetail', { id })}
-      onAuthorPress={(id) => navigation.navigate('UserProfile', { id })}
+      onComment={openPost}
+      onPress={openPost}
+      onAuthorPress={openAuthor}
     />
-  ), [toggleLike, togglePraying]);
+  ), [toggleLike, togglePraying, openPost, openAuthor]);
+
+  const keyExtractor = useCallback((item: Post) => item.id, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -58,8 +67,12 @@ export function FeedScreen() {
 
       <FlatList
         data={posts}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         renderItem={renderPost}
+        windowSize={7}
+        initialNumToRender={6}
+        maxToRenderPerBatch={5}
+        updateCellsBatchingPeriod={50}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchFeed} tintColor={Colors.primary} />}

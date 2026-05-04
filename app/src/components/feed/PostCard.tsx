@@ -23,7 +23,7 @@ const POST_TYPE_CONFIG: Record<PostType, { label: string; color: string; icon: s
   general:        { label: '',                color: Colors.textSecondary, icon: 'chatbubble-outline' },
 };
 
-export function PostCard({ post, onLike, onPray, onComment, onPress, onAuthorPress }: PostCardProps) {
+function PostCardImpl({ post, onLike, onPray, onComment, onPress, onAuthorPress }: PostCardProps) {
   const typeConfig = POST_TYPE_CONFIG[post.type];
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
@@ -86,6 +86,27 @@ export function PostCard({ post, onLike, onPray, onComment, onPress, onAuthorPre
     </TouchableOpacity>
   );
 }
+
+export const PostCard = React.memo(PostCardImpl, (prev, next) => {
+  const a = prev.post;
+  const b = next.post;
+  return (
+    a.id === b.id &&
+    a.likeCount === b.likeCount &&
+    a.prayerCount === b.prayerCount &&
+    a.commentCount === b.commentCount &&
+    a.isLiked === b.isLiked &&
+    a.isPraying === b.isPraying &&
+    a.content === b.content &&
+    a.imageUrl === b.imageUrl &&
+    a.type === b.type &&
+    prev.onLike === next.onLike &&
+    prev.onPray === next.onPray &&
+    prev.onComment === next.onComment &&
+    prev.onPress === next.onPress &&
+    prev.onAuthorPress === next.onAuthorPress
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

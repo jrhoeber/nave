@@ -28,7 +28,7 @@ function relativeTime(iso: string) {
   return `${Math.floor(hrs / 24)}d`;
 }
 
-export function ParishPostCard({
+function ParishPostCardImpl({
   post, currentUserId, isParishAdmin,
   onEdit, onDelete, onReport, onToggleReaction, onPress, onAuthorPress,
   isLast,
@@ -126,12 +126,34 @@ export function ParishPostCard({
   );
 }
 
+export const ParishPostCard = React.memo(ParishPostCardImpl, (prev, next) => {
+  const a = prev.post;
+  const b = next.post;
+  return (
+    a.id === b.id &&
+    a.content === b.content &&
+    a.commentCount === b.commentCount &&
+    a.isAnnouncement === b.isAnnouncement &&
+    a.reactions === b.reactions &&
+    a.userReactions === b.userReactions &&
+    prev.currentUserId === next.currentUserId &&
+    prev.isParishAdmin === next.isParishAdmin &&
+    prev.isLast === next.isLast &&
+    prev.onEdit === next.onEdit &&
+    prev.onDelete === next.onDelete &&
+    prev.onReport === next.onReport &&
+    prev.onToggleReaction === next.onToggleReaction &&
+    prev.onPress === next.onPress &&
+    prev.onAuthorPress === next.onAuthorPress
+  );
+});
+
 const styles = StyleSheet.create({
   postCard: {
     paddingHorizontal: Spacing[5],
     paddingVertical: Spacing[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#d8d3cb',
+    borderBottomColor: Colors.cardBorder,
   },
   postCardLast: {
     borderBottomWidth: 0,

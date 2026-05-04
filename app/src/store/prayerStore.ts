@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { PrayerGroup, GroupInvitation } from '../../types';
 import { api, mapPrayerGroup, mapGroupInvitation } from '../lib/apiClient';
+import { logError } from '../lib/errors';
 
 interface PrayerState {
   groups: PrayerGroup[];
@@ -37,7 +38,8 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       const myData = await api.getMyGroups();
       const myGroups = myData.groups.map(mapPrayerGroup);
       set({ groups: myGroups, myGroups, isLoading: false });
-    } catch {
+    } catch (e) {
+      logError('prayerStore.fetchGroups', e);
       set({ isLoading: false });
     }
   },
@@ -46,8 +48,8 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
     try {
       const data = await api.getMyInvitations();
       set({ invitations: data.invitations.map(mapGroupInvitation) });
-    } catch {
-      // Silently ignore
+    } catch (e) {
+      logError('prayerStore.fetchInvitations', e);
     }
   },
 
