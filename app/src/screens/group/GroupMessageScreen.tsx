@@ -745,9 +745,18 @@ export function GroupMessageScreen() {
 
   useEffect(() => {
     if (group?.isMember) {
-      fetchMessages(groupId).then(() => markGroupAsRead(groupId));
+      fetchMessages(groupId);
     }
   }, [groupId, group?.isMember]);
+
+  // While the user is actively viewing this chat, the latest message is always
+  // read. Re-runs when the latest id changes (send, poll-append) or focus flips.
+  const latestMessageId = messages[0]?.id;
+  useEffect(() => {
+    if (group?.isMember && isFocused && latestMessageId) {
+      markGroupAsRead(groupId);
+    }
+  }, [groupId, group?.isMember, isFocused, latestMessageId, markGroupAsRead]);
 
   // Update latest timestamp whenever messages change
   useEffect(() => {

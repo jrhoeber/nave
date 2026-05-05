@@ -1,7 +1,5 @@
-// Local
-// export const API_BASE_URL = 'http://localhost:8000';
+import Config from 'react-native-config';
 
-// Prod
-export const API_BASE_URL = 'https://api.naveapp.co';
+export const API_BASE_URL = Config.API_BASE_URL;
 
 // Note: Android emulator requires 'http://10.0.2.2:8000' instead of localhost

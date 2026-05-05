@@ -25,6 +25,54 @@ function persistLastRead(lastReadIdByGroup: Record<string, string>): void {
   }, 500);
 }
 
+// Returns a partial state patch that advances lastReadIdByGroup for `groupId`
+// to `newId` (and persists), or an empty patch if `newId` is falsy. Spread into
+// a `set` return value alongside other state updates.
+function advanceLastRead(
+  s: { lastReadIdByGroup: Record<string, string> },
+  groupId: string,
+  newId: string | undefined,
+): { lastReadIdByGroup: Record<string, string> } | {} {
+  if (!newId) return {};
+  const updated = { ...s.lastReadIdByGroup, [groupId]: newId };
+  persistLastRead(updated);
+  return { lastReadIdByGroup: updated };
+}
+
+// Replace an optimistic temp message with the real one. If lastRead pointed at
+// the temp id, advance it to the real id so the user-authored message stays
+// "read".
+function replaceOptimistic(
+  s: GroupChatState,
+  groupId: string,
+  tempId: string,
+  real: GroupMessage,
+) {
+  const advance = s.lastReadIdByGroup[groupId] === tempId ? real.id : undefined;
+  return {
+    messagesByGroup: {
+      ...s.messagesByGroup,
+      [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
+        m.id === tempId ? real : m,
+      ),
+    },
+    ...advanceLastRead(s, groupId, advance),
+  };
+}
+
+// Remove an optimistic temp message (rollback or pending-review). If lastRead
+// pointed at the removed id, fall back to the new latest message so we don't
+// leave a dangling pointer that breaks unread counting.
+function removeOptimistic(s: GroupChatState, groupId: string, tempId: string) {
+  const newMessages = (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId);
+  const advance =
+    s.lastReadIdByGroup[groupId] === tempId ? newMessages[0]?.id : undefined;
+  return {
+    messagesByGroup: { ...s.messagesByGroup, [groupId]: newMessages },
+    ...advanceLastRead(s, groupId, advance),
+  };
+}
+
 interface GroupChatState {
   messagesByGroup: Record<string, GroupMessage[]>;
   cursorByGroup: Record<string, string | null>;
@@ -127,6 +175,7 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
         ...s.messagesByGroup,
         [groupId]: [optimistic, ...(s.messagesByGroup[groupId] ?? [])],
       },
+      ...advanceLastRead(s, groupId, tempId),
     }));
 
     try {
@@ -135,31 +184,14 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
 
       if (pendingReview) {
         // Remove the optimistic message — it won't appear until an admin approves it
-        set((s) => ({
-          messagesByGroup: {
-            ...s.messagesByGroup,
-            [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId),
-          },
-        }));
+        set((s) => removeOptimistic(s, groupId, tempId));
       } else {
         const message = mapGroupMessage(raw);
-        set((s) => ({
-          messagesByGroup: {
-            ...s.messagesByGroup,
-            [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
-              m.id === tempId ? message : m,
-            ),
-          },
-        }));
+        set((s) => replaceOptimistic(s, groupId, tempId, message));
       }
       return { pendingReview };
     } catch (err) {
-      set((s) => ({
-        messagesByGroup: {
-          ...s.messagesByGroup,
-          [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId),
-        },
-      }));
+      set((s) => removeOptimistic(s, groupId, tempId));
       throw err;
     }
   },
@@ -188,27 +220,16 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
         ...s.messagesByGroup,
         [groupId]: [optimistic, ...(s.messagesByGroup[groupId] ?? [])],
       },
+      ...advanceLastRead(s, groupId, tempId),
     }));
 
     try {
       const { object_name } = await api.uploadGroupMessageImage(groupId, uri, type);
       const raw = await api.sendGroupImageMessage(groupId, object_name, caption);
       const message = mapGroupMessage(raw);
-      set((s) => ({
-        messagesByGroup: {
-          ...s.messagesByGroup,
-          [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
-            m.id === tempId ? message : m,
-          ),
-        },
-      }));
+      set((s) => replaceOptimistic(s, groupId, tempId, message));
     } catch (err) {
-      set((s) => ({
-        messagesByGroup: {
-          ...s.messagesByGroup,
-          [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== tempId),
-        },
-      }));
+      set((s) => removeOptimistic(s, groupId, tempId));
       throw err;
     }
   },

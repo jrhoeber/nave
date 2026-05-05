@@ -376,6 +376,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KQB3Z6QK7H;
 				ENABLE_BITCODE = NO;
+				ENVFILE = "$(SRCROOT)/../.env";
 				INFOPLIST_FILE = Nave/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Nave;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
@@ -410,6 +411,7 @@
 				CODE_SIGN_ENTITLEMENTS = Nave/Nave.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KQB3Z6QK7H;
+				ENVFILE = "$(SRCROOT)/../.env.production";
 				INFOPLIST_FILE = Nave/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Nave;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
