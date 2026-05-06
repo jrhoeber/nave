@@ -16,6 +16,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { AboutCard } from '../../components/profile/AboutCard';
 import { useFriendsStore } from '../../store/friendsStore';
 import { useBlocksStore } from '../../store/blocksStore';
+import { useAuthStore } from '../../store/authStore';
 import { api, mapUser } from '../../lib/apiClient';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { User, MutualFriendBrief } from '../../types';
@@ -53,6 +54,8 @@ export function UserProfileScreen() {
 
   const friendship = friends.find((f) => f.user.id === route.params.id);
   const isFriend = !!friendship;
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const isSelf = currentUserId === route.params.id;
 
   useEffect(() => {
     (async () => {
@@ -167,13 +170,15 @@ export function UserProfileScreen() {
         >
           <Icon name="chevron-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={handleKebabPress}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Icon name="ellipsis-horizontal" size={22} color={Colors.textPrimary} />
-        </TouchableOpacity>
+        {!isSelf && (
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={handleKebabPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="ellipsis-horizontal" size={22} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* ── Avatar with gold ring ── */}
@@ -182,7 +187,7 @@ export function UserProfileScreen() {
           <Avatar uri={user.avatarUrl} name={user.displayName} size={AVATAR_SIZE} />
         </View>
         {/* + button overlay */}
-        {!isFriend && !isPending && (
+        {!isSelf && !isFriend && !isPending && (
           <TouchableOpacity
             style={styles.addBadge}
             onPress={handleAddFriend}
@@ -208,6 +213,7 @@ export function UserProfileScreen() {
       )}
 
       {/* ── Action buttons ── */}
+      {!isSelf && (
       <View style={styles.actionRow}>
         {isFriend ? (
           <TouchableOpacity
@@ -249,6 +255,7 @@ export function UserProfileScreen() {
         )}
 
       </View>
+      )}
 
       {/* ── Stats card ── */}
       <View style={styles.statsCard}>
