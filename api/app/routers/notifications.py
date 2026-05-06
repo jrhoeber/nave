@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.utils import inbox
 
 router = APIRouter()
 
@@ -18,6 +19,11 @@ class NotificationPreferencesUpdate(BaseModel):
     push_notifications_enabled: bool | None = None
     notify_group_messages: bool | None = None
     notify_friend_requests: bool | None = None
+
+
+class MarkReadBody(BaseModel):
+    type: str | None = None
+    entity_id: str | None = None
 
 
 # ─── Device Token ─────────────────────────────────────────────────────────────
@@ -113,6 +119,32 @@ async def update_preferences(
         "notify_group_messages": row["notify_group_messages"],
         "notify_friend_requests": row["notify_friend_requests"],
     }
+
+
+# ─── Inbox ────────────────────────────────────────────────────────────────────
+
+@router.get("/unread-count")
+async def get_unread_count(
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    return {"count": await inbox.unread_count(conn, current_user["id"])}
+
+
+@router.post("/read")
+async def mark_read(
+    body: MarkReadBody,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    updated = await inbox.mark_read(
+        conn,
+        current_user["id"],
+        type_=body.type,
+        entity_id=body.entity_id,
+    )
+    count = await inbox.unread_count(conn, current_user["id"])
+    return {"updated": updated, "count": count}
 
 
 # ─── Group Mute ───────────────────────────────────────────────────────────────

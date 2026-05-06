@@ -88,7 +88,7 @@ npm run type-check               # TypeScript check (no emit)
 
 PostgreSQL. All PKs are UUIDs. Parish search uses trigram (pg_trgm) indexes. Full schema in `api/schema.sql`.
 
-Core tables: `users` (includes `push_notifications_enabled`, `notify_group_messages`, `notify_friend_requests`), `parishes`, `prayer_groups`, `prayer_group_members`, `group_messages`, `group_message_reactions`, `parish_posts`, `parish_post_reactions`, `parish_post_comments` (flat comments with `reply_to_id`), `parish_post_comment_reactions`, `friendships`, `user_device_tokens` (FCM tokens), `group_notification_mutes`, `user_reports` (user-submitted content reports with reason, status, reviewer tracking).
+Core tables: `users` (includes `push_notifications_enabled`, `notify_group_messages`, `notify_friend_requests`), `parishes`, `prayer_groups`, `prayer_group_members`, `group_messages`, `group_message_reactions`, `parish_posts`, `parish_post_reactions`, `parish_post_comments` (flat comments with `reply_to_id`), `parish_post_comment_reactions`, `friendships`, `user_device_tokens` (FCM tokens), `group_notification_mutes`, `user_reports` (user-submitted content reports with reason, status, reviewer tracking), `notifications` (type-agnostic inbox: every push is a row with `type`, `entity_id`, optional `dedup_key`, and a `read_at` timestamp; APNS badge = `COUNT(*) WHERE read_at IS NULL`).
 
 ### Auth flow
 
@@ -177,7 +177,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | `parishes.py` | Fuzzy parish search (trigram + abbreviation expansion), parish member list |
 | `friends.py` | `GET /friends`, `GET /friends/requests/incoming`, `GET /friends/search`, `POST /friends/requests` (sends FCM push), `PATCH /friends/requests/{id}`, `DELETE /friends/{id}`; search and send-request filter blocked users |
 | `blocks.py` | `POST /blocks`, `DELETE /blocks/{blocked_id}`, `GET /blocks` — block/unblock users; POST atomically removes friendship |
-| `notifications.py` | `POST/DELETE /notifications/device-token`, `GET/PATCH /notifications/preferences`, `POST/DELETE/GET /notifications/prayer-groups/{id}/mute` |
+| `notifications.py` | `POST/DELETE /notifications/device-token`, `GET/PATCH /notifications/preferences`, `GET /notifications/unread-count`, `POST /notifications/read`, `POST/DELETE/GET /notifications/prayer-groups/{id}/mute` |
 | `admin.py` | `GET /admin/moderation/queue`, `PATCH /admin/moderation/queue/{id}` — admin review of flagged content; restricted to users in `app_admins` table |
 | `admin_parishes.py` | `GET/POST /admin/parishes`, `PATCH/DELETE /admin/parishes/{id}`, `GET/POST /admin/parishes/{id}/admins`, `DELETE /admin/parishes/{id}/admins/{user_id}` — full parish CRUD + parish admin assignment; restricted to `app_admins` |
 | `parish_post_comments.py` | `GET/POST /parishes/{id}/posts/{id}/comments`, `PATCH/DELETE` comment, `POST` toggle reaction; flat replies via `reply_to_id`, block filtering, content moderation |
@@ -213,7 +213,8 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | `storage.py` | `upload_avatar()`, `upload_group_avatar()`, `get_signed_url()` — Google Cloud Storage integration; signed URLs cached 55 min |
 | `queries.py` | `USER_STATS_COLS`, `USER_STATS_JOIN` — reusable user stats query fragments |
 | `firebase.py` | `verify_firebase_token()`, `get_messaging()` — shared Firebase Admin SDK init; used by auth router and push helper |
-| `push.py` | `send_push_notifications()` — FCM multicast helper; cleans up invalid tokens |
+| `push.py` | `send_push_notifications()` — sends per-token FCM messages with per-user APNS badge; cleans up invalid tokens |
+| `inbox.py` | `enqueue()` / `mark_read()` / `unread_count()` — type-agnostic notifications inbox. All routers should call `enqueue` instead of `send_push_notifications` directly so badge counts stay correct across notification types |
 
 #### Database & Infra
 | File | Purpose |

@@ -484,27 +484,19 @@ async def approve_invitation(
         raise HTTPException(status_code=404, detail="Pending invitation not found")
 
     # Notify the invitee that their invitation is ready to accept
-    token_rows = await conn.fetch(
-        """
-        SELECT udt.token
-        FROM users u
-        JOIN user_device_tokens udt ON udt.user_id = u.id
-        WHERE u.id = $1
-          AND u.push_notifications_enabled = TRUE
-        """,
-        user_id,
+    from app.utils.inbox import enqueue
+    await enqueue(
+        conn,
+        user_ids=[user_id],
+        type_="group_invite",
+        entity_id=group_id,
+        actor_id=current_user["id"],
+        dedup_key=f"group_invite:{group_id}",
+        payload={"group_name": pg["name"]},
+        title="Group Invitation",
+        body=f"You've been invited to join {pg['name']}",
+        push_data={"type": "group_invite", "groupId": group_id, "groupName": pg["name"]},
     )
-    tokens = [r["token"] for r in token_rows]
-    if tokens:
-        from app.utils.push import send_push_notifications
-        import asyncio
-        asyncio.ensure_future(send_push_notifications(
-            tokens=tokens,
-            title="Group Invitation",
-            body=f"You've been invited to join {pg['name']}",
-            data={"type": "group_invite", "groupId": group_id, "groupName": pg["name"]},
-            conn=None,
-        ))
 
     return {"status": "pending"}
 
@@ -582,54 +574,41 @@ async def invite_member(
         invite_status,
     )
 
+    from app.utils.inbox import enqueue
     if needs_approval:
-        # Notify admin that a member wants to invite someone
         inviter_row = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", current_user["id"])
         invitee_row = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
-        token_rows = await conn.fetch(
-            """
-            SELECT udt.token
-            FROM users u
-            JOIN user_device_tokens udt ON udt.user_id = u.id
-            WHERE u.id = $1
-              AND u.push_notifications_enabled = TRUE
-            """,
-            pg["admin_id"],
-        )
-        tokens = [r["token"] for r in token_rows]
-        if tokens and inviter_row and invitee_row:
-            from app.utils.push import send_push_notifications
-            import asyncio
-            asyncio.ensure_future(send_push_notifications(
-                tokens=tokens,
+        if inviter_row and invitee_row:
+            await enqueue(
+                conn,
+                user_ids=[str(pg["admin_id"])],
+                type_="group_approval_needed",
+                entity_id=group_id,
+                actor_id=current_user["id"],
+                dedup_key=f"group_approval:{group_id}:{user_id}",
+                payload={
+                    "group_name": pg["name"],
+                    "inviter_name": inviter_row["display_name"],
+                    "invitee_name": invitee_row["display_name"],
+                    "invitee_id": user_id,
+                },
                 title="Invite Approval Needed",
                 body=f"{inviter_row['display_name']} wants to invite {invitee_row['display_name']} to {pg['name']}",
-                data={"type": "group_approval_needed", "groupId": group_id, "groupName": pg["name"]},
-                conn=None,
-            ))
+                push_data={"type": "group_approval_needed", "groupId": group_id, "groupName": pg["name"]},
+            )
     else:
-        # Notify invitee directly
-        token_rows = await conn.fetch(
-            """
-            SELECT udt.token
-            FROM users u
-            JOIN user_device_tokens udt ON udt.user_id = u.id
-            WHERE u.id = $1
-              AND u.push_notifications_enabled = TRUE
-            """,
-            user_id,
+        await enqueue(
+            conn,
+            user_ids=[user_id],
+            type_="group_invite",
+            entity_id=group_id,
+            actor_id=current_user["id"],
+            dedup_key=f"group_invite:{group_id}",
+            payload={"group_name": pg["name"]},
+            title="Group Invitation",
+            body=f"You've been invited to join {pg['name']}",
+            push_data={"type": "group_invite", "groupId": group_id, "groupName": pg["name"]},
         )
-        tokens = [r["token"] for r in token_rows]
-        if tokens:
-            from app.utils.push import send_push_notifications
-            import asyncio
-            asyncio.ensure_future(send_push_notifications(
-                tokens=tokens,
-                title="Group Invitation",
-                body=f"You've been invited to join {pg['name']}",
-                data={"type": "group_invite", "groupId": group_id, "groupName": pg["name"]},
-                conn=None,
-            ))
 
     return {"status": "invited"}
 
@@ -655,28 +634,19 @@ async def approve_member(
     if result == "UPDATE 0":
         raise HTTPException(status_code=404, detail="Pending membership not found")
 
-    # Send push notification to the approved user
-    token_rows = await conn.fetch(
-        """
-        SELECT udt.token
-        FROM users u
-        JOIN user_device_tokens udt ON udt.user_id = u.id
-        WHERE u.id = $1
-          AND u.push_notifications_enabled = TRUE
-        """,
-        user_id,
+    from app.utils.inbox import enqueue
+    await enqueue(
+        conn,
+        user_ids=[user_id],
+        type_="group_approved",
+        entity_id=group_id,
+        actor_id=current_user["id"],
+        dedup_key=f"group_approved:{group_id}",
+        payload={"group_name": pg["name"]},
+        title="Welcome to the group!",
+        body=f"You've been approved to join {pg['name']}",
+        push_data={"type": "group_approved", "groupId": group_id, "groupName": pg["name"]},
     )
-    tokens = [r["token"] for r in token_rows]
-    if tokens:
-        from app.utils.push import send_push_notifications
-        import asyncio
-        asyncio.ensure_future(send_push_notifications(
-            tokens=tokens,
-            title="Welcome to the group!",
-            body=f"You've been approved to join {pg['name']}",
-            data={"type": "group_approved", "groupId": group_id, "groupName": pg["name"]},
-            conn=None,
-        ))
 
     return {"status": "member"}
 

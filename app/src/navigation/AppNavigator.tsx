@@ -183,9 +183,6 @@ export function AppNavigator() {
 
   useEffect(() => {
     syncBadgeCount();
-  }, [incomingRequestCount, totalUnreadCount]);
-
-  useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') syncBadgeCount();
     });

@@ -874,6 +874,20 @@ export const api = {
     });
   },
 
+  getUnreadNotificationCount() {
+    return apiFetch<{ count: number }>('/notifications/unread-count');
+  },
+
+  markNotificationsRead(filter: { type?: string; entityId?: string } = {}) {
+    return apiFetch<{ updated: number; count: number }>('/notifications/read', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: filter.type,
+        entity_id: filter.entityId,
+      }),
+    });
+  },
+
   getNotificationPreferences() {
     return apiFetch<{ push_notifications_enabled: boolean; notify_group_messages: boolean; notify_friend_requests: boolean }>('/notifications/preferences');
   },

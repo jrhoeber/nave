@@ -9,6 +9,7 @@ import { EmptyStateBox } from '../../components/ui/EmptyStateBox';
 import { AddFriendModal } from '../../components/friends/AddFriendModal';
 import { useTabBarContentPadding } from '../../navigation/AppNavigator';
 import { useFriendsStore } from '../../store/friendsStore';
+import { markNotificationsRead } from '../../lib/notifications';
 import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
 import type { Friendship } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
@@ -27,7 +28,10 @@ export function FriendsScreen() {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(useCallback(() => { fetchFriends(); }, []));
+  useFocusEffect(useCallback(() => {
+    fetchFriends();
+    markNotificationsRead({ type: 'friend_request' });
+  }, []));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

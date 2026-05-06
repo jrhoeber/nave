@@ -30,6 +30,7 @@ import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { GroupMessage } from '../../types';
 import type { GroupMessageRouteProp, RootNavigationProp } from '../../types/navigation';
 import { api, ApiError, mapGroupMessage } from '../../lib/apiClient';
+import { markNotificationsRead } from '../../lib/notifications';
 
 // ─── Category labels ─────────────────────────────────────────────────────────
 
@@ -775,6 +776,7 @@ export function GroupMessageScreen() {
     }
 
     useGroupChatStore.getState().setActivePollGroupId(groupId);
+    markNotificationsRead({ type: 'group_message', entityId: groupId });
 
     let intervalId: ReturnType<typeof setInterval> | null = null;
     let appIsActive = AppState.currentState === 'active';

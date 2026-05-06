@@ -14,6 +14,7 @@ import { usePrayerStore } from '../../store/prayerStore';
 import { useGroupChatStore } from '../../store/groupChatStore';
 import { useAuthStore } from '../../store/authStore';
 import { api, mapGroupMessage, mapPrayerGroup } from '../../lib/apiClient';
+import { markNotificationsRead, syncBadgeCount } from '../../lib/notifications';
 import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
 import type { GroupInvitation, PrayerGroup } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
@@ -62,6 +63,13 @@ export function GroupScreen() {
   useFocusEffect(useCallback(() => {
     // Refresh invitations when returning to the tab (cheap, single endpoint).
     if (hasFetchedInvitations) fetchInvitations();
+    // The Groups tab surfaces invites, approval requests, and approved-into.
+    // Mark all of those types read together.
+    Promise.all([
+      markNotificationsRead({ type: 'group_invite' }),
+      markNotificationsRead({ type: 'group_approval_needed' }),
+      markNotificationsRead({ type: 'group_approved' }),
+    ]).then(() => syncBadgeCount());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []));
 

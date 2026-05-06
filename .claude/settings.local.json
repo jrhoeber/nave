@@ -103,7 +103,8 @@
       "Bash(npx -p typescript tsc --noEmit)",
       "Bash(npx --yes install-expo-modules@latest)",
       "Bash(npx expo *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['app/utils/push.py','app/utils/inbox.py','app/routers/notifications.py','app/routers/friends.py','app/routers/group_messages.py','app/routers/prayer_groups.py','alembic/versions/20260505_0001_notifications_inbox.py']]; print\\('ok'\\)\")"
     ]
   }
 }

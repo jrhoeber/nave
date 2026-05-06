@@ -15,13 +15,29 @@ import { api, mapGroupMessage } from './apiClient';
 import { log } from './log';
 import { useGroupChatStore } from '../store/groupChatStore';
 import { usePrayerStore } from '../store/prayerStore';
-import { useFriendsStore } from '../store/friendsStore';
 
-export function syncBadgeCount(): void {
+/**
+ * Server-authoritative badge sync. The server's notifications inbox is the
+ * single source of truth for the unread count across every notification
+ * type — we just mirror it onto the device icon.
+ */
+export async function syncBadgeCount(): Promise<void> {
   try {
-    const unread = useGroupChatStore.getState().totalUnreadCount;
-    const requests = useFriendsStore.getState().incomingRequests.length;
-    notifee.setBadgeCount(unread + requests).catch(() => {});
+    const { count } = await api.getUnreadNotificationCount();
+    await notifee.setBadgeCount(count);
+  } catch {}
+}
+
+/**
+ * Mark a slice of the inbox as read (e.g. after the user opens a group chat
+ * or the friends tab) and refresh the icon badge to match.
+ */
+export async function markNotificationsRead(
+  filter: { type?: string; entityId?: string } = {},
+): Promise<void> {
+  try {
+    const { count } = await api.markNotificationsRead(filter);
+    await notifee.setBadgeCount(count);
   } catch {}
 }
 

@@ -310,7 +310,7 @@ async def send_message(
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=201, content=payload)
 
-    # Fire push notifications to eligible group members (non-blocking best-effort)
+    # Enqueue inbox notification + push for eligible group members
     try:
         group_row = await conn.fetchrow(
             "SELECT name FROM prayer_groups WHERE id = $1", group_id
@@ -318,18 +318,13 @@ async def send_message(
         group_name = group_row["name"] if group_row else "Group"
         sender_display = user_row["display_name"]
 
-        # Members who have not muted this group and want group message notifications
-        token_rows = await conn.fetch(
+        recipient_rows = await conn.fetch(
             """
-            SELECT udt.token
+            SELECT pgm.user_id
             FROM prayer_group_members pgm
-            JOIN users u ON u.id = pgm.user_id
-            JOIN user_device_tokens udt ON udt.user_id = pgm.user_id
             WHERE pgm.group_id = $1
               AND pgm.status = 'member'
               AND pgm.user_id != $2
-              AND u.push_notifications_enabled = TRUE
-              AND u.notify_group_messages = TRUE
               AND NOT EXISTS (
                   SELECT 1 FROM group_notification_mutes gnm
                   WHERE gnm.user_id = pgm.user_id AND gnm.group_id = $1
@@ -338,23 +333,28 @@ async def send_message(
             group_id,
             current_user["id"],
         )
-        tokens = [r["token"] for r in token_rows]
-        if tokens:
-            from app.utils.push import send_push_notifications
-            import asyncio
+        user_ids = [str(r["user_id"]) for r in recipient_rows]
+        if user_ids:
             notification_body = body.content if body.content else "📷 Photo"
             if len(notification_body) > 100:
                 notification_body = notification_body[:97] + "…"
-            asyncio.ensure_future(send_push_notifications(
-                tokens=tokens,
-                title=f"{group_name}",
+            from app.utils.inbox import enqueue
+            await enqueue(
+                conn,
+                user_ids=user_ids,
+                type_="group_message",
+                entity_id=group_id,
+                actor_id=current_user["id"],
+                dedup_key=f"group_msg:{group_id}",
+                payload={"group_name": group_name, "sender_name": sender_display},
+                title=group_name,
                 body=f"{sender_display}: {notification_body}",
-                data={"type": "group_message", "groupId": group_id, "groupName": group_name},
-                conn=None,
-            ))
+                push_data={"type": "group_message", "groupId": group_id, "groupName": group_name},
+                pref_filter_sql=" AND notify_group_messages = TRUE",
+            )
     except Exception:
         import logging
-        logging.getLogger("nave.api").exception("Failed to enqueue group message push notifications")
+        logging.getLogger("nave.api").exception("Failed to enqueue group message notifications")
 
     return response
 
