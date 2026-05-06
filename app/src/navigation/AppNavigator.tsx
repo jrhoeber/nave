@@ -14,6 +14,7 @@ import { useFriendsStore } from '../store/friendsStore';
 import { useGroupChatStore } from '../store/groupChatStore';
 import { usePrayerStore } from '../store/prayerStore';
 import { api, mapGroupMessage } from '../lib/apiClient';
+import { syncBadgeCount } from '../lib/notifications';
 import { TabBadge } from '../components/ui/TabBadge';
 import { Colors, Typography } from '../theme';
 import type { AppTabParamList } from '../types/navigation';
@@ -179,6 +180,18 @@ export function AppNavigator() {
   const insets = useSafeAreaInsets();
   const incomingRequestCount = useFriendsStore((s) => s.incomingRequests.length);
   const totalUnreadCount = useGroupChatStore((s) => s.totalUnreadCount);
+
+  useEffect(() => {
+    syncBadgeCount();
+  }, [incomingRequestCount, totalUnreadCount]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncBadgeCount();
+    });
+    return () => sub.remove();
+  }, []);
+
   const hydrateLastRead = useGroupChatStore((s) => s.hydrateLastRead);
   const loadGroupBaseline = useGroupChatStore((s) => s.loadGroupBaseline);
   const myGroups = usePrayerStore((s) => s.myGroups);

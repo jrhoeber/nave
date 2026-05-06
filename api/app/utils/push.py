@@ -30,7 +30,7 @@ async def send_push_notifications(
             data=data,
             apns=messaging.APNSConfig(
                 payload=messaging.APNSPayload(
-                    aps=messaging.Aps(sound="default"),
+                    aps=messaging.Aps(sound="default", badge=1),
                 )
             ),
             android=messaging.AndroidConfig(priority="high"),

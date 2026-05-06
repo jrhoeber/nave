@@ -10,10 +10,20 @@
  */
 
 import { Platform } from 'react-native';
+import notifee from '@notifee/react-native';
 import { api, mapGroupMessage } from './apiClient';
 import { log } from './log';
 import { useGroupChatStore } from '../store/groupChatStore';
 import { usePrayerStore } from '../store/prayerStore';
+import { useFriendsStore } from '../store/friendsStore';
+
+export function syncBadgeCount(): void {
+  try {
+    const unread = useGroupChatStore.getState().totalUnreadCount;
+    const requests = useFriendsStore.getState().incomingRequests.length;
+    notifee.setBadgeCount(unread + requests).catch(() => {});
+  } catch {}
+}
 
 // Lazy import so the app doesn't crash if Firebase isn't configured yet
 async function getModules() {
@@ -118,6 +128,9 @@ export async function registerPushToken(): Promise<void> {
  * Call this when the user logs out.
  */
 export async function unregisterPushToken(): Promise<void> {
+  try {
+    await notifee.setBadgeCount(0);
+  } catch {}
   if (!_currentToken) return;
   try {
     const platform = Platform.OS === 'ios' ? 'ios' : 'android';
@@ -181,6 +194,7 @@ export async function setupNotificationHandlers(
           appendNewMessages(data.groupId, result.messages.map(mapGroupMessage));
         }
       } catch {}
+      syncBadgeCount();
     });
 
     // App backgrounded — user tapped notification
