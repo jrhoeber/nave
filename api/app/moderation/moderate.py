@@ -135,6 +135,7 @@ async def moderate_content(
             (time.perf_counter() - start) * 1000,
             l2.input_tokens,
             l2.output_tokens,
+            l2.reasoning,
         )
         return ModerationResult(
             action=action,
@@ -164,10 +165,11 @@ def _log_decision(
     latency_ms: float,
     input_tokens: int,
     output_tokens: int,
+    reasoning: Optional[str] = None,
 ) -> None:
     logger.info(
         "moderation.decision action=%s layer1_flagged=%s layer2_decision=%s crisis=%s "
-        "latency_ms=%.0f input_tokens=%d output_tokens=%d",
+        "latency_ms=%.0f input_tokens=%d output_tokens=%d reasoning=%r",
         action, layer1_flagged, layer2_decision, crisis,
-        latency_ms, input_tokens, output_tokens,
+        latency_ms, input_tokens, output_tokens, reasoning,
     )

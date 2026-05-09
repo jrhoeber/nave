@@ -73,17 +73,30 @@ export function UserProfileScreen() {
     })();
   }, [route.params.id]);
 
-  const handleRemoveFriend = async () => {
+  const handleRemoveFriend = () => {
     if (!friendship) return;
-    setActionLoading(true);
-    try {
-      await removeFriend(friendship.id);
-      navigation.goBack();
-    } catch {
-      Alert.alert('Error', 'Could not remove friend. Please try again.');
-    } finally {
-      setActionLoading(false);
-    }
+    Alert.alert(
+      `Remove ${user?.displayName ?? 'Friend'}?`,
+      'You\'ll need to send a new friend request to reconnect.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
+              await removeFriend(friendship.id);
+              navigation.goBack();
+            } catch {
+              Alert.alert('Error', 'Could not remove friend. Please try again.');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleAddFriend = async () => {

@@ -15,6 +15,8 @@ Allow the following freely — do not flag it even when it touches difficult top
 - **Spiritual content**: sharing scripture, saints' writings, magisterial documents, encyclicals, catechism passages, liturgical reflections, homilies
 - **Sin and confession**: discussing struggle with sin, desire for confession, shame about past sins — this is the heart of Catholic community life
 - **Grief and suffering**: loss of a spouse, child, parent; terminal diagnosis; miscarriage; depression following loss
+- **Everyday life and logistics**: arranging to meet up ("let's meet at Jeff's house," "see you at the 10am Mass"), mentioning stores, restaurants, or brands by name (Walmart, Target, Starbucks, etc.), sharing where they saw something faith-related ("saw a great poster of Jesus at Target"), travel plans, work, school, family activities — Nave is a community app and members will use it to coordinate and chat about ordinary life
+- **Recommendations and casual sharing**: pointing others to a book, podcast, parish event, retreat, or product they found meaningful — this is not spam unless it is unsolicited bulk promotion or a suspicious external link
 
 ## Rejected Content
 
@@ -27,7 +29,7 @@ Block the following:
 - **Slurs and personal attacks**: ethnic, racial, religious, or gender-based slurs; harassment directed at other users
 - **Promoting violence**: inciting or celebrating violence against any person or group
 - **Promoting sin**: content that encourages others to engage in gravely sinful behavior (distinct from discussing one's own struggle with sin)
-- **Spam and commercial promotion**: unsolicited advertising, multi-level marketing, links to suspicious external sites
+- **Spam and commercial promotion**: unsolicited bulk advertising, multi-level marketing, affiliate-link blasts, links to suspicious external sites. Casually mentioning a store, brand, product, or business by name is NOT spam — only block when the content's clear purpose is to sell or recruit.
 - **Deconversion campaigns**: aggressive attempts to turn Catholics away from the Church or Catholic faith — note that sincere questions, respectful disagreement, and exploring doubts are welcomed
 - **Unrelated political content**: partisan political campaigning unrelated to Catholic moral teaching
 - **Doctrinal misinformation presented as truth**: content that contradicts Catholic teaching while claiming to represent official Church teaching
@@ -53,6 +55,10 @@ When `crisis_indicators: true`, also populate `suggested_resources` with keys fr
 - `post`: parish community post — broader audience, somewhat more formal
 - `prayer_request`: dedicated prayer request — expect heavy personal topics; be very lenient on difficult subject matter
 - `comment`: reply to a post — same standards as post, watch for personal attacks on other users
+
+## Default Posture
+
+When in doubt between "allow" and "review" for ordinary, non-religious chatter (logistics, meetups, mundane life events, brand mentions, casual recommendations), prefer **allow** with high confidence. Only escalate to review when there is a concrete reason rooted in the categories above. Benign everyday content should not be queued just because it is non-religious — Nave is a community, not a sermon feed.
 
 ## Output Format
 
