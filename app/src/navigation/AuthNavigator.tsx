@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WelcomeScreen } from '../screens/auth/WelcomeScreen';
 import { EmailSignInScreen } from '../screens/auth/EmailSignInScreen';
+import { PasswordResetScreen } from '../screens/auth/PasswordResetScreen';
 import type { AuthStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -11,6 +12,7 @@ export function AuthNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="EmailSignIn" component={EmailSignInScreen} />
+      <Stack.Screen name="PasswordReset" component={PasswordResetScreen} />
     </Stack.Navigator>
   );
 }

@@ -72,8 +72,13 @@ async def firebase_auth(body: FirebaseAuthRequest, conn=Depends(get_db)):
 
     firebase_uid: str = claims["uid"]
     email: str | None = claims.get("email")
-    firebase_display_name: str = claims.get("name") or (email.split("@")[0] if email else "user")
+    firebase_real_name: str | None = claims.get("name")
     firebase_avatar: str | None = claims.get("picture")
+    # Username seed: real name if we have one, otherwise email prefix.
+    username_seed: str = firebase_real_name or (email.split("@")[0] if email else "user")
+    # Display name: only set when the provider gave us a real name (e.g. Google/Apple).
+    # Email/password sign-ups have no name — leave blank so onboarding asks for it.
+    display_name_value: str = firebase_real_name or ""
 
     # Try to find existing user by firebase_uid
     row = await conn.fetchrow(
@@ -126,7 +131,7 @@ async def firebase_auth(body: FirebaseAuthRequest, conn=Depends(get_db)):
     if row is None:
         # Create new user
         is_new_user = True
-        username = await _find_unique_username(conn, firebase_display_name)
+        username = await _find_unique_username(conn, username_seed)
         avatar_url = firebase_avatar if firebase_avatar and firebase_avatar.startswith("http") else None
 
         row = await conn.fetchrow(
@@ -137,7 +142,7 @@ async def firebase_auth(body: FirebaseAuthRequest, conn=Depends(get_db)):
             """,
             firebase_uid,
             username,
-            firebase_display_name,
+            display_name_value,
             email,
             avatar_url,
         )

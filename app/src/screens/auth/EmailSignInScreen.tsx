@@ -15,12 +15,15 @@ import { useNavigation } from '@react-navigation/native';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
 import { Input } from '../../components/ui/Input';
+import { PasswordInput } from '../../components/ui/PasswordInput';
 import { Colors, Spacing, Typography } from '../../theme';
+import { checkPwned, validateLengthAndContext } from '../../lib/passwordValidation';
+import type { AuthNavigationProp } from '../../types/navigation';
 
 const FIREBASE_ERROR_MESSAGES: Record<string, string> = {
   EMAIL_EXISTS: 'An account with this email already exists.',
   INVALID_LOGIN_CREDENTIALS: 'Invalid email or password.',
-  WEAK_PASSWORD: 'Password must be at least 6 characters.',
+  WEAK_PASSWORD: 'Password must be at least 8 characters.',
   TOO_MANY_ATTEMPTS_TRY_LATER: 'Too many attempts. Please try again later.',
   INVALID_EMAIL: 'Please enter a valid email address.',
   MISSING_PASSWORD: 'Please enter a password.',
@@ -29,40 +32,44 @@ const FIREBASE_ERROR_MESSAGES: Record<string, string> = {
 
 export function EmailSignInScreen() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<AuthNavigationProp>();
   const signInWithFirebase = useAuthStore((s) => s.signInWithFirebase);
 
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const validate = (): string | null => {
+  const handleSubmit = async () => {
     const trimmed = email.trim();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      return 'Please enter a valid email address.';
+      setError('Please enter a valid email address.');
+      return;
     }
-    if (password.length < 6) {
-      return 'Password must be at least 6 characters.';
-    }
-    if (isCreateMode && password !== confirmPassword) {
-      return 'Passwords do not match.';
-    }
-    return null;
-  };
-
-  const handleSubmit = async () => {
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
+    if (password.length === 0) {
+      setError('Please enter a password.');
       return;
     }
 
     setError('');
     setLoading(true);
     try {
+      if (isCreateMode) {
+        const reason = validateLengthAndContext(password, { email: trimmed });
+        if (reason) {
+          setError(reason);
+          setLoading(false);
+          return;
+        }
+        const pwned = await checkPwned(password);
+        if (pwned) {
+          setError('This password has appeared in known data breaches. Please choose another.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const apiKey = getApp().options.apiKey;
       const endpoint = isCreateMode ? 'accounts:signUp' : 'accounts:signInWithPassword';
       const res = await fetch(
@@ -71,7 +78,7 @@ export function EmailSignInScreen() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: email.trim(),
+            email: trimmed,
             password,
             returnSecureToken: true,
           }),
@@ -137,27 +144,15 @@ export function EmailSignInScreen() {
               autoCorrect={false}
               leftIcon="mail-outline"
               textContentType="emailAddress"
+              autoComplete="email"
             />
-            <Input
+            <PasswordInput
               label="Password"
-              placeholder="At least 6 characters"
               value={password}
               onChangeText={setPassword}
-              isPassword
-              leftIcon="lock-closed-outline"
-              textContentType={isCreateMode ? 'newPassword' : 'password'}
+              mode={isCreateMode ? 'create' : 'signin'}
+              hint={isCreateMode ? 'At least 8 characters' : undefined}
             />
-            {isCreateMode && (
-              <Input
-                label="Confirm Password"
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                isPassword
-                leftIcon="lock-closed-outline"
-                textContentType="newPassword"
-              />
-            )}
           </View>
 
           <Button
@@ -168,6 +163,15 @@ export function EmailSignInScreen() {
             size="lg"
             style={{ marginBottom: Spacing[4] }}
           />
+
+          {!isCreateMode && (
+            <TouchableOpacity
+              style={styles.forgot}
+              onPress={() => navigation.navigate('PasswordReset')}
+            >
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.toggleMode}
@@ -190,10 +194,7 @@ export function EmailSignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  screen: { flex: 1, backgroundColor: Colors.background },
   goldEdge: {
     position: 'absolute',
     left: 0,
@@ -202,14 +203,8 @@ const styles = StyleSheet.create({
     width: 3,
     backgroundColor: Colors.accent,
   },
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing[6],
-  },
-  backBtn: {
-    alignSelf: 'flex-start',
-    marginBottom: Spacing[6],
-  },
+  container: { flexGrow: 1, paddingHorizontal: Spacing[6] },
+  backBtn: { alignSelf: 'flex-start', marginBottom: Spacing[6] },
   title: {
     fontFamily: 'CormorantGaramond-Regular',
     fontSize: 36,
@@ -231,23 +226,15 @@ const styles = StyleSheet.create({
     gap: Spacing[2],
     marginBottom: Spacing[4],
   },
-  errorText: {
-    color: Colors.error,
+  errorText: { color: Colors.error, fontSize: Typography.sm, flex: 1 },
+  form: { marginBottom: Spacing[4] },
+  forgot: { alignItems: 'center', marginBottom: Spacing[4] },
+  forgotText: {
     fontSize: Typography.sm,
-    flex: 1,
-  },
-  form: {
-    marginBottom: Spacing[4],
-  },
-  toggleMode: {
-    alignItems: 'center',
-  },
-  toggleText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-  },
-  toggleLink: {
     color: Colors.primary,
     fontWeight: Typography.semibold,
   },
+  toggleMode: { alignItems: 'center' },
+  toggleText: { fontSize: Typography.sm, color: Colors.textSecondary },
+  toggleLink: { color: Colors.primary, fontWeight: Typography.semibold },
 });

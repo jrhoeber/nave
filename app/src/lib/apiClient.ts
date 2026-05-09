@@ -934,11 +934,17 @@ export const api = {
     return apiFetch<ApiUser>(`/users/${id}`);
   },
 
-  updateProfile(data: { display_name?: string; parish_id?: string; bio?: string; location?: string; avatar_url?: string; birthday?: string }) {
+  updateProfile(data: { display_name?: string; username?: string; parish_id?: string; bio?: string; location?: string; avatar_url?: string; birthday?: string }) {
     return apiFetch<ApiUser>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  },
+
+  checkUsernameAvailable(username: string) {
+    return apiFetch<{ available: boolean; reason: string | null }>(
+      `/users/username-available?username=${encodeURIComponent(username)}`,
+    );
   },
 
   uploadAvatar(uri: string, type: string) {

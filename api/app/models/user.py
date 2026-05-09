@@ -11,6 +11,7 @@ class FirebaseAuthRequest(BaseModel):
 
 class UserUpdate(BaseModel):
     display_name: Optional[str] = None
+    username: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     parish_id: Optional[str] = None

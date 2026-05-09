@@ -1,3 +1,6 @@
+import re
+
+import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 
 from app.config import settings
@@ -68,6 +71,25 @@ async def search_users(
     return {"users": [_build_user_response(dict(r)) for r in rows]}
 
 
+_USERNAME_RE = re.compile(r"^[a-z0-9_]{3,20}$")
+
+
+@router.get("/username-available")
+async def check_username_available(
+    username: str = Query(..., min_length=1, max_length=32),
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    normalized = username.strip().lower()
+    if not _USERNAME_RE.fullmatch(normalized):
+        return {"available": False, "reason": "invalid"}
+    row = await conn.fetchrow(
+        "SELECT id FROM users WHERE username = $1 AND id <> $2",
+        normalized, current_user["id"],
+    )
+    return {"available": row is None, "reason": None if row is None else "taken"}
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_my_profile(
     current_user: dict = Depends(get_current_user),
@@ -105,15 +127,24 @@ async def update_my_profile(
         )
         return _build_user_response(dict(row))
 
+    if "username" in updates:
+        normalized = updates["username"].strip().lower()
+        if not _USERNAME_RE.fullmatch(normalized):
+            raise HTTPException(status_code=400, detail="Invalid username")
+        updates["username"] = normalized
+
     set_clauses = ", ".join(f"{col} = ${i+2}" for i, col in enumerate(updates.keys()))
     set_clauses += f", updated_at = NOW()"
     values = list(updates.values())
 
-    await conn.execute(
-        f"UPDATE users SET {set_clauses} WHERE id = $1",
-        current_user["id"],
-        *values,
-    )
+    try:
+        await conn.execute(
+            f"UPDATE users SET {set_clauses} WHERE id = $1",
+            current_user["id"],
+            *values,
+        )
+    except asyncpg.exceptions.UniqueViolationError:
+        raise HTTPException(status_code=409, detail="Username is already taken")
     row = await conn.fetchrow(
         """
         SELECT u.*, p.name AS parish_name,

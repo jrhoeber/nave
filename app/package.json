@@ -29,6 +29,7 @@
     "@shopify/flash-list": "2.0.2",
     "date-fns": "^3.6.0",
     "expo": "~55.0.0",
+    "expo-crypto": "~55.0.14",
     "expo-image": "~55.0.9",
     "react": "19.2.5",
     "react-native": "0.83.9",

@@ -61,7 +61,10 @@ export function WelcomeScreen() {
       log.debug('[GoogleSignIn] checking play services...');
       await GoogleSignin.hasPlayServices();
       log.debug('[GoogleSignIn] signing in...');
-      await GoogleSignin.signIn();
+      const result: any = await GoogleSignin.signIn();
+      if (result?.type === 'cancelled') {
+        return;
+      }
       log.debug('[GoogleSignIn] getting tokens...');
       const { idToken } = await GoogleSignin.getTokens();
       log.debug('[GoogleSignIn] got idToken:', !!idToken);
@@ -78,7 +81,7 @@ export function WelcomeScreen() {
       ) {
         // User cancelled — no error to show
       } else {
-        setError(err.message || 'Google sign-in failed. Please try again.');
+        setError('Google sign-in failed. Please try again.');
       }
     } finally {
       setLoading(null);

@@ -110,9 +110,14 @@ CREATE TABLE IF NOT EXISTS group_invitations (
     invited_by  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status      TEXT NOT NULL DEFAULT 'pending'
                     CHECK (status IN ('pending', 'accepted', 'declined', 'awaiting_approval')),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (group_id, user_id)
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Only one active invite per (group, user); terminal rows (accepted/declined)
+-- remain as audit history without blocking re-invitation.
+CREATE UNIQUE INDEX IF NOT EXISTS group_invitations_active_unique
+    ON group_invitations (group_id, user_id)
+    WHERE status IN ('pending', 'awaiting_approval');
 
 -- ============================================================
 -- PARISH POSTS

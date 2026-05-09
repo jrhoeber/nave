@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -46,13 +47,75 @@ export function ProfileSetupScreen() {
   const { user, updateUser } = useAuthStore((s) => ({ user: s.user, updateUser: s.updateUser }));
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [username, setUsername] = useState(user?.username || '');
+  const [usernameStatus, setUsernameStatus] = useState<
+    'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+  >('idle');
+  const usernameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const usernameSeqRef = useRef(0);
+  const initialUsername = user?.username || '';
   const [birthMonth, setBirthMonth] = useState('');
   const [birthDay, setBirthDay] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const monthInputRef = useRef<TextInput>(null);
+  const dayInputRef = useRef<TextInput>(null);
+  const yearInputRef = useRef<TextInput>(null);
+
+  const onChangeMonth = (v: string) => {
+    const cleaned = v.replace(/[^0-9]/g, '').slice(0, 2);
+    setBirthMonth(cleaned);
+    // Advance when unambiguous: 2 digits, or first digit > 1 (no valid month starts with 2-9)
+    if (cleaned.length === 2 || (cleaned.length === 1 && parseInt(cleaned, 10) > 1)) {
+      dayInputRef.current?.focus();
+    }
+  };
+
+  const onChangeDay = (v: string) => {
+    const cleaned = v.replace(/[^0-9]/g, '').slice(0, 2);
+    setBirthDay(cleaned);
+    if (cleaned.length === 2 || (cleaned.length === 1 && parseInt(cleaned, 10) > 3)) {
+      yearInputRef.current?.focus();
+    }
+  };
   const [bio, setBio] = useState('');
   const [error, setError] = useState('');
   const [ageBlocked, setAgeBlocked] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const onChangeUsername = (value: string) => {
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20);
+    setUsername(cleaned);
+    setUsernameStatus('idle');
+    if (usernameTimer.current) clearTimeout(usernameTimer.current);
+    if (cleaned === initialUsername && cleaned.length >= 3) {
+      setUsernameStatus('available');
+      return;
+    }
+    if (cleaned.length === 0) return;
+    if (cleaned.length < 3) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    setUsernameStatus('checking');
+    const seq = ++usernameSeqRef.current;
+    usernameTimer.current = setTimeout(async () => {
+      try {
+        const result = await api.checkUsernameAvailable(cleaned);
+        if (seq !== usernameSeqRef.current) return;
+        if (result.reason === 'invalid') setUsernameStatus('invalid');
+        else setUsernameStatus(result.available ? 'available' : 'taken');
+      } catch {
+        if (seq !== usernameSeqRef.current) return;
+        setUsernameStatus('idle');
+      }
+    }, 500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (usernameTimer.current) clearTimeout(usernameTimer.current);
+    };
+  }, []);
 
   const handleContinue = async () => {
     setError('');
@@ -60,6 +123,23 @@ export function ProfileSetupScreen() {
 
     if (!displayName.trim()) {
       setError('Please enter your full name.');
+      return;
+    }
+    if (username.length < 3) {
+      setError('Username must be at least 3 characters.');
+      setUsernameStatus('invalid');
+      return;
+    }
+    if (usernameStatus === 'checking') {
+      setError('Still checking username — please wait.');
+      return;
+    }
+    if (usernameStatus === 'taken') {
+      setError('That username is already taken — please choose another.');
+      return;
+    }
+    if (usernameStatus === 'invalid') {
+      setError('Username must be 3–20 characters: letters, numbers, underscores.');
       return;
     }
     if (!birthMonth || !birthDay || !birthYear) {
@@ -84,19 +164,27 @@ export function ProfileSetupScreen() {
 
     setLoading(true);
     try {
+      const usernameChanged = username !== initialUsername;
       await api.updateProfile({
         display_name: displayName.trim(),
+        ...(usernameChanged ? { username } : {}),
         birthday,
         bio: bio.trim() || undefined,
       });
       await updateUser({
         displayName: displayName.trim(),
+        ...(usernameChanged ? { username } : {}),
         birthday,
         bio: bio.trim() || undefined,
       });
       // RootNavigator will automatically route to ParishSetup once birthday is set
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (e: any) {
+      if (e?.status === 409) {
+        setUsernameStatus('taken');
+        setError('That username is already taken — please choose another.');
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -107,7 +195,7 @@ export function ProfileSetupScreen() {
       <View style={[styles.container, styles.blockedContainer, { paddingTop: insets.top + Spacing[6], paddingBottom: insets.bottom + Spacing[6] }]}>
         <StatusBar barStyle="dark-content" />
         <View style={styles.blockIconContainer}>
-          <Icon name="cross-outline" size={28} color={Colors.accent} />
+          <Icon name="person-circle-outline" size={28} color={Colors.accent} />
         </View>
         <Text style={styles.blockTitle}>Nave is for ages 13+</Text>
         <Text style={styles.blockBody}>
@@ -128,9 +216,6 @@ export function ProfileSetupScreen() {
       >
         {/* ── Header ── */}
         <View style={styles.header}>
-          <View style={styles.crossBadge}>
-            <Icon name="cross-outline" size={24} color={Colors.accent} />
-          </View>
           <Text style={styles.title}>Complete your profile</Text>
           <Text style={styles.subtitle}>Tell us a little about yourself</Text>
           <View style={styles.goldDivider} />
@@ -157,6 +242,46 @@ export function ProfileSetupScreen() {
           />
         </FormCard>
 
+        {/* ── Username ── */}
+        <SectionLabel>USERNAME</SectionLabel>
+        <FormCard>
+          <FormField
+            label="USERNAME"
+            icon="at-outline"
+            value={username}
+            onChangeText={onChangeUsername}
+            maxLength={20}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="yourname"
+          />
+          {usernameStatus !== 'idle' && (
+            <View style={styles.usernameStatus}>
+              {usernameStatus === 'checking' ? (
+                <>
+                  <ActivityIndicator size="small" color={Colors.textLight} />
+                  <Text style={styles.usernameStatusText}>Checking…</Text>
+                </>
+              ) : usernameStatus === 'available' ? (
+                <>
+                  <Icon name="checkmark-circle" size={14} color={Colors.success} />
+                  <Text style={[styles.usernameStatusText, { color: Colors.success }]}>Available</Text>
+                </>
+              ) : usernameStatus === 'taken' ? (
+                <>
+                  <Icon name="alert-circle" size={14} color={Colors.error} />
+                  <Text style={[styles.usernameStatusText, { color: Colors.error }]}>Already taken</Text>
+                </>
+              ) : (
+                <>
+                  <Icon name="alert-circle" size={14} color={Colors.error} />
+                  <Text style={[styles.usernameStatusText, { color: Colors.error }]}>3–20 chars: letters, numbers, underscores</Text>
+                </>
+              )}
+            </View>
+          )}
+        </FormCard>
+
         {/* ── Birthday ── */}
         <SectionLabel>BIRTHDAY</SectionLabel>
         <FormCard>
@@ -168,33 +293,48 @@ export function ProfileSetupScreen() {
               </View>
               <View style={styles.dateFieldMonth}>
                 <TextInput
+                  ref={monthInputRef}
                   style={styles.dateInput}
                   value={birthMonth}
-                  onChangeText={(v) => setBirthMonth(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                  onChangeText={onChangeMonth}
                   keyboardType="number-pad"
                   placeholder="MM"
                   placeholderTextColor={Colors.textLight}
                   maxLength={2}
+                  returnKeyType="next"
                 />
               </View>
               <Text style={styles.dateSep}>/</Text>
               <View style={styles.dateFieldDay}>
                 <TextInput
+                  ref={dayInputRef}
                   style={styles.dateInput}
                   value={birthDay}
-                  onChangeText={(v) => setBirthDay(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                  onChangeText={onChangeDay}
+                  onKeyPress={(e) => {
+                    if (e.nativeEvent.key === 'Backspace' && birthDay.length === 0) {
+                      monthInputRef.current?.focus();
+                    }
+                  }}
                   keyboardType="number-pad"
                   placeholder="DD"
                   placeholderTextColor={Colors.textLight}
                   maxLength={2}
+                  returnKeyType="next"
                 />
               </View>
               <Text style={styles.dateSep}>/</Text>
               <View style={styles.dateFieldYear}>
                 <TextInput
+                  ref={yearInputRef}
                   style={styles.dateInput}
                   value={birthYear}
                   onChangeText={(v) => setBirthYear(v.replace(/[^0-9]/g, '').slice(0, 4))}
+                  onKeyPress={(e) => {
+                    if (e.nativeEvent.key === 'Backspace' && birthYear.length === 0) {
+                      dayInputRef.current?.focus();
+                    }
+                  }}
                   keyboardType="number-pad"
                   placeholder="YYYY"
                   placeholderTextColor={Colors.textLight}
@@ -288,6 +428,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[3],
   },
   errorText: { color: Colors.error, fontSize: Typography.sm, flex: 1 },
+
+  // ── Username status ──
+  usernameStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+    paddingHorizontal: 26 + Spacing[3],
+    paddingTop: Spacing[1],
+    paddingBottom: Spacing[2],
+  },
+  usernameStatusText: {
+    fontSize: Typography.xs,
+    color: Colors.textLight,
+  },
 
   // ── Date fields ──
   dateContainer: {
