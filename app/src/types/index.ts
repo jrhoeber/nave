@@ -15,6 +15,7 @@ export interface User {
   parishId?: string;
   parish?: string;   // parish name, for display
   parishCity?: string;
+  parishCoverPhotoUrl?: string;
   diocese?: string;
   location?: string;
   birthday?: string; // ISO date string YYYY-MM-DD; null until profile setup is complete

@@ -10,7 +10,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import FirebaseAuthRequest, TokenResponse, UserResponse
 from app.utils.firebase import verify_firebase_token
-from app.utils.storage import get_avatar_signed_url
+from app.utils.storage import get_avatar_signed_url, get_signed_url
 
 router = APIRouter()
 logger = logging.getLogger("nave.auth")
@@ -24,6 +24,14 @@ def _resolve_avatar_url(raw: str | None) -> str | None:
     return raw
 
 
+def _resolve_parish_cover(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    if raw.startswith("http"):
+        return raw
+    return get_signed_url(raw)
+
+
 def _build_user_response(row: dict) -> UserResponse:
     return UserResponse(
         id=str(row["id"]),
@@ -33,6 +41,7 @@ def _build_user_response(row: dict) -> UserResponse:
         avatar_url=_resolve_avatar_url(row.get("avatar_url")),
         parish_id=str(row["parish_id"]) if row.get("parish_id") else None,
         parish=row.get("parish_name"),
+        parish_cover_photo_url=_resolve_parish_cover(row.get("parish_cover_photo_url")),
         diocese=row.get("diocese"),
         location=row.get("location"),
         birthday=row.get("birthday"),
@@ -83,7 +92,7 @@ async def firebase_auth(body: FirebaseAuthRequest, conn=Depends(get_db)):
     # Try to find existing user by firebase_uid
     row = await conn.fetchrow(
         """
-        SELECT u.*, p.name AS parish_name,
+        SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
                COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count,
                COALESCE(us.post_count,0) AS post_count
@@ -101,7 +110,7 @@ async def firebase_auth(body: FirebaseAuthRequest, conn=Depends(get_db)):
         # Try to link an existing account by email (migration path)
         row = await conn.fetchrow(
             """
-            SELECT u.*, p.name AS parish_name,
+            SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
                    COALESCE(us.friend_count,0) AS friend_count,
                    COALESCE(us.prayer_group_count,0) AS prayer_group_count,
                    COALESCE(us.post_count,0) AS post_count
@@ -165,7 +174,7 @@ async def firebase_auth(body: FirebaseAuthRequest, conn=Depends(get_db)):
 async def me(current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
     row = await conn.fetchrow(
         """
-        SELECT u.*, p.name AS parish_name,
+        SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
                COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count,
                COALESCE(us.post_count,0) AS post_count

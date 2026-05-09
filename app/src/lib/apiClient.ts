@@ -19,6 +19,7 @@ interface ApiUser {
   parish_id?: string;
   parish?: string;   // parish name, joined from parishes table
   parish_city?: string;
+  parish_cover_photo_url?: string;
   diocese?: string;
   location?: string;
   birthday?: string;
@@ -259,6 +260,7 @@ export function mapUser(raw: ApiUser): User {
     parishId: raw.parish_id,
     parish: raw.parish,
     parishCity: raw.parish_city,
+    parishCoverPhotoUrl: raw.parish_cover_photo_url,
     diocese: raw.diocese,
     location: raw.location,
     birthday: raw.birthday,

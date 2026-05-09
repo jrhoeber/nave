@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import type { User } from '../types';
 import { api, mapUser, registerUnauthorizedHandler } from '../lib/apiClient';
+import { clearCachedParish, loadCachedParish } from '../lib/parishCache';
 
 interface AuthState {
   user: User | null;
@@ -36,7 +37,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // so stale ones cause unhandled promise rejections.
         // Fresh URL will arrive from the background refresh below.
         cached.avatarUrl = undefined;
+        cached.parishCoverPhotoUrl = undefined;
         set({ token, user: cached, isAuthenticated: true });
+        await loadCachedParish();
       }
     } catch {
       // ignore
@@ -50,6 +53,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.setItem('auth_user', JSON.stringify(freshUser));
       set({ user: freshUser });
       if (freshUser.avatarUrl) Image.prefetch(freshUser.avatarUrl).catch(() => {});
+      if (freshUser.parishCoverPhotoUrl) Image.prefetch(freshUser.parishCoverPhotoUrl).catch(() => {});
     } catch {
       // Use cached data if refresh fails
     }
@@ -63,6 +67,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem('auth_user', JSON.stringify(user));
     set({ user, token, isAuthenticated: true, avatarReady: false });
     if (user.avatarUrl) Image.prefetch(user.avatarUrl).catch(() => {});
+    if (user.parishCoverPhotoUrl) Image.prefetch(user.parishCoverPhotoUrl).catch(() => {});
     return { isNewUser: data.is_new_user };
   },
 
@@ -79,6 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     useGroupChatStore.getState().clearAll();
     useFriendsStore.getState().clearAll();
     useBlocksStore.getState().clearAll();
+    clearCachedParish().catch(() => {});
   },
 
   updateUser: async (patch: Partial<User>) => {

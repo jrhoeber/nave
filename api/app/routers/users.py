@@ -12,6 +12,7 @@ from app.utils.storage import (
     _MAX_AVATAR_BYTES,
     delete_object,
     get_avatar_signed_url,
+    get_signed_url,
     upload_avatar,
 )
 
@@ -27,6 +28,14 @@ def _resolve_avatar_url(raw: str | None) -> str | None:
     return raw
 
 
+def _resolve_parish_cover(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    if raw.startswith("http"):
+        return raw
+    return get_signed_url(raw)
+
+
 def _build_user_response(row: dict) -> UserResponse:
     return UserResponse(
         id=str(row["id"]),
@@ -37,6 +46,7 @@ def _build_user_response(row: dict) -> UserResponse:
         parish_id=str(row["parish_id"]) if row.get("parish_id") else None,
         parish=row.get("parish_name"),
         parish_city=row.get("parish_city"),
+        parish_cover_photo_url=_resolve_parish_cover(row.get("parish_cover_photo_url")),
         diocese=row.get("diocese"),
         location=row.get("location"),
         birthday=row.get("birthday"),
@@ -55,7 +65,7 @@ async def search_users(
 ):
     rows = await conn.fetch(
         """
-        SELECT u.*, p.name AS parish_name,
+        SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count
         FROM users u
         LEFT JOIN parishes p ON p.id = u.parish_id
@@ -97,7 +107,7 @@ async def get_my_profile(
 ):
     row = await conn.fetchrow(
         """
-        SELECT u.*, p.name AS parish_name,
+        SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count
         FROM users u
         LEFT JOIN parishes p ON p.id = u.parish_id
@@ -147,7 +157,7 @@ async def update_my_profile(
         raise HTTPException(status_code=409, detail="Username is already taken")
     row = await conn.fetchrow(
         """
-        SELECT u.*, p.name AS parish_name,
+        SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count
         FROM users u
         LEFT JOIN parishes p ON p.id = u.parish_id
@@ -198,7 +208,7 @@ async def upload_my_avatar(
     delete_object(previous_object)
     row = await conn.fetchrow(
         """
-        SELECT u.*, p.name AS parish_name,
+        SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count
         FROM users u
         LEFT JOIN parishes p ON p.id = u.parish_id

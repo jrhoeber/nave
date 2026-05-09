@@ -37,6 +37,7 @@ import { ParishListHeader } from '../../components/parish/ParishListHeader';
 import { useTabBarContentPadding } from '../../navigation/AppNavigator';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
+import { getCachedParishSync, setCachedParish } from '../../lib/parishCache';
 import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { Parish, ParishPost, ParishReactionType } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
@@ -595,7 +596,11 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   const [composeVisible, setComposeVisible] = useState(false);
   const [manageVisible, setManageVisible] = useState(false);
   const [editingPost, setEditingPost] = useState<ParishPost | undefined>();
-  const [parish, setParish] = useState<Parish | null>(null);
+  const userParishCoverUrl = useAuthStore((s) => s.user?.parishCoverPhotoUrl);
+  const [parish, setParish] = useState<Parish | null>(() => {
+    const cached = getCachedParishSync();
+    return cached && cached.id === parishId ? cached : null;
+  });
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverImgError, setCoverImgError] = useState(false);
   const isParishAdmin = parish?.isParishAdmin ?? false;
@@ -613,7 +618,12 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     useCallback(() => {
       api.getParish(parishId)
         .then((data) => {
-          setParish((prev) => mergeParish(prev, mapParish(data)));
+          const next = mapParish(data);
+          setParish((prev) => {
+            const merged = mergeParish(prev, next);
+            setCachedParish(merged).catch(() => {});
+            return merged;
+          });
           setCoverImgError(false);
         })
         .catch(() => {});
@@ -642,7 +652,12 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     setCoverImgError(true);
     api.getParish(parishId)
       .then((data) => {
-        setParish((prev) => mergeParish(prev, mapParish(data)));
+        const next = mapParish(data);
+        setParish((prev) => {
+          const merged = mergeParish(prev, next);
+          setCachedParish(merged).catch(() => {});
+          return merged;
+        });
         setCoverImgError(false);
       })
       .catch(() => {});
@@ -790,7 +805,16 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     }
   }, [parishId]);
 
-  const hasCover = !!parish?.coverPhotoUrl && !coverImgError;
+  // Cover URL we currently have available — prefer the parish object's URL,
+  // fall back to the user payload's parish_cover_photo_url so first-ever sign-in
+  // (before /parishes/{id} resolves) can already paint the cover.
+  const effectiveCoverUrl = parish?.coverPhotoUrl ?? userParishCoverUrl;
+  // Reserve the cover layout whenever we have *any* signal a cover exists,
+  // even if the URL isn't loaded yet. We only collapse to the no-cover layout
+  // once a fresh getParish has resolved with no cover URL — i.e. parish is
+  // loaded AND has no coverPhotoUrl AND the user payload also has none.
+  const knowsParishHasNoCover = !!parish && !parish.coverPhotoUrl && !userParishCoverUrl;
+  const hasCover = !knowsParishHasNoCover && !coverImgError;
 
   const handleProfilePress = useCallback(() => setProfileVisible(true), []);
   const handleManagePress = useCallback(() => setManageVisible(true), []);
@@ -801,7 +825,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
 
   const headerEl = useMemo(() => (
     <ParishListHeader
-      coverUrl={parish?.coverPhotoUrl}
+      coverUrl={effectiveCoverUrl}
       hasCover={hasCover}
       coverHeight={coverHeight}
       parishName={parishName}
@@ -815,7 +839,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
       onNewPostPress={handleNewPostPress}
     />
   ), [
-    parish?.coverPhotoUrl,
+    effectiveCoverUrl,
     hasCover,
     coverHeight,
     parishName,

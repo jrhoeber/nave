@@ -48,14 +48,16 @@ function ParishListHeaderImpl({
 }: ParishListHeaderProps) {
   return (
     <View>
-      {hasCover && coverUrl ? (
-        <View style={{ height: coverHeight }}>
-          <ImageX
-            source={{ uri: coverUrl }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            onError={onCoverError}
-          />
+      {hasCover ? (
+        <View style={{ height: coverHeight, backgroundColor: Colors.surface }}>
+          {coverUrl ? (
+            <ImageX
+              source={{ uri: coverUrl }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              onError={onCoverError}
+            />
+          ) : null}
           <LinearGradient
             colors={TOP_GRADIENT_COLORS}
             style={styles.topGradient}

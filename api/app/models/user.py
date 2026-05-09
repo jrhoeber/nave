@@ -35,6 +35,7 @@ class UserResponse(BaseModel):
     parish_id: Optional[str] = None
     parish: Optional[str] = None   # parish name, joined from parishes table
     parish_city: Optional[str] = None
+    parish_cover_photo_url: Optional[str] = None
     diocese: Optional[str] = None
     location: Optional[str] = None
     birthday: Optional[date] = None
