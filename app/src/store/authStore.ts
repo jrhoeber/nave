@@ -71,12 +71,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, token: null, isAuthenticated: false, avatarReady: false });
     // Clear domain stores so a different account never sees the previous user's data.
     // Lazy require to avoid a startup-time circular dependency between stores.
-    const { useFeedStore } = require('./feedStore');
     const { usePrayerStore } = require('./prayerStore');
     const { useGroupChatStore } = require('./groupChatStore');
     const { useFriendsStore } = require('./friendsStore');
     const { useBlocksStore } = require('./blocksStore');
-    useFeedStore.getState().clearAll();
     usePrayerStore.getState().clearAll();
     useGroupChatStore.getState().clearAll();
     useFriendsStore.getState().clearAll();

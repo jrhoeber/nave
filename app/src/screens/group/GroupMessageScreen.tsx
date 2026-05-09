@@ -530,6 +530,7 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [draftPhoto, setDraftPhoto] = useState<DraftPhoto | null>(null);
+  const inputRef = useRef<TextInput>(null);
   const sendMessage = useGroupChatStore((s) => s.sendMessage);
   const sendImageMessage = useGroupChatStore((s) => s.sendImageMessage);
 
@@ -541,6 +542,7 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
     const trimmed = text.trim();
     setSending(true);
     setText('');
+    inputRef.current?.clear();
     const photo = draftPhoto;
     setDraftPhoto(null);
     try {
@@ -602,6 +604,7 @@ function MessageInputBar({ groupId, groupName, bottomInset }: MessageInputBarPro
           {/* Text row */}
           <View style={inputStyles.textRow}>
             <TextInput
+              ref={inputRef}
               style={inputStyles.input}
               value={text}
               onChangeText={setText}
@@ -688,8 +691,8 @@ const inputStyles = StyleSheet.create({
     color: D.text,
     maxHeight: 120,
     textAlignVertical: 'center',
-    paddingTop: 0,
-    paddingBottom: 0,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   sendBtn: {
     width: 36,

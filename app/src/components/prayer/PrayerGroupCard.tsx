@@ -58,11 +58,11 @@ function PrayerGroupCardImpl({ group, onPress, onJoin, onLeave, onEdit, onDelete
   const isAdmin = group.admin.id === currentUserId;
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
-  const cardRef = useRef<TouchableOpacity>(null);
+  const cardRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
 
   const handleLongPress = () => {
     if (!group.isMember) return;
-    cardRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
+    cardRef.current?.measure((_x: number, _y: number, width: number, height: number, pageX: number, pageY: number) => {
       const windowWidth = Dimensions.get('window').width;
       setMenuPos({ top: pageY + height + 4, right: windowWidth - pageX - width });
       setMenuOpen(true);

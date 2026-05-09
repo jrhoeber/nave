@@ -133,7 +133,7 @@ export function GroupScreen() {
     return idx > 0 ? idx : 0;
   };
 
-  // ─── List data (FriendsScreen pattern) ───────────────────────────────────��─
+  // ─── List data (FriendsScreen pattern) ────────────────────────────────────
 
   type ListItem =
     | { type: 'invitations-header' }
@@ -162,7 +162,7 @@ export function GroupScreen() {
 
   const renderListItem = useCallback(({ item }: { item: ListItem }) => {
     if (item.type === 'invitations-header') {
-      return <Text style={styles.sectionLabel}>INVITATIONS {invitations.length > 0 ? `\u00B7 ${invitations.length}` : ''}</Text>;
+      return <Text style={styles.sectionLabel}>INVITATIONS {invitations.length > 0 ? `· ${invitations.length}` : ''}</Text>;
     }
     if (item.type === 'invitation') {
       const inv = item.data;
@@ -231,21 +231,24 @@ export function GroupScreen() {
     return `group-${item.data.id}`;
   }, []);
 
+  const headerContent = (
+    <View style={styles.header}>
+      <Text style={styles.title}>Groups</Text>
+      <Text style={styles.subtitle}>
+        <Text style={styles.subtitleVerse}>{'“'}For where two or three are gathered in my name, there am I in the midst of them.{'”'}</Text>
+        {'\n'}
+        <Text style={styles.subtitleRef}>Matthew 18:20</Text>
+      </Text>
+      <TouchableOpacity style={styles.startGroupBtn} onPress={() => setAddModalVisible(true)} testID="groups-add-btn" activeOpacity={0.7}>
+        <Text style={styles.startGroupText}>Join a group</Text>
+        <Text style={styles.startGroupArrow}>{'→'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <Text style={styles.title}>Groups</Text>
-        <Text style={styles.subtitle}>
-          <Text style={styles.subtitleVerse}>{'\u201C'}For where two or three are gathered in my name, there am I in the midst of them.{'\u201D'}</Text>
-          {'\n'}
-          <Text style={styles.subtitleRef}>Matthew 18:20</Text>
-        </Text>
-        <TouchableOpacity style={styles.startGroupBtn} onPress={() => setAddModalVisible(true)} testID="groups-add-btn" activeOpacity={0.7}>
-          <Text style={styles.startGroupText}>Join a group</Text>
-          <Text style={styles.startGroupArrow}>{'\u2192'}</Text>
-        </TouchableOpacity>
-      </View>
 
       {hasFetchedGroups && hasFetchedInvitations && myGroups.length === 0 && invitations.length === 0 && !isLoading ? (
         <ScrollView
@@ -253,6 +256,7 @@ export function GroupScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         >
+          {headerContent}
 
           {parishGroups.length > 0 ? (
             <View style={styles.suggestedSection}>
@@ -276,7 +280,7 @@ export function GroupScreen() {
           ) : (
             <EmptyStateBox
               title="Be the first to gather."
-              body={`No groups have started at ${parishName ?? 'your parish'} yet. A Bible study, a men\u2019s group, a women\u2019s group \u2014 all begin with a first step.`}
+              body={`No groups have started at ${parishName ?? 'your parish'} yet. A Bible study, a men’s group, a women’s group — all begin with a first step.`}
               actionLabel="Start a group"
               onAction={() => navigation.navigate('CreateGroup')}
               style={{ marginTop: Spacing[4] }}
@@ -293,6 +297,7 @@ export function GroupScreen() {
           contentContainerStyle={{ paddingBottom: tabBarPadding }}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+          ListHeaderComponent={headerContent}
           ListFooterComponent={null}
         />
       )}

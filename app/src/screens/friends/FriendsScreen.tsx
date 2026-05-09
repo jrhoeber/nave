@@ -51,9 +51,9 @@ export function FriendsScreen() {
         <Avatar uri={item.user.avatarUrl} name={item.user.displayName} size={46} />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{item.user.displayName}</Text>
-          <Text style={styles.userHandle}>@{item.user.username}</Text>
+          <Text style={styles.userMeta}>@{item.user.username}</Text>
           {item.user.parish && (
-            <Text style={styles.userParish} numberOfLines={1}>{item.user.parish}</Text>
+            <Text style={styles.userMeta} numberOfLines={1}>{item.user.parish}</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -131,19 +131,6 @@ export function FriendsScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
 
-      <View style={styles.header}>
-        <Text style={styles.title}>Friends</Text>
-        <Text style={styles.subtitle}>
-          <Text style={styles.subtitleVerse}>{'\u201C'}A faithful friend is a sturdy shelter; he who finds one finds a treasure.{'\u201D'}</Text>
-          {'\n'}
-          <Text style={styles.subtitleRef}>Sirach 6:14</Text>
-        </Text>
-        <TouchableOpacity style={styles.findBtn} onPress={() => setAddModalVisible(true)} activeOpacity={0.7}>
-          <Text style={styles.findBtnText}>Find friends</Text>
-          <Text style={styles.findBtnArrow}>{'\u2192'}</Text>
-        </TouchableOpacity>
-      </View>
-
       <FlashList
         data={listData}
         keyExtractor={keyExtractor}
@@ -152,6 +139,20 @@ export function FriendsScreen() {
         contentContainerStyle={{ paddingBottom: tabBarPadding }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.title}>Friends</Text>
+            <Text style={styles.subtitle}>
+              <Text style={styles.subtitleVerse}>{'“'}A faithful friend is a sturdy shelter; he who finds one finds a treasure.{'”'}</Text>
+              {'\n'}
+              <Text style={styles.subtitleRef}>Sirach 6:14</Text>
+            </Text>
+            <TouchableOpacity style={styles.findBtn} onPress={() => setAddModalVisible(true)} activeOpacity={0.7}>
+              <Text style={styles.findBtnText}>Find friends</Text>
+              <Text style={styles.findBtnArrow}>{'→'}</Text>
+            </TouchableOpacity>
+          </View>
+        }
         ListFooterComponent={null}
         ListEmptyComponent={hasFetched && !isLoading && friends.length === 0 ? (
           <EmptyStateBox

@@ -17,7 +17,7 @@ interface PrayerState {
   declineInvitation: (groupId: string) => Promise<void>;
   joinGroup: (groupId: string, groupData?: PrayerGroup) => Promise<void>;
   leaveGroup: (groupId: string) => Promise<void>;
-  updateGroup: (groupId: string, data: { name?: string; description?: string; category?: PrayerGroup['category']; is_private?: boolean; meeting_schedule?: string }) => Promise<void>;
+  updateGroup: (groupId: string, data: { name?: string; description?: string; category?: PrayerGroup['category']; is_private?: boolean; meeting_schedule?: string; parish?: string }) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
   muteGroup: (groupId: string) => Promise<void>;
   unmuteGroup: (groupId: string) => Promise<void>;

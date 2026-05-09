@@ -50,7 +50,6 @@ export function AddToGroupModal({
     if (!visible) {
       setQuery('');
       setResults([]);
-      setStatusMap(new Map());
     }
   }, [visible]);
 

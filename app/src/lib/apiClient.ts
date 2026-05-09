@@ -606,6 +606,7 @@ export const api = {
     category: PrayerGroupCategory;
     is_private: boolean;
     meeting_schedule?: string;
+    parish?: string;
   }) {
     return apiFetch<ApiPrayerGroup>('/prayer-groups', {
       method: 'POST',
@@ -623,6 +624,7 @@ export const api = {
     category?: PrayerGroupCategory;
     is_private?: boolean;
     meeting_schedule?: string;
+    parish?: string;
   }) {
     return apiFetch<ApiPrayerGroup>(`/prayer-groups/${groupId}`, {
       method: 'PATCH',

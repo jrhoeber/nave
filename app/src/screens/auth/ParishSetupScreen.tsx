@@ -54,6 +54,7 @@ export function ParishSetupScreen() {
         state: p.state,
         diocese: p.diocese,
         memberCount: p.member_count ?? 0,
+        groupCount: p.group_count ?? 0,
       })));
     } catch {
       setResults([]);

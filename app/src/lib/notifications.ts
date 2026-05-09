@@ -11,6 +11,18 @@
 
 import { Platform } from 'react-native';
 import notifee from '@notifee/react-native';
+import { getApp } from '@react-native-firebase/app';
+import {
+  getMessaging,
+  getToken,
+  getAPNSToken,
+  requestPermission,
+  onMessage,
+  onNotificationOpenedApp,
+  getInitialNotification,
+  onTokenRefresh,
+  AuthorizationStatus,
+} from '@react-native-firebase/messaging';
 import { api, mapGroupMessage } from './apiClient';
 import { log } from './log';
 import { useGroupChatStore } from '../store/groupChatStore';
@@ -41,37 +53,6 @@ export async function markNotificationsRead(
   } catch {}
 }
 
-// Lazy import so the app doesn't crash if Firebase isn't configured yet
-async function getModules() {
-  const [{ getApp }, messagingModule] = await Promise.all([
-    import('@react-native-firebase/app'),
-    import('@react-native-firebase/messaging'),
-  ]);
-  const {
-    getMessaging,
-    getToken,
-    getAPNSToken,
-    requestPermission,
-    onMessage,
-    onNotificationOpenedApp,
-    getInitialNotification,
-    onTokenRefresh,
-    AuthorizationStatus,
-  } = messagingModule;
-  const messagingInstance = getMessaging(getApp());
-  return {
-    messagingInstance,
-    getToken,
-    getAPNSToken,
-    requestPermission,
-    onMessage,
-    onNotificationOpenedApp,
-    getInitialNotification,
-    onTokenRefresh,
-    AuthorizationStatus,
-  };
-}
-
 let _currentToken: string | null = null;
 
 /**
@@ -80,14 +61,7 @@ let _currentToken: string | null = null;
  */
 export async function registerPushToken(): Promise<void> {
   try {
-    const {
-      messagingInstance,
-      getToken,
-      getAPNSToken,
-      requestPermission,
-      onTokenRefresh,
-      AuthorizationStatus,
-    } = await getModules();
+    const messagingInstance = getMessaging(getApp());
 
     const authStatus = await requestPermission(messagingInstance);
     log.debug('[Push] permission status:', authStatus);
@@ -178,8 +152,7 @@ export async function setupNotificationHandlers(
   navigateToGroupProfile: NavigateToGroupProfile,
 ): Promise<void> {
   try {
-    const { messagingInstance, onNotificationOpenedApp, getInitialNotification, onMessage } =
-      await getModules();
+    const messagingInstance = getMessaging(getApp());
 
     const handleMessage = (remoteMessage: any) => {
       const data = remoteMessage?.data;
@@ -199,15 +172,16 @@ export async function setupNotificationHandlers(
     onMessage(messagingInstance, async (remoteMessage) => {
       const data = remoteMessage?.data;
       if (data?.type !== 'group_message' || !data.groupId) return;
+      const groupId = data.groupId as string;
       const { mutedGroupIds } = usePrayerStore.getState();
-      if (mutedGroupIds.has(data.groupId)) return;
+      if (mutedGroupIds.has(groupId)) return;
       const { messagesByGroup, appendNewMessages } = useGroupChatStore.getState();
-      const messages = messagesByGroup[data.groupId];
+      const messages = messagesByGroup[groupId];
       if (!messages?.length) return;
       try {
-        const result = await api.getGroupMessages(data.groupId, undefined, 20, messages[0].createdAt);
+        const result = await api.getGroupMessages(groupId, undefined, 20, messages[0].createdAt);
         if (result.messages.length > 0) {
-          appendNewMessages(data.groupId, result.messages.map(mapGroupMessage));
+          appendNewMessages(groupId, result.messages.map(mapGroupMessage));
         }
       } catch {}
       syncBadgeCount();

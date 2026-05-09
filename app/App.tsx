@@ -27,15 +27,19 @@ export default function App() {
       // Defer non-critical work so the initial render isn't competing with
       // friend-list and FCM I/O. requestIdleCallback yields when the JS thread
       // is idle; the timeout caps the delay so it always runs reasonably soon.
-      const handle = requestIdleCallback(
-        () => {
-          fetchFriends();
-          registerPushToken();
-        },
-        { timeout: 1500 },
-      );
+      const idle = (globalThis as any).requestIdleCallback as
+        | ((cb: () => void, opts?: { timeout?: number }) => number)
+        | undefined;
+      const cancelIdle = (globalThis as any).cancelIdleCallback as
+        | ((handle: number) => void)
+        | undefined;
+      const run = () => {
+        fetchFriends();
+        registerPushToken();
+      };
+      const handle = idle ? idle(run, { timeout: 1500 }) : (setTimeout(run, 0) as unknown as number);
       wasAuthenticatedRef.current = true;
-      return () => cancelIdleCallback(handle);
+      return () => (cancelIdle ? cancelIdle(handle) : clearTimeout(handle as unknown as ReturnType<typeof setTimeout>));
     } else if (wasAuthenticatedRef.current) {
       // Was authenticated, now logged out
       unregisterPushToken();
