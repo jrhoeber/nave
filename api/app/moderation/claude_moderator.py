@@ -2,7 +2,6 @@
 import asyncio
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Literal
 
@@ -60,17 +59,6 @@ class ClaudeModerationResult:
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens
         self.malformed = malformed
-
-
-_FALLBACK = ClaudeModerationResult(
-    decision="review",
-    category="other",
-    confidence=0.0,
-    reasoning="Malformed response from Claude — defaulting to review",
-    crisis_indicators=False,
-    suggested_resources=[],
-    malformed=True,
-)
 
 
 async def evaluate_with_claude(

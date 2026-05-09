@@ -108,6 +108,7 @@ async def get_my_profile(
     row = await conn.fetchrow(
         """
         SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
+               COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count
         FROM users u
         LEFT JOIN parishes p ON p.id = u.parish_id
@@ -129,7 +130,9 @@ async def update_my_profile(
     if not updates:
         row = await conn.fetchrow(
             """
-            SELECT u.*, COALESCE(us.prayer_group_count,0) AS prayer_group_count
+            SELECT u.*,
+                   COALESCE(us.friend_count,0) AS friend_count,
+                   COALESCE(us.prayer_group_count,0) AS prayer_group_count
             FROM users u LEFT JOIN user_stats us ON us.id = u.id
             WHERE u.id = $1
             """,
@@ -158,6 +161,7 @@ async def update_my_profile(
     row = await conn.fetchrow(
         """
         SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
+               COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count
         FROM users u
         LEFT JOIN parishes p ON p.id = u.parish_id
@@ -209,6 +213,7 @@ async def upload_my_avatar(
     row = await conn.fetchrow(
         """
         SELECT u.*, p.name AS parish_name, p.cover_photo_url AS parish_cover_photo_url,
+               COALESCE(us.friend_count,0) AS friend_count,
                COALESCE(us.prayer_group_count,0) AS prayer_group_count
         FROM users u
         LEFT JOIN parishes p ON p.id = u.parish_id

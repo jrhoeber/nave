@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, Post, PostType, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, ParishComment, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult, BlockedUser, GroupInvitation } from '../types';
+import type { User, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishReactionType, ParishComment, GroupMessage, GroupMessageAuthor, MessageReaction, GroupMessageReactionEmoji, Friendship, FriendSearchResult, BlockedUser, GroupInvitation } from '../types';
 import { API_BASE_URL } from './config';
 
 // ─── Raw API shapes (snake_case) — private to this file ──────────────────────
@@ -33,28 +33,6 @@ interface ApiUser {
   mutual_friends?: ApiMutualFriendBrief[];
   shared_group_count?: number;
   friendship_created_at?: string;
-}
-
-interface ApiParishBrief {
-  id: string;
-  name: string;
-  city: string;
-  state: string;
-}
-
-interface ApiPost {
-  id: string;
-  author: ApiUser;
-  type: PostType;
-  content: string;
-  image_url?: string;
-  like_count: number;
-  comment_count: number;
-  prayer_count: number;
-  is_liked: boolean;
-  is_praying: boolean;
-  created_at: string;
-  parish?: ApiParishBrief | null;
 }
 
 interface ApiPrayerGroup {
@@ -219,11 +197,6 @@ interface ApiTokenResponse {
   is_new_user: boolean;
 }
 
-interface ApiFeedResponse {
-  posts: ApiPost[];
-  next_cursor: string | null;
-}
-
 interface ApiGroupsResponse {
   groups: ApiPrayerGroup[];
   next_cursor: string | null;
@@ -277,25 +250,6 @@ export function mapUser(raw: ApiUser): User {
     })),
     sharedGroupCount: raw.shared_group_count,
     friendshipCreatedAt: raw.friendship_created_at,
-  };
-}
-
-export function mapPost(raw: ApiPost): Post {
-  return {
-    id: raw.id,
-    author: mapUser(raw.author),
-    type: raw.type,
-    content: raw.content,
-    imageUrl: raw.image_url,
-    likeCount: raw.like_count,
-    commentCount: raw.comment_count,
-    prayerCount: raw.prayer_count,
-    isLiked: raw.is_liked,
-    isPraying: raw.is_praying,
-    createdAt: raw.created_at,
-    parish: raw.parish
-      ? { id: raw.parish.id, name: raw.parish.name, city: raw.parish.city, state: raw.parish.state }
-      : undefined,
   };
 }
 
@@ -409,7 +363,7 @@ export function mapGroupMessage(raw: ApiGroupMessage): GroupMessage {
   };
 }
 
-export function mapFriendUser(raw: ApiFriendUser): Friendship['user'] {
+function mapFriendUser(raw: ApiFriendUser): Friendship['user'] {
   return {
     id: raw.id,
     username: raw.username,
@@ -548,34 +502,7 @@ export const api = {
     });
   },
 
-  // Feed
-  getFeed(cursor?: string) {
-    const query = cursor ? `limit=20&cursor=${encodeURIComponent(cursor)}` : 'limit=20';
-    return apiFetch<ApiFeedResponse>(`/feed?${query}`);
-  },
-
-  likePost(postId: string) {
-    return apiFetch<{ liked: boolean; like_count: number }>(`/feed/posts/${postId}/like`, { method: 'POST' });
-  },
-
-  unlikePost(postId: string) {
-    return apiFetch<{ liked: boolean; like_count: number }>(`/feed/posts/${postId}/like`, { method: 'DELETE' });
-  },
-
-  prayPost(postId: string) {
-    return apiFetch<{ praying: boolean; prayer_count: number }>(`/feed/posts/${postId}/pray`, { method: 'POST' });
-  },
-
-  unprayPost(postId: string) {
-    return apiFetch<{ praying: boolean; prayer_count: number }>(`/feed/posts/${postId}/pray`, { method: 'DELETE' });
-  },
-
   // Prayer groups
-  getGroups(cursor?: string) {
-    const query = cursor ? `limit=20&cursor=${encodeURIComponent(cursor)}` : 'limit=20';
-    return apiFetch<ApiGroupsResponse>(`/prayer-groups?${query}`);
-  },
-
   getMyGroups() {
     return apiFetch<{ groups: ApiPrayerGroup[] }>('/prayer-groups/mine');
   },

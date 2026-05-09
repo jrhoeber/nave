@@ -56,15 +56,6 @@ export interface Post {
   parish?: PostParish;
 }
 
-export interface Comment {
-  id: string;
-  author: User;
-  content: string;
-  likeCount: number;
-  isLiked: boolean;
-  createdAt: string;
-}
-
 // ─── Prayer Groups ────────────────────────────────────────────────────────────
 
 export type PrayerGroupCategory =
@@ -233,64 +224,3 @@ export interface BlockedUser {
   blockedAt: string;
 }
 
-// ─── Notification Preferences ────────────────────────────────────────────────
-
-export interface NotificationPreferences {
-  pushNotificationsEnabled: boolean;
-  notifyGroupMessages: boolean;
-  notifyFriendRequests: boolean;
-}
-
-// ─── Notifications ────────────────────────────────────────────────────────────
-
-export type NotificationType =
-  | 'friend_request'
-  | 'friend_accepted'
-  | 'post_like'
-  | 'post_comment'
-  | 'prayer_group_invite'
-  | 'prayer_group_post'
-  | 'prayer_received';
-
-export interface Notification {
-  id: string;
-  type: NotificationType;
-  actor: User;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-  targetId?: string;
-}
-
-// ─── Navigation ───────────────────────────────────────────────────────────────
-
-export type RootStackParamList = {
-  '(auth)': undefined;
-  '(tabs)': undefined;
-};
-
-export type AuthStackParamList = {
-  welcome: undefined;
-  login: undefined;
-  signup: undefined;
-};
-
-export type TabParamList = {
-  index: undefined;
-  prayer: undefined;
-  community: undefined;
-  friends: undefined;
-  profile: undefined;
-};
-
-export type FeedStackParamList = {
-  feed: undefined;
-  'post-detail': { postId: string };
-  'user-profile': { userId: string };
-};
-
-export type PrayerStackParamList = {
-  'prayer-groups': undefined;
-  'prayer-group-detail': { groupId: string };
-  'create-prayer-group': undefined;
-};

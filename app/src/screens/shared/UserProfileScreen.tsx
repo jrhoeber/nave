@@ -19,14 +19,13 @@ import { useBlocksStore } from '../../store/blocksStore';
 import { useAuthStore } from '../../store/authStore';
 import { api, mapUser } from '../../lib/apiClient';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
-import type { User, MutualFriendBrief } from '../../types';
+import type { User } from '../../types';
 import type { UserProfileRouteProp } from '../../types/navigation';
 
 const AVATAR_SIZE = 110;
 const AVATAR_BORDER = 2;
 const AVATAR_GAP = 4;
 const AVATAR_TOTAL = AVATAR_SIZE + (AVATAR_BORDER + AVATAR_GAP) * 2;
-const MUTUAL_AVATAR_SIZE = 28;
 
 function formatFriendsSince(dateStr?: string): string {
   if (!dateStr) return '';
@@ -497,19 +496,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.textSecondary,
   },
-  mutualAvatars: {
-    flexDirection: 'row',
-    marginBottom: Spacing[1],
-  },
-  mutualAvatarWrap: {
-    width: MUTUAL_AVATAR_SIZE,
-    height: MUTUAL_AVATAR_SIZE,
-    borderRadius: MUTUAL_AVATAR_SIZE / 2,
-    borderWidth: 2,
-    borderColor: Colors.surface,
-    overflow: 'hidden',
-  },
-
   // ── Section label ──
   sectionLabel: {
     fontSize: Typography.xs,

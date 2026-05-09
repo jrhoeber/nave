@@ -249,11 +249,6 @@ class TestCrisisResources:
         resources = get_resources(["unknown_key", "988_lifeline"])
         assert len(resources) == 1
 
-    def test_all_resources_available(self):
-        from app.moderation.crisis_resources import get_all_resources
-        resources = get_all_resources()
-        assert len(resources) >= 4
-
 
 # ── Integration tests (guarded by env flag) ────────────────────────────────────
 

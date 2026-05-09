@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   Dimensions,
-  Image,
   Modal,
   StyleSheet,
   Text,
@@ -280,10 +279,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: Typography.semibold,
     textAlign: 'right',
-  },
-  cropContainer: {
-    flex: 1,
-    position: 'relative',
   },
   imageContainer: {
     position: 'absolute',

@@ -332,7 +332,6 @@ const styles = StyleSheet.create({
   startGroupText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
   startGroupArrow: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textSecondary },
   sectionLabel: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textSecondary, letterSpacing: 1, paddingHorizontal: Spacing[5], paddingTop: Spacing[2], paddingBottom: Spacing[3] },
-  emptyCta: { paddingHorizontal: Spacing[5], paddingTop: Spacing[4] },
   suggestedSection: { marginTop: Spacing[2] },
   invitationCard: {
     backgroundColor: '#ffffff',

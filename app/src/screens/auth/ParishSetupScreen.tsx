@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
-  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -79,9 +78,9 @@ export function ParishSetupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={styles.container} behavior="height">
       <StatusBar barStyle="dark-content" />
-      <View style={[styles.inner, { paddingTop: insets.top + Spacing[6], paddingBottom: insets.bottom + Spacing[6] }]}>
+      <View style={[styles.inner, { paddingTop: insets.top + Spacing[6] }]}>
         {existingUser && (
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel} activeOpacity={0.7}>
             <Text style={styles.cancelText}>Cancel</Text>
@@ -121,52 +120,55 @@ export function ParishSetupScreen() {
         </View>
 
         {/* ── Results (CardList pattern) ── */}
-        {results.length > 0 && (
-          <>
-            <Text style={styles.resultsLabel}>RESULTS</Text>
-            <FlatList
-              data={results}
-              keyExtractor={(item) => item.id}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item, index }) => {
-                const isFirst = index === 0;
-                const isLast = index === results.length - 1;
-                return (
-                  <View style={[CardList.item, isFirst && CardList.itemFirst, isLast && CardList.itemLast]}>
-                    <TouchableOpacity
-                      style={[styles.resultRow, isLast && styles.resultRowLast]}
-                      onPress={() => handleSelect(item)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.resultIcon}>
-                        <Icon name="business-outline" size={18} color={Colors.accent} />
-                      </View>
-                      <View style={styles.resultText}>
-                        <Text style={styles.resultName}>{item.name}</Text>
-                        <Text style={styles.resultSub}>{item.city}, {item.state} · {item.memberCount} {item.memberCount === 1 ? 'parishioner' : 'parishioners'}</Text>
-                      </View>
-                      <Icon name="chevron-forward" size={16} color={Colors.textSecondary} />
-                    </TouchableOpacity>
+        <FlatList
+          data={results}
+          keyExtractor={(item) => item.id}
+          style={styles.listFlex}
+          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + Spacing[4] }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            results.length > 0 ? <Text style={styles.resultsLabel}>RESULTS</Text> : null
+          }
+          ListEmptyComponent={
+            !searching && query.trim().length >= 2 ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>No parishes found for &ldquo;{query}&rdquo;</Text>
+              </View>
+            ) : null
+          }
+          ListFooterComponent={
+            <View style={styles.footer}>
+              <Text style={styles.hint}>
+                You must belong to a parish to use Nave.
+              </Text>
+            </View>
+          }
+          ListFooterComponentStyle={styles.footerSlot}
+          renderItem={({ item, index }) => {
+            const isFirst = index === 0;
+            const isLast = index === results.length - 1;
+            return (
+              <View style={[CardList.item, isFirst && CardList.itemFirst, isLast && CardList.itemLast]}>
+                <TouchableOpacity
+                  style={[styles.resultRow, isLast && styles.resultRowLast]}
+                  onPress={() => handleSelect(item)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.resultIcon}>
+                    <Icon name="business-outline" size={18} color={Colors.accent} />
                   </View>
-                );
-              }}
-              contentContainerStyle={styles.list}
-            />
-          </>
-        )}
-
-        {!searching && query.trim().length >= 2 && results.length === 0 && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No parishes found for &ldquo;{query}&rdquo;</Text>
-          </View>
-        )}
-
-        <View style={styles.footer}>
-          <Text style={styles.hint}>
-            You must belong to a parish to use Nave.
-          </Text>
-        </View>
+                  <View style={styles.resultText}>
+                    <Text style={styles.resultName}>{item.name}</Text>
+                    <Text style={styles.resultSub}>{item.city}, {item.state} · {item.memberCount} {item.memberCount === 1 ? 'parishioner' : 'parishioners'}</Text>
+                  </View>
+                  <Icon name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            );
+          }}
+        />
       </View>
     </KeyboardAvoidingView>
   );
@@ -228,6 +230,7 @@ const styles = StyleSheet.create({
   spinner: { marginLeft: Spacing[1] },
 
   // ── Results (CardList pattern) ──
+  listFlex: { flex: 1 },
   resultsLabel: {
     fontSize: Typography.xs,
     fontWeight: Typography.semibold,
@@ -258,13 +261,14 @@ const styles = StyleSheet.create({
   resultName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
   resultSub: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
 
-  list: { paddingBottom: Spacing[4] },
+  list: { flexGrow: 1 },
 
   // ── Empty ──
   empty: { alignItems: 'center', paddingVertical: Spacing[12], paddingHorizontal: Spacing[6] },
   emptyText: { fontSize: Typography.base, color: Colors.textSecondary, textAlign: 'center' },
 
   // ── Footer ──
-  footer: { marginTop: 'auto', gap: Spacing[3] },
+  footerSlot: { marginTop: 'auto' },
+  footer: { gap: Spacing[3], paddingTop: Spacing[4] },
   hint: { fontSize: Typography.xs, color: Colors.textLight, textAlign: 'center' },
 });

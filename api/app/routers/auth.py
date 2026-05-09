@@ -45,6 +45,7 @@ def _build_user_response(row: dict) -> UserResponse:
         diocese=row.get("diocese"),
         location=row.get("location"),
         birthday=row.get("birthday"),
+        friend_count=row.get("friend_count", 0),
         prayer_group_count=row.get("prayer_group_count", 0),
         created_at=row["created_at"],
     )

@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider, appleProvider } from '../firebase';
-import { useAuth } from '../context/AuthContext';
-import { API_BASE, JWT_KEY } from '../context/AuthContext';
+import { useAuth, API_BASE, JWT_KEY } from '../context/AuthContext';
 
 // Google SVG logo
 function GoogleLogo() {

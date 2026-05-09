@@ -950,12 +950,6 @@ const styles = StyleSheet.create({
     fontWeight: Typography.semibold,
     color: Colors.textPrimary,
   },
-  detailSep: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginHorizontal: Spacing[4],
-  },
-
   // ── Members ──
   membersSectionHeader: {
     flexDirection: 'row',
@@ -976,11 +970,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.base,
     fontWeight: Typography.semibold,
     color: Colors.textPrimary,
-  },
-  addMemberBtnArrow: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
   },
   emptyText: {
     fontSize: Typography.base,

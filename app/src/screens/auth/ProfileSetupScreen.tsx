@@ -386,15 +386,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[4],
     paddingHorizontal: Spacing[6],
   },
-  crossBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing[4],
-  },
   title: {
     fontFamily: 'CormorantGaramond-Regular',
     fontSize: Typography['3xl'],

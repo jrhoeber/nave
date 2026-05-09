@@ -42,5 +42,3 @@ def get_resources(keys: list[str]) -> list[CrisisResource]:
     return [_RESOURCES[k] for k in keys if k in _RESOURCES]
 
 
-def get_all_resources() -> list[CrisisResource]:
-    return list(_RESOURCES.values())

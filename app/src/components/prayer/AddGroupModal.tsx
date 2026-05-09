@@ -10,7 +10,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import { PrayerGroupCard } from './PrayerGroupCard';
 import { SearchModal } from '../ui/SearchModal';
-import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
+import { CardList, Colors, Spacing, Typography } from '../../theme';
 import { api, mapPrayerGroup } from '../../lib/apiClient';
 import { useAuthStore } from '../../store/authStore';
 import { usePrayerStore } from '../../store/prayerStore';
