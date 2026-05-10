@@ -107,7 +107,9 @@
       "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['app/utils/push.py','app/utils/inbox.py','app/routers/notifications.py','app/routers/friends.py','app/routers/group_messages.py','app/routers/prayer_groups.py','alembic/versions/20260505_0001_notifications_inbox.py']]; print\\('ok'\\)\")",
       "Bash(awk 'NR>=134 && NR<=146' /Users/jordanhoeber/wksp/nave/app/src/screens/friends/FriendsScreen.tsx)",
       "Bash(python -c \"import ast; ast.parse\\(open\\('app/routers/users.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/models/user.py'\\).read\\(\\)\\); print\\('ok'\\)\")",
-      "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['app/models/user.py','app/routers/auth.py','app/routers/users.py']]\")"
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['app/models/user.py','app/routers/auth.py','app/routers/users.py']]\")",
+      "Bash(sort -t\"'\" -k2 -n)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app/retention/sweep.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/routers/users.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/utils/push.py'\\).read\\(\\)\\); ast.parse\\(open\\('alembic/versions/20260510_0001_retention_cleanup.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }

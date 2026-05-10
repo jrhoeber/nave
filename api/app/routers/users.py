@@ -256,6 +256,13 @@ async def delete_my_account(
                 await conn.execute(
                     "DELETE FROM prayer_groups WHERE id = $1", group_id
                 )
+        # Stamp moderation rows so the retention sweeper can purge them
+        # +1 year out; the FK is SET NULL on user delete so the rows persist.
+        await conn.execute(
+            "UPDATE moderation_queue SET account_deleted_at = NOW() "
+            "WHERE user_id = $1",
+            user_id,
+        )
         # Delete user — all other FKs cascade
         await conn.execute("DELETE FROM users WHERE id = $1", user_id)
 

@@ -1,7 +1,9 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+MIN_AGE_YEARS = 13
 
 
 class FirebaseAuthRequest(BaseModel):
@@ -18,6 +20,17 @@ class UserUpdate(BaseModel):
     diocese: Optional[str] = None
     location: Optional[str] = None
     birthday: Optional[date] = None
+
+    @field_validator("birthday")
+    @classmethod
+    def birthday_meets_minimum_age(cls, v: Optional[date]) -> Optional[date]:
+        if v is None:
+            return v
+        today = date.today()
+        age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
+        if age < MIN_AGE_YEARS:
+            raise ValueError(f"You must be at least {MIN_AGE_YEARS} years old to use Nave.")
+        return v
 
 
 class MutualFriendBrief(BaseModel):

@@ -73,3 +73,17 @@ jobs:
             --max-instances 10 \
             --memory 512Mi \
             --timeout 30
+
+      # ── Deploy retention sweeper as a Cloud Run Job ───────────────────────
+      # Reuses the same image; entrypoint is `python -m app.retention.sweep`.
+      # Triggered daily by Cloud Scheduler (one-time setup outside CI).
+      - name: Deploy retention sweep job
+        run: |
+          gcloud run jobs deploy nave-retention-sweep \
+            --image ${{ steps.build.outputs.image }} \
+            --region ${{ vars.REGION }} \
+            --command="python" \
+            --args="-m,app.retention.sweep" \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest" \
+            --task-timeout=3600 \
+            --max-retries=1

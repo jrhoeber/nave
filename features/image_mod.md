@@ -1,1 +1,0 @@
-Integrate Cloud Vision SafeSearch for image moderation. Read appdef.md to get context on what the application in and use that information to tune moderation to be appropriate for the audience of the app.

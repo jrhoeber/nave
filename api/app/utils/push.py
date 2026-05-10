@@ -51,6 +51,22 @@ async def send_push_notifications(
             response.failure_count,
         )
 
+        if conn:
+            # Bump updated_at on tokens that received a successful send so
+            # the 180-day inactivity sweep reflects real activity, not just
+            # the last re-registration timestamp.
+            delivered_tokens = [
+                targets[i][0]
+                for i, resp in enumerate(response.responses)
+                if resp.success
+            ]
+            if delivered_tokens:
+                await conn.execute(
+                    "UPDATE user_device_tokens SET updated_at = NOW() "
+                    "WHERE token = ANY($1::text[])",
+                    delivered_tokens,
+                )
+
         if conn and response.failure_count > 0:
             invalid_tokens = []
             for i, resp in enumerate(response.responses):

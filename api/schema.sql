@@ -249,6 +249,7 @@ CREATE TABLE IF NOT EXISTS user_device_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_udt_user ON user_device_tokens (user_id);
+CREATE INDEX IF NOT EXISTS idx_udt_updated_at ON user_device_tokens (updated_at);
 
 -- ============================================================
 -- GROUP NOTIFICATION MUTES
@@ -305,27 +306,34 @@ CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked ON user_blocks (blocked_id);
 -- MODERATION QUEUE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS moderation_queue (
-    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content        TEXT,                      -- NULL for image-only entries
-    context_type   TEXT NOT NULL,
-    content_id     UUID,
-    final_action   TEXT NOT NULL,
-    layer1_result  JSONB,
-    layer2_result  JSONB,
-    image_url      TEXT,                      -- GCS object name of flagged image
-    image_result   JSONB,                     -- SafeSearch scores and action
-    status         TEXT NOT NULL DEFAULT 'pending'
-                       CHECK (status IN ('pending', 'approved', 'rejected')),
-    reviewer_id    UUID REFERENCES users(id),
-    reviewed_at    TIMESTAMPTZ,
-    reviewer_notes TEXT,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- user_id goes NULL on account deletion; account_deleted_at is stamped
+    -- at that moment so the retention sweeper can purge after +1 year.
+    user_id            UUID REFERENCES users(id) ON DELETE SET NULL,
+    content            TEXT,                      -- NULL for image-only entries
+    context_type       TEXT NOT NULL,
+    content_id         UUID,
+    final_action       TEXT NOT NULL,
+    layer1_result      JSONB,
+    layer2_result      JSONB,
+    image_url          TEXT,                      -- GCS object name of flagged image
+    image_result       JSONB,                     -- SafeSearch scores and action
+    status             TEXT NOT NULL DEFAULT 'pending'
+                           CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewer_id        UUID REFERENCES users(id),
+    reviewed_at        TIMESTAMPTZ,
+    reviewer_notes     TEXT,
+    account_deleted_at TIMESTAMPTZ,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_mq_status_created
     ON moderation_queue (status, created_at)
     WHERE status = 'pending';
+
+CREATE INDEX IF NOT EXISTS idx_mq_account_deleted
+    ON moderation_queue (account_deleted_at)
+    WHERE account_deleted_at IS NOT NULL;
 
 -- ============================================================
 -- USER REPORTS
@@ -356,6 +364,10 @@ CREATE INDEX IF NOT EXISTS idx_user_reports_status
 CREATE INDEX IF NOT EXISTS idx_user_reports_content
     ON user_reports (content_type, content_id);
 
+CREATE INDEX IF NOT EXISTS idx_user_reports_closed
+    ON user_reports (reviewed_at)
+    WHERE status IN ('reviewed', 'dismissed');
+
 -- ============================================================
 -- NOTIFICATIONS INBOX
 -- ============================================================
@@ -379,6 +391,9 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS notifications_user_unread
     ON notifications (user_id, created_at DESC) WHERE read_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at
+    ON notifications (created_at);
 
 CREATE UNIQUE INDEX IF NOT EXISTS notifications_unread_dedup
     ON notifications (user_id, dedup_key)

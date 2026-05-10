@@ -1,6 +1,6 @@
 # Nave — Product Definition
 
-> Last regenerated: 2026-05-09
+> Last regenerated: 2026-05-10
 > Source of truth: this document is generated from the monorepo. Update by re-running the review process, not by hand-editing.
 
 ---
@@ -22,13 +22,16 @@
 
 | Field | Value |
 |------|-------|
-| Legal entity | Cornerstone Dev LLC (per `features/appdef.md`; not separately verified in repo configs) |
-| Business address | `<TODO: business address — not present in the repo>` |
-| Support email | `<TODO: support email — not present in the repo>` |
+| Legal entity | Cornerstone Dev LLC (cornerstonedev.co) |
+| Business address | 418 Broadway Ste N, Albany, NY 12207, US |
+| Support email | nave@cornerstonedev.co |
 | Marketing URL | https://naveapp.co (referenced in API CORS allowlist `api/app/main.py:48-53` and in `app/src/screens/auth/WelcomeScreen.tsx:183-189`) |
-| Support URL | `<TODO: support URL — Settings screen links Terms and Privacy at naveapp.co/terms and /privacy but no /support route>` |
-| Privacy contact / DPO | `<TODO: privacy contact / DPO — not present in the repo>` |
-| Copyright line | "© {current year} Nave. All rights reserved." (`web/src/pages/LandingPage.tsx:316`) |
+| Support URL | https://naveapp.co/support (`web/src/pages/SupportPage.tsx`, linked from landing footer) |
+| Privacy contact | naveprivacy@cornerstonedev.co |
+| DMCA agent | navetakedown@cornerstonedev.co |
+| Vulnerability disclosure | navetsecurity@cornerstonedev.co |
+| Account deletion URL | https://naveapp.co/delete (`web/src/pages/DeletePage.tsx`) |
+| Copyright line | "© {current year} Nave. All rights reserved." (`web/src/pages/LandingPage.tsx:322`) |
 | Apple submission contact | EAS scaffold placeholder values (`app/eas.json` `submit.production.ios`: appleId/appleTeamId/ascAppId all `your-...`) — `<TODO: real values not yet configured>` |
 
 ---
@@ -53,8 +56,9 @@
 | Custom URL schemes | `com.googleusercontent.apps.667996115450-ak9i7520mpoesbhcs06gcoudmo98984m` (Google Sign-In reverse client ID). No app-level custom scheme or universal link is registered. | `Info.plist` `CFBundleURLTypes` |
 | Capabilities (iOS) | Push notifications (`aps-environment = development`); Sign in with Apple (`com.apple.developer.applesignin = Default`). | `app/ios/Nave/Nave.entitlements` |
 | App Transport Security | Default ATS on (`NSAllowsArbitraryLoads = false`). Local networking allowed (`NSAllowsLocalNetworking = true`) for dev API. | `Info.plist` |
+| Export compliance | `ITSAppUsesNonExemptEncryption = false` declared in `Info.plist` — eligible for the standard-encryption exemption (HTTPS/TLS only). | `Info.plist` |
 | iOS Privacy Manifest | Declares "required reason API" usage for `UserDefaults`, `FileTimestamp`, `DiskSpace`, `SystemBootTime`. `NSPrivacyTracking = false`. `NSPrivacyCollectedDataTypes` is **empty** — this is INACCURATE relative to the data the app actually collects (see §6) and must be filled in before App Store submission. | `app/ios/Nave/PrivacyInfo.xcprivacy` |
-| Android permissions declared | `android.permission.INTERNET` only. (No `READ_EXTERNAL_STORAGE`, `CAMERA`, `POST_NOTIFICATIONS`, etc., declared in the manifest — picker libs may not need them on modern Android, but `POST_NOTIFICATIONS` is required for Android 13+ and is **missing**.) | `app/android/app/src/main/AndroidManifest.xml` |
+| Android permissions declared | `android.permission.INTERNET`, `android.permission.POST_NOTIFICATIONS` (required for Android 13+ to request push permission). No `READ_EXTERNAL_STORAGE` or `CAMERA` (image picker libs use system-managed pickers that don't need them on modern Android). | `app/android/app/src/main/AndroidManifest.xml` |
 | Custom fonts shipped | Ionicons, MaterialCommunityIcons, Montserrat-Black, Montserrat-ExtraBold, CormorantGaramond-Regular/Italic/Bold | `Info.plist` `UIAppFonts` |
 
 ### 3.2 Backend
@@ -79,7 +83,7 @@
 | URL | https://naveapp.co (and `www.naveapp.co`); admin lives on the same origin under `/admin/*` and `/manage`; `/signin` for the sign-in page. | `api/app/main.py` CORS, `web/src/App.tsx` routes |
 | Hosting | Firebase Hosting (`web/firebase.json` rewrites all paths to `/index.html`); Firebase project `nave-a0989`. | `web/firebase.json`, `web/.firebaserc` |
 | Framework | Vite 5 + React 18 + TypeScript + React Router v6 + Tailwind CSS 3 + Firebase JS SDK v10. | `web/package.json` |
-| Pages | `/` Landing (marketing), `/signin` (Firebase Google/Apple sign-in), `/manage` parish-admin tooling, `/admin` super-admin home, `/admin/moderation` (review queue), `/admin/reports` (user reports queue), `/admin/parishes` (parish CRUD + parish-admin assignment), `/privacy` and `/terms` (currently `ComingSoonPage` placeholders — **not yet published**). | `web/src/App.tsx`, `web/src/pages/*` |
+| Pages | `/` Landing (marketing), `/signin` (Firebase Google/Apple sign-in), `/support` (FAQ + support email contact), `/delete` (sign-in gate that routes to `/manage` for in-account deletion — satisfies Google Play's "deletion URL without installing the app" rule), `/manage` parish-admin tooling, `/admin` super-admin home, `/admin/moderation` (review queue), `/admin/reports` (user reports queue), `/admin/parishes` (parish CRUD + parish-admin assignment), `/privacy` and `/terms` (currently `ComingSoonPage` placeholders — **not yet published**). | `web/src/App.tsx`, `web/src/pages/*` |
 | Web auth | Firebase Web SDK; identical Firebase project as mobile (`nave-a0989`); after sign-in, the web client calls `POST /auth/firebase` with `source: "web"` (the API rejects new-account creation from web — web sign-in only works for users who first signed up in the mobile app, see `api/app/routers/auth.py:135-139`). | `web/src/firebase.ts`, `web/src/context/AuthContext.tsx` |
 | Web JWT storage | `localStorage` key `nave_jwt` (and `nave_is_admin` boolean). | `web/src/context/AuthContext.tsx` |
 | Marketing pixels / analytics on web | None observed. No GA, no Meta Pixel, no Hotjar, no Segment, no cookie-consent banner. The only third-party SDK on the web is Firebase Auth (and Google Fonts via stylesheet link). | `web/src/*`, `web/index.html` |
@@ -153,9 +157,10 @@
 - **Surfaces.** M (kebab menu in `parish/ParishPostCard.tsx`, etc.); B (`/admin/moderation/*`, `/admin/reports/*`); W (`/admin/moderation`, `/admin/reports`).
 
 ### 4.11 Account deletion
-- **What it does.** `Settings → Delete Account` → two-step Alert confirmation → `DELETE /users/me`. Server runs in a transaction: for every group the user admins, reassign to next-oldest member or delete the group; then `DELETE FROM users WHERE id = ?`. All other rows cascade via FK (parish_posts, parish_post_comments, parish_post_comment_reactions, group_messages, group_message_reactions, group_invitations, prayer_group_members, group_notification_mutes, friendships, friend_edges, user_blocks, user_reports, moderation_queue, notifications, user_device_tokens). Firebase user record on Firebase side is **not** deleted by this flow.
-- **Surfaces.** M (`screens/profile/SettingsScreen.tsx:58`); B (`api/app/routers/users.py:228`).
-- **Open question.** Are Firebase Auth records cleaned up out-of-band? `<TODO: confirm Firebase user-deletion process — not in repo>`.
+- **What it does.** `Settings → Delete Account` → two-step Alert confirmation → `DELETE /users/me`. Server runs in a transaction: for every group the user admins, reassign to next-oldest member or delete the group; then stamp `moderation_queue.account_deleted_at = NOW()` for the user's rows (so the retention sweeper can purge them at the end of the +1-year safety window) and finally `DELETE FROM users WHERE id = ?`. The `moderation_queue.user_id` FK is `ON DELETE SET NULL`, so flagged-content audit rows survive deletion until the sweeper purges them. All other related rows cascade via FK (parish_posts, parish_post_comments, parish_post_comment_reactions, group_messages, group_message_reactions, group_invitations, prayer_group_members, group_notification_mutes, friendships, friend_edges, user_blocks, user_reports, notifications, user_device_tokens). Firebase user record on Firebase side is **not** deleted by this flow.
+- **Web entry point.** `naveapp.co/delete` — required by Google Play's 2024 "deletion URL accessible without installing the app" rule. Page signs the user in (Firebase) and redirects to `/manage`, where the user can complete deletion in-account.
+- **Surfaces.** M (`screens/profile/SettingsScreen.tsx`); B (`api/app/routers/users.py` — `DELETE /users/me`); W (`web/src/pages/DeletePage.tsx`).
+- **Open question.** Are Firebase Auth records cleaned up out-of-band? `<TODO: confirm Firebase user-deletion process — Postgres deletion does not invoke `firebase_admin.auth.delete_user`; if linkage by email allows re-sign-in to recreate, this may be intentional, otherwise add explicit Firebase delete>`.
 
 ---
 
@@ -170,8 +175,8 @@
 | Session token | Nave JWT, HS256, `sub=user_id`, 30-day expiry, signed with `SECRET_KEY` (Google Secret Manager). Stored in `AsyncStorage` on mobile (key `auth_token`) and `localStorage` on web (key `nave_jwt`). All API calls include `Authorization: Bearer <jwt>`. |
 | Token revocation | None. JWT cannot be revoked early; logout = client-side delete only. (Account deletion deletes the user row; subsequent requests with a stale JWT will fail with 401 because `get_current_user` looks up the row.) |
 | Multi-device | Multiple device tokens per user supported via `user_device_tokens` (unique on `(user_id, token)`). Push fans out to every registered token. |
-| Account deletion path | In-app: Settings → Delete Account (mobile only). Web: not implemented. URL for store listings: `<TODO: account deletion URL — required by Google Play; not yet published>`. |
-| Minimum age | 13. Enforced client-side in `ProfileSetupScreen.tsx:155`. **Not enforced server-side** — `<TODO: add server-side age gate so an API client cannot bypass>`. |
+| Account deletion path | In-app: Settings → Delete Account (mobile). Web: `naveapp.co/delete` page (sign-in gate → `/manage` for in-account deletion). The deletion URL is published and meets Google Play's policy. |
+| Minimum age | 13. Enforced client-side in `ProfileSetupScreen.tsx` and **server-side** via Pydantic `field_validator` on `UserUpdate.birthday` in `api/app/models/user.py` (`MIN_AGE_YEARS = 13`). A direct API caller setting `birthday` to a date <13 years ago is rejected with a 422. |
 
 ---
 
@@ -198,16 +203,21 @@
 | 15 | Friend list | Identifiers — User ID | Yes (when used) | User action | Yes | No | App functionality | Indefinite (user can remove) | `friendships`, `friend_edges` | None |
 | 16 | Block list | Identifiers — User ID | Yes (when used) | User action | Yes | No | App functionality (hide content from blocked users) | Indefinite (user can unblock) | `user_blocks` | None |
 | 17 | Reports filed | Usage Data — Product Interaction | Yes (when used) | User action | Yes | No | Trust & safety | Indefinite | `user_reports` | None |
-| 18 | FCM device token | Identifiers — Device ID (push token, not IDFA) | Yes | Device → API | Yes | No | App functionality (push) | Until logout, token refresh, or invalidated by FCM | `user_device_tokens` | Firebase Cloud Messaging / APNS / FCM-Android |
-| 19 | Notification preferences (3 booleans + per-group mutes) | Usage Data — Product Interaction | Yes | User action | Yes | No | App functionality | Until account deletion | `users` flags + `group_notification_mutes` | None |
-| 20 | Notifications inbox | Usage Data — Product Interaction | Yes | Server-generated | Yes | No | App functionality | Indefinite (no explicit purge; `<TODO: define retention/purge>`) | `notifications` | None |
+| 18 | FCM device token | Identifiers — Device ID (push token, not IDFA) | Yes | Device → API | Yes | No | App functionality (push) | Until logout, account deletion, token refresh, FCM invalidation, or **180 days of inactivity** (purged by retention sweeper based on `updated_at`, which is bumped on every successful push delivery). | `user_device_tokens` | Firebase Cloud Messaging / APNS / FCM-Android |
+| 19 | Notification preferences (3 booleans + per-group mutes) | Usage Data — Product Interaction | Yes | User action | Yes | No | App functionality (honoring opt-in/opt-out) | Account lifetime | `users` flags + `group_notification_mutes` | None |
+| 20 | Notifications inbox | Usage Data — Product Interaction | Yes | Server-generated | Yes | No | Delivering platform notifications to user | **90 days from `created_at`**, then purged by retention sweeper | `notifications` | None |
 | 21 | Firebase UID | Identifiers — User ID (third-party) | Yes | Firebase Auth | Yes | No | Account linkage | Until account deletion | `users.firebase_uid`; Firebase Auth | Firebase / Google |
-| 22 | Server logs (HTTP method, path, status, duration; userless) | Diagnostics — Crash Data / Performance Data / Other Diagnostic Data | Yes | Server middleware | No (not user-keyed at the log level) | No | Operational | Cloud Run / Cloud Logging defaults — `<TODO: confirm log retention period>` | Google Cloud Logging | None |
-| 23 | Server moderation audit (Layer 1 + Layer 2 results, image scores) | Diagnostics + User Content (the flagged content is logged) | Yes (when content is flagged) | Server | Yes (linked to user_id) | No | Trust & safety | Indefinite | `moderation_queue` | None |
-| 24 | Web JWT (`nave_jwt` localStorage) | Identifiers — User ID | Yes (web sign-in only) | Server | Yes | No | Web admin auth | Until logout / 30 days expiry | Browser localStorage | None |
+| 22 | Application logs (Cloud Run stdout/stderr) | Diagnostics — Performance Data / Other Diagnostic Data | Yes | Server | Yes, where the app logs identifiers (user ID, request ID, IP) | No | Debugging, error investigation, performance monitoring, abuse detection. Lawful basis: legitimate interest (GDPR Art. 6(1)(f)). | 30 days (GCP `_Default` Cloud Logging bucket) | Google Cloud Logging | None |
+| 23 | HTTP request/access logs | Diagnostics — Other Diagnostic Data | Yes | Server middleware | Yes, indirectly — IP, user-agent, URL, timestamp, authenticated user_id where available | No | Security monitoring, abuse detection, debugging, rate-limit enforcement. Legitimate interest. | 30 days (`_Default` bucket) | Google Cloud Logging | None |
+| 24 | Cloud audit logs (Admin Activity, System Event, Access Transparency) | Diagnostics — Other Diagnostic Data | Yes (for staff/admin actions, not for end users) | GCP | Service-account / staff identity performing the action | No | Security audit trail, compliance, incident investigation. Legal obligation + legitimate interest. | 400 days (fixed by GCP `_Required` bucket; not configurable) | Google Cloud Logging | None |
+| 25 | Notification delivery logs | n/a | **Not stored** by Nave. FCM/APNS may retain transient delivery counters server-side; Nave does not persist per-send logs. | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| 26 | Server moderation audit (Layer 1 + Layer 2 results, image SafeSearch scores, snapshot of flagged content) | Diagnostics + User Content (flagged snapshot) | Yes (when content is flagged or queued) | Server | Yes (linked to user_id while account is live; FK becomes NULL after account deletion, with `account_deleted_at` stamped) | No | Platform safety, abuse prevention, appeals. Legitimate interest (GDPR Art. 6(1)(f)); security/integrity exemption (CCPA §1798.105(d)(2)). | **Account lifetime + 1 year** (purged by retention sweeper after `account_deleted_at < NOW() - INTERVAL '1 year'`) | `moderation_queue` | None |
+| 27 | Reported content snapshots (status `reviewed` / `dismissed`) | User Content | Yes (when reported) | Server | Yes (via author + reporter) | No | Moderation review, appeals. Legitimate interest (GDPR); legal compliance (DSA). | **90 days after case closure** (`reviewed_at`), purged by retention sweeper | `user_reports` | None |
+| 28 | Error and crash reports | Diagnostics — Crash Data | Planned (Sentry — not currently wired in repo, but called out in info/info.md) | Mobile + server | Yes, where stack traces include user-scoped data (user ID, session ID, device info, app version) | No | Debugging, stability monitoring. Legitimate interest. | 90 days | Sentry (acting as data processor) | Sentry |
+| 29 | Web JWT (`nave_jwt` localStorage) | Identifiers — User ID | Yes (web sign-in only) | Server | Yes | No | Web admin auth | Until logout / 30 days expiry | Browser localStorage | None |
 
 **Data NOT collected** (verified absent from code/configs):
-- Precise location / GPS — no `react-native-geolocation` or `expo-location`; the iOS `NSLocationWhenInUseUsageDescription` key is present but **empty** (deceptive — `<TODO: remove the key from Info.plist>`).
+- Precise location / GPS — no `react-native-geolocation` or `expo-location`; the iOS `NSLocationWhenInUseUsageDescription` key has been removed from `Info.plist`.
 - Approximate location.
 - Health & fitness data, HealthKit, Google Fit.
 - Financial / payment information — no Stripe, RevenueCat, Apple IAP, Google Play Billing libraries in `package.json`.
@@ -282,11 +292,10 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 | Platform | Permission | Trigger | Usage string | Used for | Graceful degradation |
 |----------|-----------|---------|---------------|----------|----------------------|
 | iOS | `NSPhotoLibraryUsageDescription` | First "upload avatar / cover / group avatar / send photo in chat" tap | "Nave needs access to your photos to set your profile picture." | Picking images from the photo library via `react-native-image-picker` | Yes — the upload flow simply doesn't run without the photo. Other features unaffected. |
-| iOS | `NSLocationWhenInUseUsageDescription` (key present, **empty** string) | Never triggered by app code — no location calls in the codebase. | (empty — must be removed or filled in) | Not used by app code as written. **`<TODO: remove the key from Info.plist before App Store submission — App Review will reject empty usage strings or unjustified usage strings>`** | n/a |
 | iOS | Push notifications (UNUserNotificationCenter via Firebase Messaging) | On first authenticated launch, `registerPushToken()` calls `requestPermission()` | System-controlled; no custom string | Receiving group-message / friend-request / group-invite pushes | Yes — denial just suppresses pushes; user can still toggle in Settings. |
 | iOS | Sign in with Apple capability | Welcome screen "Continue with Apple" button | Apple-controlled flow | Sign-in | Yes — user can choose Google or email instead. |
 | Android | `android.permission.INTERNET` | All network requests | n/a | Network access | Required, not optional. |
-| Android | `POST_NOTIFICATIONS` (Android 13+) | Currently **NOT declared** in `AndroidManifest.xml` — `<TODO: add `<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>` so push permission can be requested on Android 13+>` | n/a | Push | Currently silently fails on Android 13+ targets. |
+| Android | `android.permission.POST_NOTIFICATIONS` (Android 13+) | First authenticated launch — system permission prompt on Android 13+ | n/a | Push delivery (group messages, friend requests, group invites/approvals) | Yes — denial suppresses pushes only; in-app inbox + badge still drive UX. |
 
 ---
 
@@ -304,7 +313,7 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 | Visibility | Avatar & profile: visible to any signed-in user. Parish feed posts and comments: visible to any signed-in user (not parish-restricted by query — `<TODO: confirm whether parish-feed should be restricted to parish members; today the API returns by parish_id with no membership check>`). Group messages: only members of that prayer group. Direct messages between users: not implemented. |
 | Moderation approach | Pre-moderation (auto): see §13. Human review queue (`/admin/moderation/queue`) for queued items. User reports (`/admin/reports/queue`) processed by app admins. |
 | Ownership | User retains ownership; the Terms of Service (`<TODO: ToS not yet drafted>`) should grant Nave a worldwide, royalty-free license to host, display, modify (for moderation/cropping/resizing), and distribute UGC within the app for the purpose of operating the service. |
-| Takedown / DMCA | No DMCA process documented in the repo. `<TODO: designate DMCA agent and add takedown form/email>`. |
+| Takedown / DMCA | DMCA agent: navetakedown@cornerstonedev.co. Takedown email is listed in the support FAQ; `<TODO: register DMCA agent with the U.S. Copyright Office and add a `/dmca` web page with the formal notice format>`. |
 | Storage / CDN | Postgres for text; GCS for images. Signed URLs (V4, 7-day TTL, in-process cached for 6d23h) used for image fetches — there is no public CDN. |
 
 ---
@@ -331,10 +340,36 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 | Session management | 30-day JWT TTL, no refresh-token endpoint, no per-device session tracking, no remote revocation. |
 | Authorization model | Three role tiers: regular user; parish admin (`parish_admins`); app admin (`app_admins`). Parish admins can edit their parish + post announcements + delete content within the parish; app admins have global access to moderation queues, reports, and parish CRUD. Group ownership is per-group via `prayer_groups.admin_id`. |
 | Secret management | GCP Secret Manager; secrets injected into Cloud Run as env vars at deploy. Local `.env` files in repo contain real credentials (DATABASE_URL, SECRET_KEY, FIREBASE_SERVICE_ACCOUNT_JSON, OPENAI_API_KEY, ANTHROPIC_API_KEY). **`<TODO: confirm `.env` files are gitignored and not committed; appdef should NOT be the place that exposes them — verify before publishing>`.** |
-| Vulnerability disclosure | None published. `<TODO: add security@naveapp.co or security.txt before App Store / Play submission>`. |
+| Vulnerability disclosure | navetsecurity@cornerstonedev.co (per `info/info.md`). `<TODO: publish a `/.well-known/security.txt` on naveapp.co pointing to this address>`. |
 | Logging / audit | Stdout structured logs from FastAPI middleware (`api/app/main.py:62-86`); Cloud Logging retains them per GCP defaults. Admin actions (parish CRUD, moderation review, report review) emit info-level logs but are not persisted in a separate audit table. |
 | Backup / recovery | Neon's branch + point-in-time recovery (vendor default). No app-level backup scripts. |
 | Compliance certifications | None claimed in repo. SOC 2, ISO 27001, etc. — `<TODO: do not claim certifications you do not hold>`. |
+
+---
+
+## 12a. Data retention
+
+Authoritative retention policies (source: `info/info.md` plus implementation in `api/app/retention/sweep.py`, schema migration `api/alembic/versions/20260510_0001_retention_cleanup.py`, and Cloud Run Job `nave-retention-sweep` deployed by `.github/workflows/deploy-api.yml`).
+
+| Data type | Linked to user | Purpose | Retention | Legal basis | Enforcement |
+|---|---|---|---|---|---|
+| Moderation action records (`moderation_queue`) | Yes (FK becomes NULL on account deletion; `account_deleted_at` stamped at the same moment) | Platform safety, abuse prevention, appeals | **Account lifetime + 1 year** | Legitimate interest (GDPR Art. 6(1)(f)); security/integrity exemption (CCPA §1798.105(d)(2)) | `sweep_moderation_records` — `DELETE … WHERE account_deleted_at IS NOT NULL AND account_deleted_at < NOW() - INTERVAL '1 year'`. Index `idx_mq_account_deleted`. |
+| Reported content snapshots (`user_reports`) | Yes (via author/reporter) | Moderation review, appeals | **90 days after case closure** (`status IN ('reviewed','dismissed') AND reviewed_at < NOW() - INTERVAL '90 days'`) | Legitimate interest (GDPR); legal compliance (DSA) | `sweep_reported_content`. Index `idx_user_reports_closed`. |
+| Notification records / inbox (`notifications`) | Yes | Delivering platform notifications | **90 days from `created_at`** | Legitimate interest | `sweep_notifications`. Index `idx_notifications_created_at`. |
+| Push notification device tokens (`user_device_tokens`) | Yes | Delivering push notifications | Until logout, account deletion, token invalidation, **or 180 days of inactivity**. `updated_at` is bumped on every successful FCM send (`api/app/utils/push.py`), so an actively-used token never falls out of the window. | Legitimate interest | `sweep_device_tokens` — `DELETE … WHERE updated_at < NOW() - INTERVAL '180 days'`. Index `idx_udt_updated_at`. Tokens shared with: APNS, FCM-Android. |
+| Notification delivery logs | n/a | n/a — Nave does not store per-send delivery logs | n/a | n/a | n/a |
+| Notification preferences (3 user flags + per-group mutes) | Yes | Honoring user opt-in/opt-out | **Account lifetime** | Contract performance | None (cascades on user delete) |
+| Application logs (Cloud Run stdout/stderr) | Yes (where the app logs identifiers — user ID, request ID, IP) | Debugging, error investigation, performance monitoring, abuse detection | **30 days** (GCP `_Default` Cloud Logging bucket) | Legitimate interest (GDPR Art. 6(1)(f)) | GCP-managed. |
+| HTTP request/access logs | Yes, indirectly (IP, user-agent, URL, timestamp, authenticated user_id where available) | Security monitoring, abuse detection, debugging, rate-limit enforcement | **30 days** (`_Default` bucket) | Legitimate interest (security and platform integrity) | GCP-managed. |
+| Cloud audit logs (Admin Activity, System Event, Access Transparency) | Yes for staff/admin actions; not for end users (service-account or staff identity) | Security audit trail, compliance, incident investigation | **400 days** (fixed by GCP `_Required` bucket; not configurable) | Legal obligation, legitimate interest | GCP-managed. |
+| Error and crash reports | Yes, where stack traces include user-scoped data (user ID, session ID, device info, app version) | Debugging, stability monitoring | **90 days** | Legitimate interest | Sentry (data processor) — **not yet wired into the codebase**; planned per `info/info.md`. |
+
+**Retention sweeper.** `python -m app.retention.sweep` runs as Cloud Run Job `nave-retention-sweep`, triggered daily by Cloud Scheduler (one-time setup outside CI). Each policy `DELETE`s in batches of 1000 with a per-run cap of 10,000 batches; failures in one policy are logged and the next policy still runs. The job is idempotent and re-entrant.
+
+**Out of scope for the sweeper** (handled by other mechanisms or explicitly indefinite):
+- Live user-generated content (posts, comments, group messages, reactions) — retained for the lifetime of the account; soft-deleted posts retained until manual purge; group messages can be hard-deleted by author or admin or by report-review removal.
+- Avatars, group avatars, parish covers, group-message images in GCS — best-effort delete on replace; orphaned objects need a separate GCS lifecycle policy (`<TODO: add GCS lifecycle rule for orphaned avatars>`).
+- Friendships, blocks, group memberships — cascade-deleted with the user row.
 
 ---
 
@@ -344,11 +379,11 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 |------|--------|
 | **GDPR** | Likely applicable if any EU data subjects use the app (the App Store listing will be globally visible by default). Lawful bases: account/feed/chat = contract performance; moderation logs + admin action logs = legitimate interest. **Required follow-ups:** designate a controller, name an EU representative if no EU establishment, enable data-subject access/erasure requests beyond the in-app delete flow (export endpoint not implemented — `<TODO: build /users/me/export>`), document Standard Contractual Clauses with each subprocessor (Neon, Google, OpenAI, Anthropic). |
 | **CCPA / CPRA** | Likely applicable if app reaches CA users at threshold. No "sale" of personal information observed (no ad networks, no data brokers). Sharing with subprocessors only. **Required follow-ups:** "Do Not Sell or Share" link on the marketing site (currently absent), GPC honoring (web), sensitive PI (birthday → age) handling disclosure, opt-out of advertising (none — n/a). |
-| **COPPA** | App declares 13+. Hard age gate at sign-up (client-side only — `<TODO: add server-side gate>`). Marketing must not target under-13 (current copy looks compliant). If a child slips through, you must delete on becoming-aware — current `DELETE /users/me` covers this for self-deletion; admin-initiated deletion is not implemented (`<TODO: build admin tooling for child-account deletion>`). |
+| **COPPA** | App declares 13+. Hard age gate at sign-up: enforced **client-side** in `ProfileSetupScreen.tsx` and **server-side** in `api/app/models/user.py` via the `birthday_meets_minimum_age` Pydantic validator (`MIN_AGE_YEARS = 13`); a direct API caller setting `birthday` to a younger date is rejected 422. Marketing must not target under-13 (current copy looks compliant). If a child slips through, you must delete on becoming-aware — current `DELETE /users/me` covers this for self-deletion; admin-initiated deletion is not implemented (`<TODO: build admin tooling for child-account deletion>`). |
 | **HIPAA** | Not applicable. No protected health information collected, no provider relationship. (Users may discuss health in prayer requests; this is user-generated content, not PHI under HIPAA's definition because Nave is not a covered entity / business associate.) |
 | **PCI DSS** | Not applicable. No card data is processed by Nave. |
 | **Accessibility** | No explicit a11y audit. RN components + Ionicons + system fonts mixed with custom fonts (CormorantGaramond, Montserrat). `<TODO: define WCAG 2.1 AA target and audit>`. |
-| **Export compliance** | The app uses HTTPS/TLS only (no proprietary cryptography, no encryption with non-standard algorithms). Apple "Export Compliance" answer: **uses standard encryption only** (HTTPS) → eligible for the standard exemption. `<TODO: confirm by checking ITSAppUsesNonExemptEncryption — currently not set in Info.plist; default is "uses encryption"; recommend setting `ITSAppUsesNonExemptEncryption = NO`>`. |
+| **Export compliance** | The app uses HTTPS/TLS only (no proprietary cryptography, no encryption with non-standard algorithms). `ITSAppUsesNonExemptEncryption = false` is set in `app/ios/Nave/Info.plist:40`, so the app claims the standard-encryption exemption. |
 | **HealthKit / Google Fit** | Not used. No entitlements, no SDK references. |
 
 ---
@@ -390,17 +425,17 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 | Keywords field | ≤ 100 char comma-separated, no spaces, singular | `catholic,prayer,parish,rosary,bible,scripture,faith,christian,community,group,mass,saint,church` (90 chars) |
 | Primary category | — | **Lifestyle** (best match in App Store taxonomy for faith-and-community apps) |
 | Secondary category | — | **Social Networking** |
-| Support URL | — | `<TODO: e.g. https://naveapp.co/support>` |
+| Support URL | — | https://naveapp.co/support |
 | Marketing URL | — | https://naveapp.co |
 | Privacy policy URL | — | https://naveapp.co/privacy (currently a `ComingSoonPage` — `<TODO: publish before submission>`) |
 | Copyright | — | `© 2026 Cornerstone Dev LLC` |
 | First / last name (App Review contact) | — | `<TODO>` |
-| Email (App Review contact) | — | `<TODO>` |
+| Email (App Review contact) | — | nave@cornerstonedev.co (`<TODO: confirm a named human contact>`) |
 | Phone (App Review contact) | — | `<TODO>` |
 | Demo account | — | Required because the app requires sign-in. `<TODO: provision a reviewer test account with a pre-set parish, joined groups, and an incoming friend request to demo features>` |
 | Review notes | — | Draft: "Nave is a Catholic prayer-community app. Sign in with the provided demo account, then tap Community for the parish feed, Groups for prayer-group discovery, Friends for the friends tab, and Profile for settings. All UGC is auto-moderated; flagged content is held until reviewed by our admin team. The app contains no in-app purchases and no third-party advertising." |
 | Sign in with Apple | — | Required (app offers Google + email sign-in) — already implemented. |
-| Export compliance (`ITSAppUsesNonExemptEncryption`) | — | `NO` (standard HTTPS only) — `<TODO: add this key to Info.plist>` |
+| Export compliance (`ITSAppUsesNonExemptEncryption`) | — | `false` (standard HTTPS only) — set in `Info.plist`. |
 | Content rights declaration | — | Yes, we have rights to all third-party content (none used in-app). |
 | In-app purchases | — | None. |
 | Required device capabilities | — | `arm64`. |
@@ -419,11 +454,11 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 | Full description | ≤ 4000 char | Same as §16.4. |
 | App category | — | **Social** (closest fit; alternatives: Lifestyle) |
 | Tags | — | `Faith`, `Community`, `Prayer`, `Catholic` |
-| Contact email | — | `<TODO>` |
+| Contact email | — | nave@cornerstonedev.co |
 | Contact phone | — | Optional. `<TODO>` |
 | Contact website | — | https://naveapp.co |
 | Privacy policy URL | — | https://naveapp.co/privacy (publish first) |
-| Account deletion URL | — | `<TODO: must publish a public URL where users can request account deletion without installing the app — required by Google Play 2024 policy>` |
+| Account deletion URL | — | https://naveapp.co/delete (`web/src/pages/DeletePage.tsx` — public sign-in gate that routes authenticated users to `/manage` for deletion). Satisfies Google Play 2024 "deletion URL accessible without installing the app" rule. |
 | Ads declaration | — | **Contains no ads.** |
 | Target age | — | 13+. |
 | Data Safety form (per data type) | — | See §6 — every collected type is **required** for app function and **encrypted in transit**. None is "shared" with third parties for purposes outside service-provider role. Users can request data deletion in-app (Settings → Delete Account). |
@@ -495,9 +530,10 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 - Secondary (current homepage): "Sign In" → `/signin` (web admin / management)
 
 ### 16.8 Footer links inventory
+- Support → `/support` (FAQ + `nave@cornerstonedev.co` contact)
 - Privacy Policy → `/privacy` (currently `ComingSoonPage`)
 - Terms of Service → `/terms` (currently `ComingSoonPage`)
-- (Recommended additions: Support, Contact, DMCA, App Store badge, Play Store badge.)
+- (Recommended additions: DMCA notice page, App Store badge, Play Store badge once apps ship.)
 
 ---
 
@@ -529,7 +565,7 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 
 ## 18. Open source attributions
 
-> Top-level production dependencies that ship with the apps. Generate the full transitive list with `npm ls --prod --all` (mobile + web) before submission and import that list into the in-app "Licenses" screen (currently not implemented — `<TODO: build a Licenses screen in mobile, e.g. using react-native-oss-licenses>`).
+> Top-level production dependencies that ship with the apps. The mobile app already exposes a curated "Open Source Notices" screen at Settings → About Nave → Open Source Notices (`app/src/screens/profile/OpenSourceNoticesScreen.tsx`); the same content is the source for the lists below. Before submission, regenerate the full transitive list with `npm ls --prod --all` (mobile + web) and reconcile the on-screen list against it.
 
 **Mobile (production)** — all MIT unless noted:
 - `react-native` (MIT) — Meta
@@ -565,35 +601,44 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no
 
 ## 19. Open questions and known gaps
 
-The following items could not be verified from code/configs and need a human to fill in before legal documents and store listings ship:
+Resolved since the previous draft (kept here as a record):
 
-1. **Legal entity full address** — required by both Apple Developer Program and Google Play Console.
-2. **Support email** and **support URL** — required for both stores.
-3. **Privacy contact / DPO email** — required for the privacy policy and Apple/Play submissions.
-4. **Apple App Store Connect contact** (first/last name, email, phone) — placeholder only in `eas.json`.
-5. **Apple Team ID, ASC App ID, Apple ID for submissions** — placeholders in `eas.json`.
-6. **Privacy policy and ToS publication.** `/privacy` and `/terms` currently render `ComingSoonPage`. Stores will reject submission until these are live.
-7. **Account deletion URL** — Google Play requires a public URL; in-app deletion exists, but the URL is not published.
-8. **`Info.plist` cleanup before submission:**
-   - Remove or fill in `NSLocationWhenInUseUsageDescription` (currently empty key — App Review will reject).
-   - Add `ITSAppUsesNonExemptEncryption = NO` if you intend to claim the standard-encryption exemption.
+- ✅ Legal entity full address — 418 Broadway Ste N, Albany, NY 12207, US.
+- ✅ Support email + support URL — `nave@cornerstonedev.co`, `naveapp.co/support` (live; `web/src/pages/SupportPage.tsx`).
+- ✅ Privacy contact, DMCA agent, vulnerability-disclosure address — `naveprivacy@cornerstonedev.co`, `navetakedown@cornerstonedev.co`, `navetsecurity@cornerstonedev.co`.
+- ✅ Account deletion URL — `naveapp.co/delete` (live; `web/src/pages/DeletePage.tsx`).
+- ✅ Server-side age gate — `birthday_meets_minimum_age` validator on `UserUpdate` rejects <13 birthdays.
+- ✅ `ITSAppUsesNonExemptEncryption = false` declared in `Info.plist`.
+- ✅ Empty `NSLocationWhenInUseUsageDescription` key removed from `Info.plist`.
+- ✅ Android `POST_NOTIFICATIONS` permission declared in `AndroidManifest.xml`.
+- ✅ Notifications retention — 90 days, swept by `nave-retention-sweep` Cloud Run Job.
+- ✅ Moderation queue retention — account lifetime + 1 year via `account_deleted_at` stamping (migration `20260510_0001_retention_cleanup`); FK changed to `ON DELETE SET NULL` so audit rows survive user deletion until purge.
+- ✅ Reported-content retention — 90 days after case closure (`reviewed_at`), swept.
+- ✅ Device-token retention — 180 days inactivity, with `updated_at` bumped on every successful FCM send (`api/app/utils/push.py`).
+- ✅ Server log retention documented — 30 days for `_Default` Cloud Logging bucket; 400 days for `_Required` audit bucket.
+- ✅ In-app Open Source Notices screen — built (`OpenSourceNoticesScreen.tsx`), reachable from Settings → About Nave.
+
+Still outstanding before legal documents and store listings ship:
+
+1. **Apple App Store Connect contact** (first/last name, email, phone) — placeholder only in `eas.json`.
+2. **Apple Team ID, ASC App ID, Apple ID for submissions** — placeholders in `eas.json`.
+3. **Privacy policy and ToS publication.** `/privacy` and `/terms` currently render `ComingSoonPage`. Stores will reject submission until these are live.
+4. **`Info.plist` final-pass:**
    - Update `aps-environment` from `development` to `production` for App Store builds (typically handled by archive build settings — verify).
-   - Confirm `NSPrivacyCollectedDataTypes` is filled in to match §6.
-9. **`AndroidManifest.xml` cleanup:**
-   - Add `<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>` for Android 13+ push.
-   - Bump `versionCode` and `versionName` before each submission (currently `1` / `"1.0"`).
-10. **Server-side age gate** — currently only enforced on mobile client (`ProfileSetupScreen.tsx`). A direct API caller can set `birthday` to any date.
-11. **Firebase user-deletion on account deletion** — `DELETE /users/me` removes the Postgres user record but does not delete the Firebase Auth user via `firebase_admin.auth.delete_user`. Confirm whether this is intentional (linkage by email allows re-sign-in to recreate) or should be added.
-12. **Notifications retention** — `notifications` table has no automatic purge. Define a TTL (e.g. delete read rows after 30 days) and document.
-13. **Moderation queue retention** — same: indefinite. Define purge policy.
-14. **Server log retention** — Cloud Logging defaults; document the actual project-level retention bucket.
-15. **DMCA agent** — designate, register with the Copyright Office if hosting UGC at scale, and link a takedown form/email.
-16. **Vulnerability disclosure** — publish `security@naveapp.co` and a `/.well-known/security.txt`.
-17. **EU representative / SCCs with subprocessors** — required if EU users are in scope.
-18. **Beta testers / TestFlight terms** — separate concern but commonly bundled with App Store submission.
-19. **`api/.env` and `api/.env.local`** — these contain real production secrets. Confirm they are not committed (`.gitignore` claims `.env` is ignored at `api/.gitignore`); the values in this audit must NOT be republished anywhere (they are paraphrased here as placeholders, never exposed verbatim).
-20. **Parish-feed authorization scope** — today `GET /parishes/{id}/posts` returns posts to any signed-in user, not just members of that parish. Confirm whether this is intentional or a bug.
-21. **In-app Open Source Notices screen** — not yet built; required content is in §18.
+   - Confirm `NSPrivacyCollectedDataTypes` is filled in to match §6 — currently empty.
+5. **`AndroidManifest.xml`:** bump `versionCode` and `versionName` before each submission (currently `1` / `"1.0"`).
+6. **Firebase user-deletion on account deletion** — `DELETE /users/me` removes the Postgres user record but does not delete the Firebase Auth user via `firebase_admin.auth.delete_user`. Confirm whether this is intentional (linkage by email allows re-sign-in to recreate) or should be added.
+7. **DMCA registration** — `navetakedown@cornerstonedev.co` is designated; register the agent with the U.S. Copyright Office before public scaling and add a `/dmca` web page describing the formal-notice format.
+8. **`/.well-known/security.txt`** — publish on naveapp.co pointing at `navetsecurity@cornerstonedev.co`.
+9. **EU representative / SCCs with subprocessors** — required if EU users are in scope (Neon, Google, OpenAI, Anthropic, Sentry).
+10. **Sentry wiring** — `info/info.md` documents a 90-day Sentry retention but Sentry is not yet integrated in either app or backend. Decide whether to wire it up; if not, drop the line from the privacy policy.
+11. **GDPR data-subject export endpoint** — `/users/me/export` not implemented; in-app delete works, but bulk export does not.
+12. **Beta testers / TestFlight terms** — separate concern but commonly bundled with App Store submission.
+13. **`api/.env` and `api/.env.local`** — these contain real production secrets. Confirm they are gitignored (`api/.gitignore`); the values in this audit must NOT be republished anywhere (they are paraphrased, never exposed verbatim).
+14. **Parish-feed authorization scope** — today `GET /parishes/{id}/posts` returns posts to any signed-in user, not just members of that parish. Confirm whether this is intentional or a bug.
+15. **GCS lifecycle policy for orphaned avatars/images** — best-effort delete on replace exists; orphans accumulate without a bucket-level lifecycle rule.
+16. **Admin tooling for child-account deletion** — required by COPPA when becoming aware of a sub-13 user; only self-deletion is implemented today.
+17. **Cloud Scheduler job for `nave-retention-sweep`** — the Cloud Run Job is deployed by CI but the daily schedule must be configured once out-of-band (`gcloud scheduler jobs create`).
 
 ---
 
@@ -609,4 +654,9 @@ The following items could not be verified from code/configs and need a human to 
 | **Corrected** | Old doc listed prayer-group categories incorrectly (e.g. "rosary" appeared in old CLAUDE.md context). The actual DB constraint is `bible_study | mens_group | womens_group | young_adults | families | devotional | general`. |
 | **Removed (no longer accurate)** | Implication that Nave is a "free mobile app" only — there is also a marketing + admin website at naveapp.co. |
 | **Clarified** | Minimum age is 13, not "older teenagers / adults" — there is an explicit hard gate. |
-| **Clarified** | Account deletion is reachable in-app (mobile only) and irreversibly cascades user data, with a special-case admin-reassignment for groups they own. |
+| **Clarified** | Account deletion is reachable in-app (mobile) and via `naveapp.co/delete` (web sign-in gate → `/manage`). It cascades user data with special-case admin-reassignment for groups they own; `moderation_queue` rows survive on `SET NULL` and are stamped `account_deleted_at` for the +1-year retention window. |
+| **Added (2026-05-10 revision)** | §12a Data retention table covering all data types and matching `info/info.md`. New retention sweeper (`api/app/retention/sweep.py`) deployed as Cloud Run Job `nave-retention-sweep`. Migration `0022_retention_cleanup` re-points the `moderation_queue.user_id` FK to `ON DELETE SET NULL`, adds `account_deleted_at`, and indexes the timestamp columns each policy filters on. `api/app/utils/push.py` now bumps `user_device_tokens.updated_at` on every successful FCM send so the 180-day inactivity sweep tracks real activity. `api/app/routers/users.py` (`DELETE /users/me`) stamps `account_deleted_at` on the user's moderation rows before deleting the user. |
+| **Added (2026-05-10 revision)** | Server-side 13+ age gate (`birthday_meets_minimum_age` validator on `UserUpdate`); previously only client-enforced. |
+| **Added (2026-05-10 revision)** | Web `/support` page (FAQ + contact email), web `/delete` page (deletion gateway), in-app Open Source Notices screen — all previously listed as TODOs. |
+| **Added (2026-05-10 revision)** | Concrete contact addresses (support, privacy, DMCA, vulnerability disclosure) and full business address. |
+| **Added (2026-05-10 revision)** | `ITSAppUsesNonExemptEncryption = false` in iOS `Info.plist`; Android `POST_NOTIFICATIONS` permission; empty `NSLocationWhenInUseUsageDescription` key removed. |
