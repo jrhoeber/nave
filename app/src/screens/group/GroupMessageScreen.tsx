@@ -180,7 +180,7 @@ function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss
   const handleHeart = useCallback(async () => {
     if (!message) return;
     onDismiss();
-    await toggleReaction(groupId, message.id, '❤️');
+    await toggleReaction(groupId, message.id);
   }, [groupId, message, toggleReaction, onDismiss]);
 
   const handleCopy = useCallback(() => {
@@ -203,7 +203,7 @@ function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss
 
   if (!message) return null;
 
-  const hasReacted = message.reactions.some((r) => r.emoji === '❤️' && r.userReacted);
+  const hasReacted = message.userReacted;
 
   const menuItems: Array<{ label: string; icon: string; onPress: () => void; destructive?: boolean }> = [];
 
@@ -415,27 +415,22 @@ const MessageBubble = React.memo(function MessageBubble({ message, groupId, isMe
         ) : null}
 
         {/* Reactions — simple heart like parish posts */}
-        {!message.pending && (() => {
-          const heartCount = message.reactions.reduce((sum, r) => sum + r.count, 0);
-          const hasReacted = message.reactions.some((r) => r.userReacted);
-          if (heartCount === 0) return null;
-          return (
-            <TouchableOpacity
-              style={msgStyles.heartRow}
-              onPress={() => isMember && toggleReaction(groupId, message.id, '❤️')}
-              activeOpacity={0.6}
-            >
-              <Icon
-                name={hasReacted ? 'heart' : 'heart-outline'}
-                size={14}
-                color={hasReacted ? '#dc2626' : Colors.textSecondary}
-              />
-              <Text style={[msgStyles.heartCount, hasReacted && msgStyles.heartCountActive]}>
-                {heartCount}
-              </Text>
-            </TouchableOpacity>
-          );
-        })()}
+        {!message.pending && message.reactionCount > 0 && (
+          <TouchableOpacity
+            style={msgStyles.heartRow}
+            onPress={() => isMember && toggleReaction(groupId, message.id)}
+            activeOpacity={0.6}
+          >
+            <Icon
+              name={message.userReacted ? 'heart' : 'heart-outline'}
+              size={14}
+              color={message.userReacted ? '#dc2626' : Colors.textSecondary}
+            />
+            <Text style={[msgStyles.heartCount, message.userReacted && msgStyles.heartCountActive]}>
+              {message.reactionCount}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </Pressable>
   );

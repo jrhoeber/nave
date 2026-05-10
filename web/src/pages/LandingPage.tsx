@@ -184,7 +184,7 @@ const steps = [
     n: 'III',
     title: 'Pray together',
     body:
-      'Share intentions in group chat, react to a brother or sister’s post with a 🙏, and grow in friendship with fellow Catholics.',
+      'Share intentions in group chat, encourage a brother or sister with a heart on their post, and grow in friendship with fellow Catholics.',
   },
 ] as const;
 
@@ -237,7 +237,7 @@ const features = [
     ),
     title: 'Your parish, in your pocket',
     description:
-      'A community feed for your home parish. Share reflections and prayer requests, react with 👍 🙏 ❤️, and follow comment threads with fellow parishioners.',
+      'A community feed for your home parish. Share reflections and prayer requests, give a heart, and follow comment threads with fellow parishioners.',
   },
   {
     icon: (
@@ -260,7 +260,7 @@ const features = [
     ),
     title: 'Group chat that feels human',
     description:
-      'Every group has its own chat space — share intentions and photos, react with 🙏 ❤️ 😂, and mute groups when life gets loud.',
+      'Every group has its own chat space — share intentions and photos, send a heart on someone’s message, and mute groups when life gets loud.',
   },
   {
     icon: (

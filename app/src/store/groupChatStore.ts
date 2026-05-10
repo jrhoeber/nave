@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GroupMessage } from '../types';
-import { api, mapGroupMessage, mapMessageReaction } from '../lib/apiClient';
+import { api, mapGroupMessage } from '../lib/apiClient';
 import { useAuthStore } from './authStore';
 import { usePrayerStore } from './prayerStore';
 
@@ -89,7 +89,7 @@ interface GroupChatState {
   sendMessage: (groupId: string, content: string) => Promise<{ pendingReview: boolean }>;
   sendImageMessage: (groupId: string, uri: string, type: string, caption?: string) => Promise<void>;
   deleteMessage: (groupId: string, messageId: string) => Promise<void>;
-  toggleReaction: (groupId: string, messageId: string, emoji: string) => Promise<void>;
+  toggleReaction: (groupId: string, messageId: string) => Promise<void>;
   clearGroup: (groupId: string) => void;
   markGroupAsRead: (groupId: string) => void;
   hydrateLastRead: () => Promise<void>;
@@ -166,7 +166,8 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
       },
       content,
       imageUrl: undefined,
-      reactions: [],
+      reactionCount: 0,
+      userReacted: false,
       createdAt: new Date().toISOString(),
     };
 
@@ -210,7 +211,8 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
       },
       content: caption,
       imageUrl: uri,
-      reactions: [],
+      reactionCount: 0,
+      userReacted: false,
       createdAt: new Date().toISOString(),
       pending: true,
     };
@@ -251,62 +253,46 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     }
   },
 
-  toggleReaction: async (groupId: string, messageId: string, emoji: string) => {
+  toggleReaction: async (groupId: string, messageId: string) => {
     const messages = get().messagesByGroup[groupId] ?? [];
     const msg = messages.find((m) => m.id === messageId);
     if (!msg) return;
 
-    // Optimistic update: toggle locally
-    // Branch on userReacted — the emoji may already exist from other users.
-    const existingIdx = msg.reactions.findIndex((r) => r.emoji === emoji);
-    let optimisticReactions = msg.reactions.map((r) => ({ ...r }));
-    if (existingIdx >= 0 && optimisticReactions[existingIdx].userReacted) {
-      // User is removing their reaction
-      const r = optimisticReactions[existingIdx];
-      if (r.count <= 1) {
-        optimisticReactions = optimisticReactions.filter((_, i) => i !== existingIdx);
-      } else {
-        optimisticReactions[existingIdx] = { ...r, count: r.count - 1, userReacted: false };
-      }
-    } else if (existingIdx >= 0) {
-      // Emoji exists from other users — user is adding their reaction
-      const r = optimisticReactions[existingIdx];
-      optimisticReactions[existingIdx] = { ...r, count: r.count + 1, userReacted: true };
-    } else {
-      // New emoji
-      optimisticReactions = [
-        ...optimisticReactions,
-        { emoji: emoji as any, count: 1, userReacted: true },
-      ];
-    }
+    const willReact = !msg.userReacted;
+    const optimistic = {
+      reactionCount: msg.reactionCount + (willReact ? 1 : -1),
+      userReacted: willReact,
+    };
 
     set((s) => ({
       messagesByGroup: {
         ...s.messagesByGroup,
         [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
-          m.id === messageId ? { ...m, reactions: optimisticReactions } : m,
+          m.id === messageId ? { ...m, ...optimistic } : m,
         ),
       },
     }));
 
     try {
-      const rawReactions = await api.toggleGroupMessageReaction(groupId, messageId, emoji);
-      const reactions = rawReactions.map(mapMessageReaction);
+      const raw = await api.toggleGroupMessageReaction(groupId, messageId);
       set((s) => ({
         messagesByGroup: {
           ...s.messagesByGroup,
           [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
-            m.id === messageId ? { ...m, reactions } : m,
+            m.id === messageId
+              ? { ...m, reactionCount: raw.reaction_count, userReacted: raw.user_reacted }
+              : m,
           ),
         },
       }));
     } catch {
-      // Rollback to original
       set((s) => ({
         messagesByGroup: {
           ...s.messagesByGroup,
           [groupId]: (s.messagesByGroup[groupId] ?? []).map((m) =>
-            m.id === messageId ? { ...m, reactions: msg.reactions } : m,
+            m.id === messageId
+              ? { ...m, reactionCount: msg.reactionCount, userReacted: msg.userReacted }
+              : m,
           ),
         },
       }));

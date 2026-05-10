@@ -19,7 +19,7 @@ import { ParishPostCard } from '../../components/parish/ParishPostCard';
 import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParishComment, mapParishPost } from '../../lib/apiClient';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
-import type { ParishComment, ParishPost, ParishReactionType } from '../../types';
+import type { ParishComment, ParishPost } from '../../types';
 import type { ParishPostDetailRouteProp, RootNavigationProp } from '../../types/navigation';
 
 export function ParishPostDetailScreen() {
@@ -187,72 +187,60 @@ export function ParishPostDetailScreen() {
   }, []);
 
   // Toggle comment reaction
-  const handleToggleCommentReaction = useCallback(async (commentId: string, reaction: ParishReactionType) => {
-    // Optimistic update
-    setComments((prev) => prev.map((c) => {
-      if (c.id !== commentId) return c;
-      const alreadyReacted = c.userReactions.includes(reaction);
-      return {
+  const handleToggleCommentReaction = useCallback(async (commentId: string) => {
+    const snapshot = comments.find((c) => c.id === commentId);
+    const wasReacted = snapshot?.userReacted ?? false;
+    setComments((prev) => prev.map((c) =>
+      c.id !== commentId ? c : {
         ...c,
-        reactions: { ...c.reactions, [reaction]: (c.reactions[reaction] ?? 0) + (alreadyReacted ? -1 : 1) },
-        userReactions: alreadyReacted
-          ? c.userReactions.filter((r) => r !== reaction)
-          : [...c.userReactions, reaction],
-      };
-    }));
+        reactionCount: c.reactionCount + (wasReacted ? -1 : 1),
+        userReacted: !wasReacted,
+      }
+    ));
     try {
-      const raw = await api.toggleParishCommentReaction(parishId, postId, commentId, reaction);
+      const raw = await api.toggleParishCommentReaction(parishId, postId, commentId);
       setComments((prev) => prev.map((c) =>
         c.id !== commentId ? c : {
           ...c,
-          reactions: raw.reactions as Record<ParishReactionType, number>,
-          userReactions: raw.user_reactions as ParishReactionType[],
+          reactionCount: raw.reaction_count,
+          userReacted: raw.user_reacted,
         }
       ));
     } catch {
-      // Rollback
-      setComments((prev) => prev.map((c) => {
-        if (c.id !== commentId) return c;
-        const alreadyReacted = c.userReactions.includes(reaction);
-        return {
+      setComments((prev) => prev.map((c) =>
+        c.id !== commentId ? c : {
           ...c,
-          reactions: { ...c.reactions, [reaction]: (c.reactions[reaction] ?? 0) + (alreadyReacted ? -1 : 1) },
-          userReactions: alreadyReacted
-            ? c.userReactions.filter((r) => r !== reaction)
-            : [...c.userReactions, reaction],
-        };
-      }));
+          reactionCount: snapshot?.reactionCount ?? c.reactionCount,
+          userReacted: wasReacted,
+        }
+      ));
     }
-  }, [parishId, postId]);
+  }, [parishId, postId, comments]);
 
   // Toggle post reaction (for the post card at top)
-  const handleTogglePostReaction = useCallback(async (postId_: string, reaction: ParishReactionType) => {
+  const handleTogglePostReaction = useCallback(async (postId_: string) => {
     if (!post) return;
-    const alreadyReacted = post.userReactions.includes(reaction);
+    const wasReacted = post.userReacted;
+    const snapshotCount = post.reactionCount;
     setPost({
       ...post,
-      reactions: { ...post.reactions, [reaction]: (post.reactions[reaction] ?? 0) + (alreadyReacted ? -1 : 1) },
-      userReactions: alreadyReacted
-        ? post.userReactions.filter((r) => r !== reaction)
-        : [...post.userReactions, reaction],
+      reactionCount: snapshotCount + (wasReacted ? -1 : 1),
+      userReacted: !wasReacted,
     });
     try {
-      const raw = alreadyReacted
-        ? await api.removeParishPostReaction(parishId, postId_, reaction)
-        : await api.addParishPostReaction(parishId, postId_, reaction);
+      const raw = wasReacted
+        ? await api.removeParishPostReaction(parishId, postId_)
+        : await api.addParishPostReaction(parishId, postId_);
       setPost((prev) => prev ? {
         ...prev,
-        reactions: raw.reactions as Record<ParishReactionType, number>,
-        userReactions: raw.user_reactions as ParishReactionType[],
+        reactionCount: raw.reaction_count,
+        userReacted: raw.user_reacted,
       } : prev);
     } catch {
-      // Rollback
       setPost((prev) => prev ? {
         ...prev,
-        reactions: { ...prev.reactions, [reaction]: (prev.reactions[reaction] ?? 0) + (alreadyReacted ? 1 : -1) },
-        userReactions: alreadyReacted
-          ? [...prev.userReactions, reaction]
-          : prev.userReactions.filter((r) => r !== reaction),
+        reactionCount: snapshotCount,
+        userReacted: wasReacted,
       } : prev);
     }
   }, [parishId, post]);
@@ -303,8 +291,8 @@ export function ParishPostDetailScreen() {
 
   const renderComment = ({ item, index }: { item: ParishComment; index: number }) => {
     const isLast = index === comments.length - 1;
-    const hasReacted = item.userReactions.length > 0;
-    const heartCount = (item.reactions['❤️'] ?? 0) + (item.reactions['👍'] ?? 0);
+    const hasReacted = item.userReacted;
+    const heartCount = item.reactionCount;
 
     return (
       <View style={styles.commentSection}>
@@ -334,7 +322,7 @@ export function ParishPostDetailScreen() {
             <View style={styles.commentActions}>
               <TouchableOpacity
                 style={[styles.heartChip, hasReacted && styles.heartChipActive]}
-                onPress={() => handleToggleCommentReaction(item.id, hasReacted ? item.userReactions[0] : '❤️')}
+                onPress={() => handleToggleCommentReaction(item.id)}
                 activeOpacity={0.6}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >

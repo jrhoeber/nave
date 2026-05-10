@@ -11,12 +11,6 @@ class GroupMessageAuthor(BaseModel):
     avatar_url: Optional[str] = None
 
 
-class MessageReactionSummary(BaseModel):
-    emoji: str
-    count: int
-    user_reacted: bool
-
-
 class GroupMessageCreate(BaseModel):
     content: Optional[str] = None
     image_url: Optional[str] = None
@@ -43,7 +37,8 @@ class GroupMessageResponse(BaseModel):
     author: GroupMessageAuthor
     content: Optional[str] = None
     image_url: Optional[str] = None
-    reactions: list[MessageReactionSummary] = []
+    reaction_count: int = 0
+    user_reacted: bool = False
     created_at: datetime
 
 
@@ -52,13 +47,6 @@ class GroupMessagesResponse(BaseModel):
     next_cursor: Optional[str] = None
 
 
-class AddReactionBody(BaseModel):
-    emoji: str
-
-    @field_validator("emoji")
-    @classmethod
-    def valid_emoji(cls, v: str) -> str:
-        allowed = {"👍", "🙏", "❤️", "😂", "😮", "🥲"}
-        if v not in allowed:
-            raise ValueError(f"Emoji must be one of: {', '.join(sorted(allowed))}")
-        return v
+class ReactionToggleResponse(BaseModel):
+    reaction_count: int
+    user_reacted: bool

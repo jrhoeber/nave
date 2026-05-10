@@ -10,12 +10,11 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.utils.storage import get_avatar_signed_url
 from app.models.group_message import (
-    AddReactionBody,
     GroupMessageCreate,
     GroupMessageResponse,
     GroupMessagesResponse,
     GroupMessageAuthor,
-    MessageReactionSummary,
+    ReactionToggleResponse,
 )
 
 router = APIRouter()
@@ -41,31 +40,22 @@ async def _require_member(conn, group_id: str, user_id: str) -> None:
 
 async def _fetch_message_reactions(
     conn, message_ids: list[str], viewer_id: str
-) -> dict[str, list[MessageReactionSummary]]:
+) -> dict[str, tuple[int, bool]]:
+    """Returns {message_id: (reaction_count, user_reacted)}."""
     if not message_ids:
         return {}
     rows = await conn.fetch(
         """
-        SELECT message_id, emoji, COUNT(*) AS cnt,
+        SELECT message_id, COUNT(*) AS cnt,
                BOOL_OR(user_id = $2::uuid) AS user_reacted
         FROM group_message_reactions
         WHERE message_id = ANY($1::uuid[])
-        GROUP BY message_id, emoji
+        GROUP BY message_id
         """,
         message_ids,
         viewer_id,
     )
-    result: dict[str, list[MessageReactionSummary]] = {}
-    for r in rows:
-        mid = str(r["message_id"])
-        result.setdefault(mid, []).append(
-            MessageReactionSummary(
-                emoji=r["emoji"],
-                count=r["cnt"],
-                user_reacted=r["user_reacted"],
-            )
-        )
-    return result
+    return {str(r["message_id"]): (r["cnt"], r["user_reacted"]) for r in rows}
 
 
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -103,13 +93,15 @@ def _build_message(row: dict, reactions_map: dict, avatar_cache: dict | None = N
         display_name=row["display_name"],
         avatar_url=resolved_avatar,
     )
+    count, reacted = reactions_map.get(str(row["id"]), (0, False))
     return GroupMessageResponse(
         id=str(row["id"]),
         group_id=str(row["group_id"]),
         author=author,
         content=row.get("content"),
         image_url=_resolve_image_url(row.get("image_url")),
-        reactions=reactions_map.get(str(row["id"]), []),
+        reaction_count=count,
+        user_reacted=reacted,
         created_at=row["created_at"],
     )
 
@@ -385,12 +377,11 @@ async def delete_message(
 
 @router.post(
     "/{group_id}/messages/{message_id}/reactions",
-    response_model=list[MessageReactionSummary],
+    response_model=ReactionToggleResponse,
 )
 async def toggle_reaction(
     group_id: str,
     message_id: str,
-    body: AddReactionBody,
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
@@ -407,29 +398,27 @@ async def toggle_reaction(
     existing = await conn.fetchval(
         """
         SELECT 1 FROM group_message_reactions
-        WHERE message_id = $1 AND user_id = $2 AND emoji = $3
+        WHERE message_id = $1 AND user_id = $2
         """,
         message_id,
         current_user["id"],
-        body.emoji,
     )
     if existing:
         await conn.execute(
             """
             DELETE FROM group_message_reactions
-            WHERE message_id = $1 AND user_id = $2 AND emoji = $3
+            WHERE message_id = $1 AND user_id = $2
             """,
             message_id,
             current_user["id"],
-            body.emoji,
         )
     else:
         await conn.execute(
-            "INSERT INTO group_message_reactions (message_id, user_id, emoji) VALUES ($1, $2, $3)",
+            "INSERT INTO group_message_reactions (message_id, user_id) VALUES ($1, $2)",
             message_id,
             current_user["id"],
-            body.emoji,
         )
 
     reactions_map = await _fetch_message_reactions(conn, [message_id], str(current_user["id"]))
-    return reactions_map.get(message_id, [])
+    count, reacted = reactions_map.get(message_id, (0, False))
+    return ReactionToggleResponse(reaction_count=count, user_reacted=reacted)

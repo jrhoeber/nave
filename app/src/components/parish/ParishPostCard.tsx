@@ -4,7 +4,7 @@ import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Avatar } from '../ui/Avatar';
 import { ReactionBar } from './ReactionBar';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
-import type { ParishPost, ParishReactionType } from '../../types';
+import type { ParishPost } from '../../types';
 
 interface ParishPostCardProps {
   post: ParishPost;
@@ -13,7 +13,7 @@ interface ParishPostCardProps {
   onEdit: (post: ParishPost) => void;
   onDelete: (post: ParishPost) => void;
   onReport: (post: ParishPost) => void;
-  onToggleReaction: (postId: string, reaction: ParishReactionType) => void;
+  onToggleReaction: (postId: string) => void;
   onPress?: () => void;
   onAuthorPress?: (userId: string) => void;
   isLast?: boolean;
@@ -113,8 +113,8 @@ function ParishPostCardImpl({
           </View>
           <Text style={styles.postContent}>{post.content}</Text>
           <ReactionBar
-            reactions={post.reactions}
-            userReactions={post.userReactions}
+            reactionCount={post.reactionCount}
+            userReacted={post.userReacted}
             itemId={post.id}
             commentCount={post.commentCount}
             onToggleReaction={onToggleReaction}
@@ -134,8 +134,8 @@ export const ParishPostCard = React.memo(ParishPostCardImpl, (prev, next) => {
     a.content === b.content &&
     a.commentCount === b.commentCount &&
     a.isAnnouncement === b.isAnnouncement &&
-    a.reactions === b.reactions &&
-    a.userReactions === b.userReactions &&
+    a.reactionCount === b.reactionCount &&
+    a.userReacted === b.userReacted &&
     prev.currentUserId === next.currentUserId &&
     prev.isParishAdmin === next.isParishAdmin &&
     prev.isLast === next.isLast &&

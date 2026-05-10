@@ -142,9 +142,8 @@ CREATE INDEX IF NOT EXISTS idx_parish_posts_user   ON parish_posts (user_id);
 CREATE TABLE IF NOT EXISTS parish_post_reactions (
     post_id    UUID NOT NULL REFERENCES parish_posts(id) ON DELETE CASCADE,
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    reaction   TEXT NOT NULL CHECK (reaction IN ('👍', '🙏', '❤️')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (post_id, user_id, reaction)
+    PRIMARY KEY (post_id, user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_parish_post_reactions_post ON parish_post_reactions (post_id);
@@ -173,9 +172,8 @@ CREATE INDEX IF NOT EXISTS idx_ppc_user          ON parish_post_comments (user_i
 CREATE TABLE IF NOT EXISTS parish_post_comment_reactions (
     comment_id UUID NOT NULL REFERENCES parish_post_comments(id) ON DELETE CASCADE,
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    reaction   TEXT NOT NULL CHECK (reaction IN ('👍', '🙏', '❤️')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (comment_id, user_id, reaction)
+    PRIMARY KEY (comment_id, user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_ppcr_comment ON parish_post_comment_reactions (comment_id);
@@ -227,10 +225,8 @@ CREATE INDEX IF NOT EXISTS idx_gm_moderation_status ON group_messages (moderatio
 CREATE TABLE IF NOT EXISTS group_message_reactions (
     message_id UUID NOT NULL REFERENCES group_messages(id) ON DELETE CASCADE,
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    emoji      VARCHAR(10) NOT NULL
-                   CHECK (emoji IN ('👍', '🙏', '❤️', '😂', '😮', '🥲')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (message_id, user_id, emoji)
+    PRIMARY KEY (message_id, user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_gmr_message ON group_message_reactions (message_id);

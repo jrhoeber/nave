@@ -2,7 +2,6 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
 
 from app.database import get_db
 from app.dependencies import get_current_user, is_parish_admin
@@ -19,12 +18,6 @@ from app.utils.storage import get_avatar_signed_url
 logger = logging.getLogger("nave.api")
 
 router = APIRouter()
-
-REACTION_EMOJIS = ["👍", "🙏", "❤️"]
-
-
-class ToggleReactionBody(BaseModel):
-    reaction: str
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -49,30 +42,22 @@ def _resolve_avatars(rows) -> dict[str, str | None]:
 
 async def _fetch_comment_reactions(
     conn, comment_ids: list, user_id: str
-) -> dict:
-    """Returns {comment_id: {"reactions": {emoji: count}, "user_reactions": [...]}}"""
+) -> dict[str, tuple[int, bool]]:
+    """Returns {comment_id: (reaction_count, user_reacted)}."""
     if not comment_ids:
         return {}
     rows = await conn.fetch(
         """
-        SELECT comment_id, reaction, COUNT(*) AS cnt,
+        SELECT comment_id, COUNT(*) AS cnt,
                BOOL_OR(user_id = $2) AS user_reacted
         FROM parish_post_comment_reactions
         WHERE comment_id = ANY($1::uuid[])
-        GROUP BY comment_id, reaction
+        GROUP BY comment_id
         """,
         comment_ids,
         user_id,
     )
-    result: dict = {}
-    for row in rows:
-        cid = str(row["comment_id"])
-        if cid not in result:
-            result[cid] = {"reactions": {e: 0 for e in REACTION_EMOJIS}, "user_reactions": []}
-        result[cid]["reactions"][row["reaction"]] = row["cnt"]
-        if row["user_reacted"]:
-            result[cid]["user_reactions"].append(row["reaction"])
-    return result
+    return {str(r["comment_id"]): (r["cnt"], r["user_reacted"]) for r in rows}
 
 
 async def _verify_post(conn, parish_id: str, post_id: str) -> None:
@@ -200,7 +185,7 @@ async def list_comments(
             )
 
         cid = str(r["id"])
-        rd = reaction_data.get(cid, {})
+        count, reacted = reaction_data.get(cid, (0, False))
         comments.append(
             ParishCommentResponse(
                 id=cid,
@@ -217,8 +202,8 @@ async def list_comments(
                 reply_to_author=reply_to_author,
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
-                reactions=rd.get("reactions", {e: 0 for e in REACTION_EMOJIS}),
-                user_reactions=rd.get("user_reactions", []),
+                reaction_count=count,
+                user_reacted=reacted,
             )
         )
 
@@ -438,7 +423,7 @@ async def update_comment(
 
     cid = str(row["id"])
     rd = await _fetch_comment_reactions(conn, [comment_id], str(current_user["id"]))
-    entry = rd.get(cid, {})
+    count, reacted = rd.get(cid, (0, False))
 
     return ParishCommentResponse(
         id=cid,
@@ -455,8 +440,8 @@ async def update_comment(
         reply_to_author=reply_to_author,
         created_at=row["created_at"],
         updated_at=row["updated_at"],
-        reactions=entry.get("reactions", {e: 0 for e in REACTION_EMOJIS}),
-        user_reactions=entry.get("user_reactions", []),
+        reaction_count=count,
+        user_reacted=reacted,
     )
 
 
@@ -518,16 +503,9 @@ async def toggle_comment_reaction(
     parish_id: str,
     post_id: str,
     comment_id: str,
-    body: ToggleReactionBody,
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    if body.reaction not in REACTION_EMOJIS:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid reaction. Must be one of: {REACTION_EMOJIS}",
-        )
-
     # Verify comment exists and is visible
     exists = await conn.fetchval(
         """
@@ -544,33 +522,30 @@ async def toggle_comment_reaction(
     existing = await conn.fetchval(
         """
         SELECT 1 FROM parish_post_comment_reactions
-        WHERE comment_id = $1 AND user_id = $2 AND reaction = $3
+        WHERE comment_id = $1 AND user_id = $2
         """,
         comment_id,
         current_user["id"],
-        body.reaction,
     )
     if existing:
         await conn.execute(
             """
             DELETE FROM parish_post_comment_reactions
-            WHERE comment_id = $1 AND user_id = $2 AND reaction = $3
+            WHERE comment_id = $1 AND user_id = $2
             """,
             comment_id,
             current_user["id"],
-            body.reaction,
         )
     else:
         await conn.execute(
             """
-            INSERT INTO parish_post_comment_reactions (comment_id, user_id, reaction)
-            VALUES ($1, $2, $3)
+            INSERT INTO parish_post_comment_reactions (comment_id, user_id)
+            VALUES ($1, $2)
             """,
             comment_id,
             current_user["id"],
-            body.reaction,
         )
 
     data = await _fetch_comment_reactions(conn, [comment_id], str(current_user["id"]))
-    entry = data.get(comment_id, {"reactions": {e: 0 for e in REACTION_EMOJIS}, "user_reactions": []})
-    return ReactionResponse(reactions=entry["reactions"], user_reactions=entry["user_reactions"])
+    count, reacted = data.get(comment_id, (0, False))
+    return ReactionResponse(reaction_count=count, user_reacted=reacted)

@@ -119,7 +119,7 @@
 - **Third parties.** GCS (cover photos), Cloud Vision SafeSearch (cover photo moderated).
 
 ### 4.5 Parish community feed
-- **What it does.** Members see a chronological feed of parish posts (text only, no images on posts). Parish admins can flag a post as an announcement. Reactions (👍 🙏 ❤️). Per-post comment threads (flat with reply pointer; reactions on comments). Soft-delete via `status='Deleted'`. Reporters can report a post via kebab menu.
+- **What it does.** Members see a chronological feed of parish posts (text only, no images on posts). Parish admins can flag a post as an announcement. Heart reaction (toggle). Per-post comment threads (flat with reply pointer; heart reactions on comments). Soft-delete via `status='Deleted'`. Reporters can report a post via kebab menu.
 - **Surfaces.** M (`screens/parish/ParishScreen.tsx`, `ParishPostDetailScreen.tsx`); B (`/parishes/{id}/posts` GET/POST, PATCH/DELETE, `/parishes/{id}/posts/{id}/reactions`, `/parishes/{id}/posts/{id}/comments` and reactions).
 - **Data touched.** Post text (≤ no length limit in DB; client UX TBD), comments (1–1000 chars per `parish_post_comments` CHECK), reactions, author user_id.
 - **Moderation.** Every post and every comment passes through Layer 1 (OpenAI omni-moderation-latest) + Layer 2 (Claude Haiku 4.5 with `policy.md` system prompt). Decision: `allow` → status `Posted`; `block` → 400 to client, recorded in `moderation_queue` for audit; `queue` → status `Pending`, hidden from feed until admin approves.
@@ -131,7 +131,7 @@
 - **Third parties.** GCS (avatar), Cloud Vision SafeSearch (avatar moderated), FCM (invite/approval/welcome push notifications).
 
 ### 4.7 Group chat
-- **What it does.** Each prayer group has an inverted message list. Text messages (≤2000 chars in DB) and image attachments (JPEG/PNG/WebP, ≤10 MB). Reactions: 👍 🙏 ❤️ 😂 😮 🥲. Polling: `?after=` returns messages newer than a timestamp (mobile polls every ~3s while screen focused). Members can delete their own messages; admins can delete any. Mute group → user stops receiving push for new messages.
+- **What it does.** Each prayer group has an inverted message list. Text messages (≤2000 chars in DB) and image attachments (JPEG/PNG/WebP, ≤10 MB). Heart reaction (toggle). Polling: `?after=` returns messages newer than a timestamp (mobile polls every ~3s while screen focused). Members can delete their own messages; admins can delete any. Mute group → user stops receiving push for new messages.
 - **Surfaces.** M (`screens/group/GroupMessageScreen.tsx`); B (`/prayer-groups/{id}/messages` GET/POST, `/messages/upload-image` POST, `/messages/{id}` DELETE, `/messages/{id}/reactions` POST toggle, `/notifications/prayer-groups/{id}/mute`).
 - **Data touched.** Message text + image; reactions; per-(user, group) mute state.
 - **Moderation.** Text → two-layer text pipeline; on `block` HTTP 400 to client; on `queue` message is created with `moderation_status='pending'` and hidden from list queries (`AND (gm.moderation_status IS NULL OR gm.moderation_status = 'approved')`). Image → Cloud Vision SafeSearch BEFORE upload completes; on `block` or `review` returns HTTP 422 and writes to `moderation_queue`.
@@ -196,7 +196,7 @@
 | 9 | Location (city / region free text) | User Content — Other User Content | Optional | User input | Yes | No | App functionality | Until account deletion | `users.location` | None |
 | 10 | Posts (parish feed text) | User Content — Other User Content | Optional | User-generated | Yes | No | Core functionality | Until soft-delete (status='Deleted'), then retained indefinitely in DB unless purged | `parish_posts` | OpenAI Moderation API (text only, transient); Anthropic Claude API (text only, transient — see note) |
 | 11 | Comments (on parish posts) | User Content — Other User Content | Optional | User-generated | Yes | No | Core functionality | Same as posts | `parish_post_comments` | OpenAI + Anthropic (transient) |
-| 12 | Reactions (emoji on posts/comments/messages) | Usage Data — Product Interaction | Yes (when used) | User action | Yes | No | App functionality | Indefinite | `parish_post_reactions`, `parish_post_comment_reactions`, `group_message_reactions` | None |
+| 12 | Reactions (heart on posts/comments/messages) | Usage Data — Product Interaction | Yes (when used) | User action | Yes | No | App functionality | Indefinite | `parish_post_reactions`, `parish_post_comment_reactions`, `group_message_reactions` | None |
 | 13 | Group messages (text + image) | User Content — Messages, Photos | Optional | User-generated | Yes | No | Core functionality (private chat within prayer groups) | Indefinite (user can delete own; admin can delete any). Hard-deleted on review remove. | `group_messages`, GCS `group_messages/<group_id>/<msg_id>.<ext>` | OpenAI + Anthropic (text); Cloud Vision SafeSearch (image) |
 | 14 | Prayer-group memberships | Usage Data — Product Interaction | Yes | User action | Yes | No | App functionality | Indefinite | `prayer_group_members` | None |
 | 15 | Friend list | Identifiers — User ID | Yes (when used) | User action | Yes | No | App functionality | Indefinite (user can remove) | `friendships`, `friend_edges` | None |
@@ -308,7 +308,7 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, an
 
 | Topic | Detail |
 |------|--------|
-| What users can create | Profile (display name, username, bio, avatar). Parish posts (text). Comments on parish posts (1–1000 chars). Group messages (text ≤2000 chars and/or image ≤10 MB JPEG/PNG/WebP). Reactions (fixed emoji set). Prayer groups (name, description, category, schedule, group avatar). Friend requests, blocks, reports. |
+| What users can create | Profile (display name, username, bio, avatar). Parish posts (text). Comments on parish posts (1–1000 chars). Group messages (text ≤2000 chars and/or image ≤10 MB JPEG/PNG/WebP). Heart reactions on posts, comments, and messages. Prayer groups (name, description, category, schedule, group avatar). Friend requests, blocks, reports. |
 | Visibility | Avatar & profile: visible to any signed-in user. Parish feed posts and comments: visible to any signed-in user (the API returns by `parish_id` with no membership check — this is intentional, so users can see other parishes' feeds). Group messages: only members of that prayer group. Direct messages between users: not implemented. |
 | Moderation approach | Pre-moderation (auto): see §13. Human review queue (`/admin/moderation/queue`) for queued items. User reports (`/admin/reports/queue`) processed by app admins. |
 | Ownership | User retains ownership; the Terms of Service (`<TODO: ToS not yet drafted>`) should grant Nave a worldwide, royalty-free license to host, display, modify (for moderation/cropping/resizing), and distribute UGC within the app for the purpose of operating the service. |
@@ -479,7 +479,7 @@ Authoritative retention policies (source: implementation in `api/app/retention/s
 |-----------|----------|-------------|
 | Chapel front | **Parish Community** | Choose your home parish and connect with a local feed. Read parish announcements, share reflections, and engage with parish life. |
 | Group of figures | **Prayer Groups** | Browse, join, or start small groups: bible study, men's, women's, young adults, families, and more. Public or private — your choice. |
-| Speech bubble | **Group Chat** | Every group has a dedicated chat. Share intentions, react with emoji, send a photo from a retreat — and stay close between meetings. |
+| Speech bubble | **Group Chat** | Every group has a dedicated chat. Share intentions, send a heart, share a photo from a retreat — and stay close between meetings. |
 | Heart + cross | **Friends** | Find Catholics by name, send friend requests, and build a network of people who pray with you. See mutual friends and shared groups. |
 | Bell | **Quiet by default** | Mute groups you don't need pings from. Choose which notifications you receive — friend requests, group messages, or both. |
 | Shield | **A welcoming space** | Every post and comment is screened by a Catholic-aware moderation policy. Crisis support resources surface when someone's struggling. |
@@ -493,7 +493,7 @@ Authoritative retention policies (source: implementation in `api/app/retention/s
 >
 > **Join prayer groups.** Browse and join small groups — bible study, men's, women's, young adults, families. Or start your own. Public groups are open to anyone; private groups are for your inner circle. Each group has its own chat for staying close between meetings.
 >
-> **Pray together.** Share intentions, react with emoji, send a photo from a retreat. Group chat keeps your community connected, and you can mute any group anytime.
+> **Pray together.** Share intentions, send a heart, share a photo from a retreat. Group chat keeps your community connected, and you can mute any group anytime.
 >
 > **Make Catholic friends.** Search by name, send a friend request, see mutual friends and shared groups. Build a network of people who pray with you.
 >
@@ -545,7 +545,7 @@ Authoritative retention policies (source: implementation in `api/app/retention/s
 | Parish post | A text post on the parish community feed. |
 | Announcement | A parish post flagged `is_announcement=true`; only parish admins can post one. |
 | Comment | A reply to a parish post (1–1000 chars). May reply to another comment via `reply_to_id`. |
-| Reaction | An emoji reaction (👍 🙏 ❤️ for posts/comments; six emojis for group messages). |
+| Reaction | A single heart toggle on parish posts, parish post comments, or group messages. |
 | Group message | A message in a prayer group chat (text and/or image). |
 | Friend / friend request | Bilateral relationship between two users. Requests are pending → accepted/rejected. |
 | Block | One-directional hide-and-cut: removes friendship and prevents further interaction. |

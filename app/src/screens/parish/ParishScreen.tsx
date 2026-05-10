@@ -39,7 +39,7 @@ import { useAuthStore } from '../../store/authStore';
 import { api, ApiError, mapParish, mapParishPost } from '../../lib/apiClient';
 import { getCachedParishSync, setCachedParish } from '../../lib/parishCache';
 import { CardList, Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
-import type { Parish, ParishPost, ParishReactionType } from '../../types';
+import type { Parish, ParishPost } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -710,45 +710,36 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     setLoadingMore(false);
   }, [fetchPosts, nextCursor]);
 
-  const handleToggleReaction = useCallback(async (postId: string, reaction: ParishReactionType) => {
+  const handleToggleReaction = useCallback(async (postId: string) => {
     const parishId_ = parishId;
-    setPosts((prev) => prev.map((p) => {
-      if (p.id !== postId) return p;
-      const alreadyReacted = p.userReactions.includes(reaction);
-      return {
+    const snapshot = posts.find((p) => p.id === postId);
+    const wasReacted = snapshot?.userReacted ?? false;
+    setPosts((prev) => prev.map((p) =>
+      p.id !== postId ? p : {
         ...p,
-        reactions: { ...p.reactions, [reaction]: (p.reactions[reaction] ?? 0) + (alreadyReacted ? -1 : 1) },
-        userReactions: alreadyReacted
-          ? p.userReactions.filter((r) => r !== reaction)
-          : [...p.userReactions, reaction],
-      };
-    }));
+        reactionCount: p.reactionCount + (wasReacted ? -1 : 1),
+        userReacted: !wasReacted,
+      }
+    ));
     try {
-      const snapshot = posts.find((p) => p.id === postId);
-      const alreadyReacted = snapshot?.userReactions.includes(reaction) ?? false;
-      const raw = alreadyReacted
-        ? await api.removeParishPostReaction(parishId_, postId, reaction)
-        : await api.addParishPostReaction(parishId_, postId, reaction);
+      const raw = wasReacted
+        ? await api.removeParishPostReaction(parishId_, postId)
+        : await api.addParishPostReaction(parishId_, postId);
       setPosts((prev) => prev.map((p) =>
         p.id !== postId ? p : {
           ...p,
-          reactions: raw.reactions as Record<ParishReactionType, number>,
-          userReactions: raw.user_reactions as ParishReactionType[],
+          reactionCount: raw.reaction_count,
+          userReacted: raw.user_reacted,
         }
       ));
     } catch {
-      // roll back
-      setPosts((prev) => prev.map((p) => {
-        if (p.id !== postId) return p;
-        const alreadyReacted = p.userReactions.includes(reaction);
-        return {
+      setPosts((prev) => prev.map((p) =>
+        p.id !== postId ? p : {
           ...p,
-          reactions: { ...p.reactions, [reaction]: (p.reactions[reaction] ?? 0) + (alreadyReacted ? -1 : 1) },
-          userReactions: alreadyReacted
-            ? p.userReactions.filter((r) => r !== reaction)
-            : [...p.userReactions, reaction],
-        };
-      }));
+          reactionCount: snapshot?.reactionCount ?? p.reactionCount,
+          userReacted: wasReacted,
+        }
+      ));
     }
   }, [parishId, posts]);
 

@@ -60,8 +60,8 @@ class ParishPostResponse(BaseModel):
     status: ParishPostStatus
     is_announcement: bool = False
     created_at: datetime
-    reactions: dict[str, int] = {}
-    user_reactions: list[str] = []
+    reaction_count: int = 0
+    user_reacted: bool = False
     comment_count: int = 0
 
 
@@ -71,8 +71,8 @@ class ParishPostsResponse(BaseModel):
 
 
 class ReactionResponse(BaseModel):
-    reactions: dict[str, int]
-    user_reactions: list[str]
+    reaction_count: int
+    user_reacted: bool
 
 
 # ─── Comments ──────────────────────────────────────────────────────────────────
@@ -96,8 +96,8 @@ class ParishCommentResponse(BaseModel):
     reply_to_author: Optional[ParishPostAuthor] = None
     created_at: datetime
     updated_at: datetime
-    reactions: dict[str, int] = {}
-    user_reactions: list[str] = []
+    reaction_count: int = 0
+    user_reacted: bool = False
 
 
 class ParishCommentsResponse(BaseModel):

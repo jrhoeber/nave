@@ -2,48 +2,36 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Spacing, Typography } from '../../theme';
-import type { ParishReactionType } from '../../types';
 
 interface ReactionBarProps {
-  reactions: Record<ParishReactionType, number>;
-  userReactions: ParishReactionType[];
+  reactionCount: number;
+  userReacted: boolean;
   itemId: string;
   commentCount?: number;
-  onToggleReaction: (itemId: string, reaction: ParishReactionType) => void;
+  onToggleReaction: (itemId: string) => void;
   onCommentPress?: () => void;
 }
 
 export function ReactionBar({
-  reactions, userReactions, itemId, commentCount,
+  reactionCount, userReacted, itemId, commentCount,
   onToggleReaction, onCommentPress,
 }: ReactionBarProps) {
-  const heartCount = (reactions['❤️'] ?? 0) + (reactions['👍'] ?? 0);
-  const hasReacted = userReactions.length > 0;
-
-  const handleHeartPress = () => {
-    if (hasReacted) {
-      onToggleReaction(itemId, userReactions[0]);
-    } else {
-      onToggleReaction(itemId, '❤️');
-    }
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.heartContainer}>
         <TouchableOpacity
           style={styles.actionBtn}
-          onPress={handleHeartPress}
+          onPress={() => onToggleReaction(itemId)}
           activeOpacity={0.6}
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
         >
           <Icon
-            name={hasReacted ? 'heart' : 'heart-outline'}
+            name={userReacted ? 'heart' : 'heart-outline'}
             size={16}
-            color={hasReacted ? '#dc2626' : Colors.textSecondary}
+            color={userReacted ? '#dc2626' : Colors.textSecondary}
           />
-          {heartCount > 0 && (
-            <Text style={[styles.countText, hasReacted && styles.countTextActive]}>{heartCount}</Text>
+          {reactionCount > 0 && (
+            <Text style={[styles.countText, userReacted && styles.countTextActive]}>{reactionCount}</Text>
           )}
         </TouchableOpacity>
       </View>

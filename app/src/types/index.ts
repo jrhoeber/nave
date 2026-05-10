@@ -116,8 +116,6 @@ export interface Parish {
 
 // ─── Parish Posts ─────────────────────────────────────────────────────────────
 
-export type ParishReactionType = '👍' | '🙏' | '❤️';
-
 export interface ParishPostAuthor {
   id: string;
   username: string;
@@ -133,8 +131,8 @@ export interface ParishPost {
   status: 'Pending' | 'Posted' | 'Deleted' | 'Rejected';
   isAnnouncement: boolean;
   createdAt: string;
-  reactions: Record<ParishReactionType, number>;
-  userReactions: ParishReactionType[];
+  reactionCount: number;
+  userReacted: boolean;
   commentCount: number;
 }
 
@@ -150,21 +148,11 @@ export interface ParishComment {
   replyToAuthor?: ParishPostAuthor;
   createdAt: string;
   updatedAt: string;
-  reactions: Record<ParishReactionType, number>;
-  userReactions: ParishReactionType[];
+  reactionCount: number;
+  userReacted: boolean;
 }
 
 // ─── Group Messages ───────────────────────────────────────────────────────────
-
-export type GroupMessageReactionEmoji = '👍' | '🙏' | '❤️' | '😂' | '😮' | '🥲';
-
-export const GROUP_REACTION_EMOJIS: GroupMessageReactionEmoji[] = ['👍', '🙏', '❤️', '😂', '😮', '🥲'];
-
-export interface MessageReaction {
-  emoji: GroupMessageReactionEmoji;
-  count: number;
-  userReacted: boolean;
-}
 
 export interface GroupMessageAuthor {
   id: string;
@@ -179,7 +167,8 @@ export interface GroupMessage {
   author: GroupMessageAuthor;
   content?: string;
   imageUrl?: string;
-  reactions: MessageReaction[];
+  reactionCount: number;
+  userReacted: boolean;
   createdAt: string;
   pending?: boolean;
 }

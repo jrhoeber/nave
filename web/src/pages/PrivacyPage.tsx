@@ -180,7 +180,7 @@ export function PrivacyPage() {
               <li>
                 <strong>User-generated content.</strong> Parish posts, comments on parish posts,
                 group chat messages, prayer-group metadata (name, description, category,
-                schedule), and emoji reactions you add.
+                schedule), and reactions you add.
               </li>
               <li>
                 <strong>Relationships and safety.</strong> Friend requests, friendships, prayer
