@@ -316,6 +316,12 @@ function Footer() {
             >
               Terms of Service
             </Link>
+            <Link
+              to="/dmca"
+              className="text-sm text-white/40 hover:text-nave-accent transition-colors duration-200"
+            >
+              DMCA
+            </Link>
           </nav>
 
           <span className="text-xs text-white/25">
