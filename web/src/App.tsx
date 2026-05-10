@@ -8,10 +8,11 @@ import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { UserReportsPage } from './pages/UserReportsPage';
 import { ManageParishesPage } from './pages/ManageParishesPage';
 import { ManageUsersPage } from './pages/ManageUsersPage';
-import { ComingSoonPage } from './pages/ComingSoonPage';
 import { SupportPage } from './pages/SupportPage';
 import { DeletePage } from './pages/DeletePage';
 import { DmcaPage } from './pages/DmcaPage';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 
@@ -73,8 +74,8 @@ export default function App() {
           <Route path="/support" element={<SupportPage />} />
           <Route path="/delete" element={<DeletePage />} />
           <Route path="/dmca" element={<DmcaPage />} />
-          <Route path="/privacy" element={<ComingSoonPage title="Privacy Policy" />} />
-          <Route path="/terms" element={<ComingSoonPage title="Terms of Service" />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

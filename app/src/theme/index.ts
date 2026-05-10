@@ -1,5 +1,5 @@
 export const Colors = {
-  // Primary palette — deep navy evokes the church nave
+  // Primary palette
   primary: '#1a2b4a',
   primaryLight: '#2d4270',
   primaryDark: '#111111',

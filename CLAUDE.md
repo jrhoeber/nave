@@ -270,7 +270,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | `auth/ProfileSetupScreen.tsx` | New-user setup: full name, birthday (13+ gate), bio — routed to from RootNavigator when `birthday` is null |
 | `auth/ParishSetupScreen.tsx` | Parish selection (required to complete sign-up) — routed to when `parishId` is null |
 | `group/GroupScreen.tsx` | Prayer group discovery list; loads mute status per group |
-| `group/GroupMessageScreen.tsx` | Group chat: inverted message list, emoji reactions, message input; 3-second polling for new messages when focused; tapping group name navigates to GroupProfile |
+| `group/GroupMessageScreen.tsx` | Group chat: inverted message list, heart reactions, message input; 3-second polling for new messages when focused; tapping group name navigates to GroupProfile |
 | `group/GroupProfileScreen.tsx` | Group profile: avatar (admin-uploadable), name, category, parish, info, mute/share/leave/delete actions, member list with admin remove |
 | `group/CreateGroupScreen.tsx` | Create group form |
 | `parish/ParishScreen.tsx` | Parish community view |
@@ -301,7 +301,6 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | `Splash.tsx` | Startup splash screen |
 | `feed/PostCard.tsx` | Post card used in feed and group views |
 | `parish/ParishPostCard.tsx` | Parish post card with reactions, comment count, kebab menu |
-| `parish/ReactionBar.tsx` | Reusable emoji reaction bar for posts and comments |
 | `prayer/PrayerGroupCard.tsx` | Prayer group card for list views |
 | `prayer/EditPrayerGroupModal.tsx` | pageSheet modal for admins to edit group name, description, category, schedule, privacy |
 

@@ -22,6 +22,7 @@ export default {
       },
       fontFamily: {
         serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        garamond: ['"Cormorant Garamond"', 'Georgia', 'serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
       },
       animation: {
