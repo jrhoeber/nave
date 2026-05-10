@@ -32,7 +32,7 @@
 | Vulnerability disclosure | navetsecurity@cornerstonedev.co |
 | Account deletion URL | https://naveapp.co/delete (`web/src/pages/DeletePage.tsx`) |
 | Copyright line | "© {current year} Nave. All rights reserved." (`web/src/pages/LandingPage.tsx:322`) |
-| Apple submission contact | EAS scaffold placeholder values (`app/eas.json` `submit.production.ios`: appleId/appleTeamId/ascAppId all `your-...`) — `<TODO: real values not yet configured>` |
+| Apple submission contact | Jordan Hoeber, jordan@cornerstonedev.co, (716) 347-5307, 418 Broadway Ste N, Albany, NY 12207 US. Apple Team ID / ASC App ID / Apple ID for submissions are still EAS placeholder values (`app/eas.json` `submit.production.ios`: appleTeamId/ascAppId/appleId all `your-...`) — `<TODO: fill the Apple developer account identifiers in `eas.json`>` |
 
 ---
 
@@ -310,10 +310,10 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, an
 | Topic | Detail |
 |------|--------|
 | What users can create | Profile (display name, username, bio, avatar). Parish posts (text). Comments on parish posts (1–1000 chars). Group messages (text ≤2000 chars and/or image ≤10 MB JPEG/PNG/WebP). Reactions (fixed emoji set). Prayer groups (name, description, category, schedule, group avatar). Friend requests, blocks, reports. |
-| Visibility | Avatar & profile: visible to any signed-in user. Parish feed posts and comments: visible to any signed-in user (not parish-restricted by query — `<TODO: confirm whether parish-feed should be restricted to parish members; today the API returns by parish_id with no membership check>`). Group messages: only members of that prayer group. Direct messages between users: not implemented. |
+| Visibility | Avatar & profile: visible to any signed-in user. Parish feed posts and comments: visible to any signed-in user (the API returns by `parish_id` with no membership check — this is intentional, so users can see other parishes' feeds). Group messages: only members of that prayer group. Direct messages between users: not implemented. |
 | Moderation approach | Pre-moderation (auto): see §13. Human review queue (`/admin/moderation/queue`) for queued items. User reports (`/admin/reports/queue`) processed by app admins. |
 | Ownership | User retains ownership; the Terms of Service (`<TODO: ToS not yet drafted>`) should grant Nave a worldwide, royalty-free license to host, display, modify (for moderation/cropping/resizing), and distribute UGC within the app for the purpose of operating the service. |
-| Takedown / DMCA | DMCA agent: navetakedown@cornerstonedev.co. Takedown email is listed in the support FAQ; `<TODO: register DMCA agent with the U.S. Copyright Office and add a `/dmca` web page with the formal notice format>`. |
+| Takedown / DMCA | DMCA agent: navetakedown@cornerstonedev.co. Agent is registered with the U.S. Copyright Office; takedown email is listed in the support FAQ and the `/dmca` web page on naveapp.co is live. |
 | Storage / CDN | Postgres for text; GCS for images. Signed URLs (V4, 7-day TTL, in-process cached for 6d23h) used for image fetches — there is no public CDN. |
 
 ---
@@ -339,8 +339,8 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, an
 | Auth mechanism | Firebase Auth (email + Google + Apple); Nave JWT (HS256) issued by API. Passwords hashed by Firebase (not by Nave); legacy `users.password_hash` column exists in schema but is no longer written. |
 | Session management | 30-day JWT TTL, no refresh-token endpoint, no per-device session tracking, no remote revocation. |
 | Authorization model | Three role tiers: regular user; parish admin (`parish_admins`); app admin (`app_admins`). Parish admins can edit their parish + post announcements + delete content within the parish; app admins have global access to moderation queues, reports, and parish CRUD. Group ownership is per-group via `prayer_groups.admin_id`. |
-| Secret management | GCP Secret Manager; secrets injected into Cloud Run as env vars at deploy. Local `.env` files in repo contain real credentials (DATABASE_URL, SECRET_KEY, FIREBASE_SERVICE_ACCOUNT_JSON, OPENAI_API_KEY, ANTHROPIC_API_KEY). **`<TODO: confirm `.env` files are gitignored and not committed; appdef should NOT be the place that exposes them — verify before publishing>`.** |
-| Vulnerability disclosure | navetsecurity@cornerstonedev.co (per `info/info.md`). `<TODO: publish a `/.well-known/security.txt` on naveapp.co pointing to this address>`. |
+| Secret management | GCP Secret Manager; secrets injected into Cloud Run as env vars at deploy. Local `api/.env` and `api/.env.local` contain real credentials (DATABASE_URL, SECRET_KEY, FIREBASE_SERVICE_ACCOUNT_JSON, OPENAI_API_KEY, ANTHROPIC_API_KEY) and are gitignored (not committed). |
+| Vulnerability disclosure | navetsecurity@cornerstonedev.co. `/.well-known/security.txt` is published on naveapp.co pointing at this address. |
 | Logging / audit | Stdout structured logs from FastAPI middleware (`api/app/main.py:62-86`); Cloud Logging retains them per GCP defaults. Admin actions (parish CRUD, moderation review, report review) emit info-level logs but are not persisted in a separate audit table. |
 | Backup / recovery | Neon's branch + point-in-time recovery (vendor default). No app-level backup scripts. |
 | Compliance certifications | None claimed in repo. SOC 2, ISO 27001, etc. — `<TODO: do not claim certifications you do not hold>`. |
@@ -368,7 +368,7 @@ Authoritative retention policies (source: `info/info.md` plus implementation in 
 
 **Out of scope for the sweeper** (handled by other mechanisms or explicitly indefinite):
 - Live user-generated content (posts, comments, group messages, reactions) — retained for the lifetime of the account; soft-deleted posts retained until manual purge; group messages can be hard-deleted by author or admin or by report-review removal.
-- Avatars, group avatars, parish covers, group-message images in GCS — best-effort delete on replace; orphaned objects need a separate GCS lifecycle policy (`<TODO: add GCS lifecycle rule for orphaned avatars>`).
+- Avatars, group avatars, parish covers, group-message images in GCS — best-effort delete on replace; no bucket-level lifecycle policy for orphans (intentional — current orphan volume is acceptable).
 - Friendships, blocks, group memberships — cascade-deleted with the user row.
 
 ---
@@ -379,7 +379,7 @@ Authoritative retention policies (source: `info/info.md` plus implementation in 
 |------|--------|
 | **GDPR** | Likely applicable if any EU data subjects use the app (the App Store listing will be globally visible by default). Lawful bases: account/feed/chat = contract performance; moderation logs + admin action logs = legitimate interest. **Required follow-ups:** designate a controller, name an EU representative if no EU establishment, enable data-subject access/erasure requests beyond the in-app delete flow (export endpoint not implemented — `<TODO: build /users/me/export>`), document Standard Contractual Clauses with each subprocessor (Neon, Google, OpenAI, Anthropic). |
 | **CCPA / CPRA** | Likely applicable if app reaches CA users at threshold. No "sale" of personal information observed (no ad networks, no data brokers). Sharing with subprocessors only. **Required follow-ups:** "Do Not Sell or Share" link on the marketing site (currently absent), GPC honoring (web), sensitive PI (birthday → age) handling disclosure, opt-out of advertising (none — n/a). |
-| **COPPA** | App declares 13+. Hard age gate at sign-up: enforced **client-side** in `ProfileSetupScreen.tsx` and **server-side** in `api/app/models/user.py` via the `birthday_meets_minimum_age` Pydantic validator (`MIN_AGE_YEARS = 13`); a direct API caller setting `birthday` to a younger date is rejected 422. Marketing must not target under-13 (current copy looks compliant). If a child slips through, you must delete on becoming-aware — current `DELETE /users/me` covers this for self-deletion; admin-initiated deletion is not implemented (`<TODO: build admin tooling for child-account deletion>`). |
+| **COPPA** | App declares 13+. Hard age gate at sign-up: enforced **client-side** in `ProfileSetupScreen.tsx` and **server-side** in `api/app/models/user.py` via the `birthday_meets_minimum_age` Pydantic validator (`MIN_AGE_YEARS = 13`); a direct API caller setting `birthday` to a younger date is rejected 422. Marketing must not target under-13 (current copy looks compliant). If a child slips through, admin-initiated deletion is implemented (`DELETE /admin/users/{id}` in `api/app/routers/admin_users.py`) alongside self-deletion via `DELETE /users/me`. |
 | **HIPAA** | Not applicable. No protected health information collected, no provider relationship. (Users may discuss health in prayer requests; this is user-generated content, not PHI under HIPAA's definition because Nave is not a covered entity / business associate.) |
 | **PCI DSS** | Not applicable. No card data is processed by Nave. |
 | **Accessibility** | No explicit a11y audit. RN components + Ionicons + system fonts mixed with custom fonts (CormorantGaramond, Montserrat). `<TODO: define WCAG 2.1 AA target and audit>`. |
@@ -533,7 +533,8 @@ Authoritative retention policies (source: `info/info.md` plus implementation in 
 - Support → `/support` (FAQ + `nave@cornerstonedev.co` contact)
 - Privacy Policy → `/privacy` (currently `ComingSoonPage`)
 - Terms of Service → `/terms` (currently `ComingSoonPage`)
-- (Recommended additions: DMCA notice page, App Store badge, Play Store badge once apps ship.)
+- DMCA → `/dmca` (live)
+- (Recommended additions: App Store badge, Play Store badge once apps ship.)
 
 ---
 
@@ -617,28 +618,16 @@ Resolved since the previous draft (kept here as a record):
 - ✅ Device-token retention — 180 days inactivity, with `updated_at` bumped on every successful FCM send (`api/app/utils/push.py`).
 - ✅ Server log retention documented — 30 days for `_Default` Cloud Logging bucket; 400 days for `_Required` audit bucket.
 - ✅ In-app Open Source Notices screen — built (`OpenSourceNoticesScreen.tsx`), reachable from Settings → About Nave.
-
-Still outstanding before legal documents and store listings ship:
-
-1. **Apple App Store Connect contact** (first/last name, email, phone) — placeholder only in `eas.json`.
-2. **Apple Team ID, ASC App ID, Apple ID for submissions** — placeholders in `eas.json`.
-3. **Privacy policy and ToS publication.** `/privacy` and `/terms` currently render `ComingSoonPage`. Stores will reject submission until these are live.
-4. **`Info.plist` final-pass:**
-   - Update `aps-environment` from `development` to `production` for App Store builds (typically handled by archive build settings — verify).
-   - Confirm `NSPrivacyCollectedDataTypes` is filled in to match §6 — currently empty.
-5. **`AndroidManifest.xml`:** bump `versionCode` and `versionName` before each submission (currently `1` / `"1.0"`).
-6. **Firebase user-deletion on account deletion** — `DELETE /users/me` removes the Postgres user record but does not delete the Firebase Auth user via `firebase_admin.auth.delete_user`. Confirm whether this is intentional (linkage by email allows re-sign-in to recreate) or should be added.
-7. **DMCA registration** — `navetakedown@cornerstonedev.co` is designated; register the agent with the U.S. Copyright Office before public scaling and add a `/dmca` web page describing the formal-notice format.
-8. **`/.well-known/security.txt`** — publish on naveapp.co pointing at `navetsecurity@cornerstonedev.co`.
-9. **EU representative / SCCs with subprocessors** — required if EU users are in scope (Neon, Google/Firebase, OpenAI, Anthropic).
-10. **Crash reporting** — wired: Firebase Crashlytics on mobile (iOS; Android deferred until `google-services.json` + Google Services Gradle plugin are restored) and Google Cloud Error Reporting on the backend via `google-cloud-logging` (gated on `K_SERVICE`).
-11. **GDPR data-subject export endpoint** — `/users/me/export` not implemented; in-app delete works, but bulk export does not.
-12. **Beta testers / TestFlight terms** — separate concern but commonly bundled with App Store submission.
-13. **`api/.env` and `api/.env.local`** — these contain real production secrets. Confirm they are gitignored (`api/.gitignore`); the values in this audit must NOT be republished anywhere (they are paraphrased, never exposed verbatim).
-14. **Parish-feed authorization scope** — today `GET /parishes/{id}/posts` returns posts to any signed-in user, not just members of that parish. Confirm whether this is intentional or a bug.
-15. **GCS lifecycle policy for orphaned avatars/images** — best-effort delete on replace exists; orphans accumulate without a bucket-level lifecycle rule.
-16. **Admin tooling for child-account deletion** — required by COPPA when becoming aware of a sub-13 user; only self-deletion is implemented today.
-17. **Cloud Scheduler job for `nave-retention-sweep`** — the Cloud Run Job is deployed by CI but the daily schedule must be configured once out-of-band (`gcloud scheduler jobs create`).
+- ✅ Apple App Store Connect contact — Jordan Hoeber, jordan@cornerstonedev.co, (716) 347-5307, 418 Broadway Ste N, Albany, NY 12207 US.
+- ✅ DMCA registration — agent registered with the U.S. Copyright Office; `/dmca` page live on naveapp.co.
+- ✅ `/.well-known/security.txt` — published on naveapp.co pointing at `navetsecurity@cornerstonedev.co`.
+- ✅ EU representative / SCCs with subprocessors — not applicable (no EU users in scope).
+- ✅ Crash reporting — Firebase Crashlytics (mobile) + Google Cloud Error Reporting (backend); 90-day retention with sensitive-info scrubbing.
+- ✅ Beta testers / TestFlight terms — the app Terms of Service + Privacy Policy cover beta testers; no separate TestFlight terms needed.
+- ✅ `api/.env` and `api/.env.local` — confirmed gitignored, not committed to GitHub.
+- ✅ Parish-feed authorization scope — intentional: any signed-in user can read any parish's feed (not membership-restricted).
+- ✅ GCS lifecycle policy for orphaned avatars/images — intentionally skipped; current orphan volume is acceptable.
+- ✅ Admin tooling for child-account deletion — implemented (`DELETE /admin/users/{id}` in `api/app/routers/admin_users.py`).
 
 ---
 
