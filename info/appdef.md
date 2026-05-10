@@ -9,7 +9,7 @@
 
 **Elevator pitch.** Nave is a free Catholic prayer-community mobile app: practicing Catholics and seekers pick a home parish, join (or start) small prayer groups — bible study, men's, women's, young adults, families, devotional, general — chat inside those groups, post to a parish-wide community feed, and build a friend network of fellow members. The name evokes the central body of a Catholic church — the space where the faithful gather.
 
-**Target users.** US-based practicing Catholics and those exploring the Catholic faith, ages 13 and up. The product is currently English-only and parish data is currently US-focused (state + diocese). Children under 13 are blocked at sign-up via a hard age gate.
+**Target users.** US-based practicing Catholics and those exploring the Catholic faith, ages 13 and up. The product is currently English-only and and US-only. Children under 13 are blocked at sign-up via a hard age gate.
 
 **Key differentiators.**
 - Parish-rooted: every user picks a real-world parish and is connected to its community feed and the prayer groups associated with that parish.
@@ -25,14 +25,14 @@
 | Legal entity | Cornerstone Dev LLC (cornerstonedev.co) |
 | Business address | 418 Broadway Ste N, Albany, NY 12207, US |
 | Support email | nave@cornerstonedev.co |
-| Marketing URL | https://naveapp.co (referenced in API CORS allowlist `api/app/main.py:48-53` and in `app/src/screens/auth/WelcomeScreen.tsx:183-189`) |
+| Marketing URL | https://naveapp.co (referenced in API CORS allowlist `api/app/main.py:54-65` and in `app/src/screens/auth/WelcomeScreen.tsx:183-189`) |
 | Support URL | https://naveapp.co/support (`web/src/pages/SupportPage.tsx`, linked from landing footer) |
 | Privacy contact | naveprivacy@cornerstonedev.co |
 | DMCA agent | jordan@cornerstonedev.co |
 | Vulnerability disclosure | navetsecurity@cornerstonedev.co |
 | Account deletion URL | https://naveapp.co/delete (`web/src/pages/DeletePage.tsx`) |
 | Copyright line | "© {current year} Nave. All rights reserved." (`web/src/pages/LandingPage.tsx:327-329`) |
-| Apple submission contact | Jordan Hoeber, jordan@cornerstonedev.co, (716) 347-5307, 418 Broadway Ste N, Albany, NY 12207 US. Apple Team ID / ASC App ID / Apple ID for submissions are still EAS placeholder values (`app/eas.json` `submit.production.ios`: appleTeamId/ascAppId/appleId all `your-...`) — `<TODO: fill the Apple developer account identifiers in `eas.json`>` |
+| Apple submission contact | Jordan Hoeber, jordan@cornerstonedev.co, (716) 347-5307, 418 Broadway Ste N, Albany, NY 12207 US. Apple Team ID / ASC App ID / Apple ID / iOS `appleId` for submissions are still EAS placeholder values (`app/eas.json` `submit.production.ios`: appleTeamId/ascAppId/appleId all `your-...@example.com` / `your-...`) — `<TODO: fill the Apple developer account identifiers in `eas.json`>` |
 
 ---
 
@@ -99,7 +99,7 @@
 - **Surfaces.** M (`screens/auth/WelcomeScreen.tsx`, `EmailSignInScreen.tsx`, `PasswordResetScreen.tsx`, `ProfileSetupScreen.tsx`, `ParishSetupScreen.tsx`); B (`/auth/firebase`, `/auth/me`); W (`/signin`).
 - **Data touched.** Firebase UID, email, display name from provider, optional avatar URL from provider, birthday (DATE), parish_id.
 - **Third parties.** Firebase Auth (Google, Apple, email/password); Google Sign-In SDK (mobile); Apple Authentication Services (iOS only); Firebase Identity Toolkit REST endpoint `signInWithIdp` / `signUp` / `signInWithPassword`.
-- **Password rules (email mode).** Client-side: min 8 chars; checked against haveibeenpwned via k-anonymity (`app/src/lib/passwordValidation.ts` referenced in `EmailSignInScreen.tsx`). Server-side: passwords are stored by Firebase, not Nave — Nave only sees the resulting ID token.
+- **Password rules (email mode).** Client-side (`app/src/lib/passwordValidation.ts`): 8–64 chars; rejects passwords containing the literal app-name token `nave` or the email local-part (when ≥4 chars); checks against Have I Been Pwned via k-anonymity (SHA-1 prefix, with `Add-Padding: true` request header). Server-side: passwords are stored by Firebase, not Nave — Nave only sees the resulting ID token.
 
 ### 4.2 Profile (own)
 - **What it does.** View and edit display name, username (3–20 chars `[a-z0-9_]`, server-checked unique), bio (≤200 chars in UI), parish, birthday, avatar.
@@ -135,7 +135,7 @@
 - **Surfaces.** M (`screens/group/GroupMessageScreen.tsx`); B (`/prayer-groups/{id}/messages` GET/POST, `/messages/upload-image` POST, `/messages/{id}` DELETE, `/messages/{id}/reactions` POST toggle, `/notifications/prayer-groups/{id}/mute`).
 - **Data touched.** Message text + image; reactions; per-(user, group) mute state.
 - **Moderation.** Text → two-layer text pipeline; on `block` HTTP 400 to client; on `queue` message is created with `moderation_status='pending'` and hidden from list queries (`AND (gm.moderation_status IS NULL OR gm.moderation_status = 'approved')`). Image → Cloud Vision SafeSearch BEFORE upload completes; on `block` or `review` returns HTTP 422 and writes to `moderation_queue`.
-- **Push.** New message → inbox row of type `group_message` with `dedup_key=group_msg:<group_id>` (collapses many unread messages from one group into one inbox row); push body is `{sender_name}: {first 100 chars of text or "📷 Photo"}`. Recipients filtered by `users.notify_group_messages = TRUE` and absence of mute row.
+- **Push.** New message → inbox row of type `group_message` with `dedup_key=group_msg:<group_id>` (collapses many unread messages from one group into one inbox row). The push title is the group name and the body is `{sender_display_name}: {first 100 chars of text or "📷 Photo"}` (text >100 chars is truncated and suffixed with `…`, see `api/app/routers/group_messages.py:338-340`). Recipients filtered by `users.push_notifications_enabled = TRUE AND notify_group_messages = TRUE`; users with a row in `group_notification_mutes` for the group are pre-excluded at enqueue time.
 
 ### 4.8 Friends
 - **What it does.** Search users by name/username/email. Send friend request (auto-accepts if the other side already requested). Accept/reject incoming requests. Remove friendship. Maintained as both `friendships` row (with `status`) and a denormalized `friend_edges` (A,B)+(B,A) table for fast mutual-friend joins. Blocking deletes the friendship in both tables.
@@ -152,7 +152,7 @@
 - **Auto-moderation.** Two-layer text pipeline plus Cloud Vision SafeSearch on every uploaded image (avatars, group avatars, parish covers, group-message images). See §13 and `api/app/moderation/`.
 - **Admin review queues.** App admins (`app_admins` table) review:
   - `/admin/moderation/queue` — content held by auto-moderation (auto-approve publishes the content row; auto-reject marks `parish_posts.status='Rejected'` or `group_messages.moderation_status='rejected'`).
-  - `/admin/reports/queue` — user-submitted reports, sorted by per-content `report_count`. Reviewer can `decision='reviewed'` with `remove_content=true` to soft-delete the post or hard-delete the group message.
+  - `/admin/reports/queue` — user-submitted reports, sorted by per-content `report_count`. Reviewer can `decision='reviewed'` with `remove_content=true` to soft-delete the post (`parish_posts.status='Deleted'`), soft-delete the comment (`parish_post_comments.status='Deleted'`), or hard-delete the group message row.
 - **Crisis path.** If Layer 2 (Claude) sets `crisis_indicators=true`, the API attaches `_moderation.crisis_resources` to the response so the mobile client can offer the user 988, Catholic Charities, the diocese family-life office, or their parish priest.
 - **Surfaces.** M (kebab menu in `parish/ParishPostCard.tsx`, etc.); B (`/admin/moderation/*`, `/admin/reports/*`); W (`/admin/moderation`, `/admin/reports`).
 
@@ -202,7 +202,7 @@
 | 15 | Friend list | Identifiers — User ID | Yes (when used) | User action | Yes | No | App functionality | Indefinite (user can remove) | `friendships`, `friend_edges` | None |
 | 16 | Block list | Identifiers — User ID | Yes (when used) | User action | Yes | No | App functionality (hide content from blocked users) | Indefinite (user can unblock) | `user_blocks` | None |
 | 17 | Reports filed | Usage Data — Product Interaction | Yes (when used) | User action | Yes | No | Trust & safety | Indefinite | `user_reports` | None |
-| 18 | FCM device token | Identifiers — Device ID (push token, not IDFA) | Yes | Device → API | Yes | No | App functionality (push) | Until logout, account deletion, token refresh, FCM invalidation, or **180 days of inactivity** (purged by retention sweeper based on `updated_at`, which is bumped on every successful push delivery). | `user_device_tokens` | Firebase Cloud Messaging / APNS / FCM-Android |
+| 18 | FCM device token | Identifiers — Device ID (push token, not IDFA) | Yes | Device → API | Yes | No | App functionality (push) | Until logout, account deletion, token refresh, FCM invalidation, or **180 days of inactivity** (purged by retention sweeper based on `updated_at`). `updated_at` is bumped each time the client (re-)registers the token on app launch (`POST /notifications/device-token` → `ON CONFLICT … DO UPDATE SET updated_at = NOW()`); the in-place bump-on-delivery in `api/app/utils/push.py` is gated on a `conn` argument that the current sole caller (`api/app/utils/inbox.py:enqueue`) does not pass, so in practice the freshness signal is re-registration, not delivery — see **Open questions**. | `user_device_tokens` | Firebase Cloud Messaging / APNS / FCM-Android |
 | 19 | Notification preferences (3 booleans + per-group mutes) | Usage Data — Product Interaction | Yes | User action | Yes | No | App functionality (honoring opt-in/opt-out) | Account lifetime | `users` flags + `group_notification_mutes` | None |
 | 20 | Notifications inbox | Usage Data — Product Interaction | Yes | Server-generated | Yes | No | Delivering platform notifications to user | **90 days from `created_at`**, then purged by retention sweeper | `notifications` | None |
 | 21 | Firebase UID | Identifiers — User ID (third-party) | Yes | Firebase Auth | Yes | No | Account linkage | Until account deletion | `users.firebase_uid`; Firebase Auth | Firebase / Google |
@@ -312,7 +312,7 @@ No analytics, no marketing pixels, no chat widgets, no cookie consent banner, an
 | Visibility | Avatar & profile: visible to any signed-in user. Parish feed posts and comments: visible to any signed-in user (the API returns by `parish_id` with no membership check — this is intentional, so users can see other parishes' feeds). Group messages: only members of that prayer group. Direct messages between users: not implemented. |
 | Moderation approach | Pre-moderation (auto): see §13. Human review queue (`/admin/moderation/queue`) for queued items. User reports (`/admin/reports/queue`) processed by app admins. |
 | Ownership | User retains ownership; the Terms of Service (`<TODO: ToS not yet drafted>`) should grant Nave a worldwide, royalty-free license to host, display, modify (for moderation/cropping/resizing), and distribute UGC within the app for the purpose of operating the service. |
-| Takedown / DMCA | Designated Copyright Agent: Jordan Hoeber, jordan@cornerstonedev.co, (716) 347-5307, 418 Broadway Ste N, Albany, NY 12207 (`web/src/pages/DmcaPage.tsx:3-8`). The `/dmca` web page is live and linked from the landing-page footer. **Open:** the support FAQ (`web/src/pages/SupportPage.tsx`) does **not** currently surface a DMCA link — only `/dmca` and the footer do. **Open:** the agent is not yet confirmed-registered with the U.S. Copyright Office DMCA Designated Agent Directory; registration must be completed before §512 safe-harbor protection applies. |
+| Takedown / DMCA | Designated Copyright Agent: Jordan Hoeber, jordan@cornerstonedev.co, (716) 347-5307, 418 Broadway Ste N, Albany, NY 12207 (`web/src/pages/DmcaPage.tsx:3-8`).
 | Storage / CDN | Postgres for text; GCS for images. Signed URLs (V4, 7-day TTL, in-process cached for 6d23h) used for image fetches — there is no public CDN. |
 
 ---
@@ -355,7 +355,7 @@ Authoritative retention policies (source: implementation in `api/app/retention/s
 | Moderation action records (`moderation_queue`) | Yes (FK becomes NULL on account deletion; `account_deleted_at` stamped at the same moment) | Platform safety, abuse prevention, appeals | **Account lifetime + 1 year** | Legitimate interest (GDPR Art. 6(1)(f)); security/integrity exemption (CCPA §1798.105(d)(2)) | `sweep_moderation_records` — `DELETE … WHERE account_deleted_at IS NOT NULL AND account_deleted_at < NOW() - INTERVAL '1 year'`. Index `idx_mq_account_deleted`. |
 | Reported content snapshots (`user_reports`) | Yes (via author/reporter) | Moderation review, appeals | **90 days after case closure** (`status IN ('reviewed','dismissed') AND reviewed_at < NOW() - INTERVAL '90 days'`) | Legitimate interest (GDPR); legal compliance (DSA) | `sweep_reported_content`. Index `idx_user_reports_closed`. |
 | Notification records / inbox (`notifications`) | Yes | Delivering platform notifications | **90 days from `created_at`** | Legitimate interest | `sweep_notifications`. Index `idx_notifications_created_at`. |
-| Push notification device tokens (`user_device_tokens`) | Yes | Delivering push notifications | Until logout, account deletion, token invalidation, **or 180 days of inactivity**. `updated_at` is bumped on every successful FCM send (`api/app/utils/push.py`), so an actively-used token never falls out of the window. | Legitimate interest | `sweep_device_tokens` — `DELETE … WHERE updated_at < NOW() - INTERVAL '180 days'`. Index `idx_udt_updated_at`. Tokens shared with: APNS, FCM-Android. |
+| Push notification device tokens (`user_device_tokens`) | Yes | Delivering push notifications | Until logout, account deletion, token invalidation, **or 180 days of inactivity**. In practice `updated_at` is currently refreshed when the client (re-)registers the token on app launch (`POST /notifications/device-token` upserts `updated_at = NOW()`); the bump-on-delivery branch in `api/app/utils/push.py:send_push_notifications` activates only when callers pass `conn`, and the only caller today (`api/app/utils/inbox.py:enqueue`, line 94) does not — see **Open questions**. | Legitimate interest | `sweep_device_tokens` — `DELETE … WHERE updated_at < NOW() - INTERVAL '180 days'`. Index `idx_udt_updated_at`. Tokens shared with: APNS, FCM-Android. |
 | Notification delivery logs | n/a | n/a — Nave does not store per-send delivery logs | n/a | n/a | n/a |
 | Notification preferences (3 user flags + per-group mutes) | Yes | Honoring user opt-in/opt-out | **Account lifetime** | Contract performance | None (cascades on user delete) |
 | Application logs (Cloud Run stdout/stderr) | Yes (where the app logs identifiers — user ID, request ID, IP) | Debugging, error investigation, performance monitoring, abuse detection | **30 days** (GCP `_Default` Cloud Logging bucket) | Legitimate interest (GDPR Art. 6(1)(f)) | GCP-managed. |
@@ -429,7 +429,7 @@ Authoritative retention policies (source: implementation in `api/app/retention/s
 | Copyright | — | `© 2026 Cornerstone Dev LLC` |
 | First / last name (App Review contact) | — | Jordan Hoeber |
 | Email (App Review contact) | — | jordan@cornerstonedev.co |
-| Phone (App Review contact) | — | (716) 374-3215 |
+| Phone (App Review contact) | — | (716) 347-5307 (same number used for the DMCA designated agent in `web/src/pages/DmcaPage.tsx`) |
 | Demo account | — | Required because the app requires sign-in. |
 | Review notes | — | Draft: "Nave is a Catholic prayer-community app. Sign in with the provided demo account, then tap Community for the parish feed, Groups for prayer-group discovery, Friends for the friends tab, and Profile for settings. All UGC is auto-moderated; flagged content is held until reviewed by our admin team. The app contains no in-app purchases and no third-party advertising." |
 | Sign in with Apple | — | Required (app offers Google + email sign-in) — already implemented. |
@@ -466,7 +466,7 @@ Authoritative retention policies (source: implementation in `api/app/retention/s
 ## 16. Marketing website content source
 
 ### 16.1 Hero headline candidates
-1. **Where Catholics gather, pray, and grow.** (current homepage h1)
+1. **Where Catholics Gather, Pray, and Grow** (current homepage h1; "Gather," and "Pray," are rendered italic in the accent color — `web/src/pages/LandingPage.tsx:90-95`)
 2. The central body of the Church, in your pocket.
 3. Your parish, your prayer groups, your people.
 
@@ -488,11 +488,10 @@ Authoritative retention policies (source: implementation in `api/app/retention/s
 
 > Nave is a Catholic prayer-community app, built for the faithful and those drawn to the faith.
 >
-> The name comes from the central body of a Catholic church — the space where the faithful gather. Nave brings that space to your phone.
 >
 > **Find your parish.** Pick your home parish from a directory of parishes across the country. Get parish announcements and a community feed where members share reflections, prayers, and parish life.
 >
-> **Join prayer groups.** Browse and join small groups — bible study, men's, women's, young adults, families, devotional. Or start your own. Public groups are open to anyone; private groups are admin-approved. Each group has its own chat for staying close between meetings.
+> **Join prayer groups.** Browse and join small groups — bible study, men's, women's, young adults, families. Or start your own. Public groups are open to anyone; private groups are for your inner circle. Each group has its own chat for staying close between meetings.
 >
 > **Pray together.** Share intentions, react with emoji, send a photo from a retreat. Group chat keeps your community connected, and you can mute any group anytime.
 >
@@ -587,5 +586,3 @@ Authoritative retention policies (source: implementation in `api/app/retention/s
 
 **Backend (Python)** — see `api/requirements.txt`:
 - `fastapi` (MIT), `uvicorn` (BSD-3), `asyncpg` (Apache-2.0), `python-dotenv` (BSD-3), `python-jose[cryptography]` (MIT), `pydantic-settings` (MIT), `python-multipart` (Apache-2.0), `email-validator` (CC0-1.0), `alembic` (MIT), `sqlalchemy` (MIT), `psycopg2-binary` (LGPL-3 with exceptions), `google-cloud-storage` (Apache-2.0), `google-cloud-vision` (Apache-2.0), `google-cloud-logging` (Apache-2.0), `firebase-admin` (Apache-2.0), `Pillow` (HPND), `anthropic` (MIT), `openai` (Apache-2.0).
-
----
