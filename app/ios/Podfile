@@ -32,8 +32,11 @@ target 'Nave' do
 
   config = use_native_modules!(config_command)
 
-  # Modular headers required by FirebaseCoreInternal (a Swift pod)
+  # Modular headers required by Swift-pod Firebase dependencies
+  # (FirebaseCoreInternal, FirebaseCrashlytics, FirebaseSessions).
   pod 'GoogleUtilities', :modular_headers => true
+  pod 'GoogleDataTransport', :modular_headers => true
+  pod 'nanopb', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],

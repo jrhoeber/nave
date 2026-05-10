@@ -213,7 +213,7 @@
 | 25 | Notification delivery logs | n/a | **Not stored** by Nave. FCM/APNS may retain transient delivery counters server-side; Nave does not persist per-send logs. | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | 26 | Server moderation audit (Layer 1 + Layer 2 results, image SafeSearch scores, snapshot of flagged content) | Diagnostics + User Content (flagged snapshot) | Yes (when content is flagged or queued) | Server | Yes (linked to user_id while account is live; FK becomes NULL after account deletion, with `account_deleted_at` stamped) | No | Platform safety, abuse prevention, appeals. Legitimate interest (GDPR Art. 6(1)(f)); security/integrity exemption (CCPA §1798.105(d)(2)). | **Account lifetime + 1 year** (purged by retention sweeper after `account_deleted_at < NOW() - INTERVAL '1 year'`) | `moderation_queue` | None |
 | 27 | Reported content snapshots (status `reviewed` / `dismissed`) | User Content | Yes (when reported) | Server | Yes (via author + reporter) | No | Moderation review, appeals. Legitimate interest (GDPR); legal compliance (DSA). | **90 days after case closure** (`reviewed_at`), purged by retention sweeper | `user_reports` | None |
-| 28 | Error and crash reports | Diagnostics — Crash Data | Planned (Sentry — not currently wired in repo, but called out in info/info.md) | Mobile + server | Yes, where stack traces include user-scoped data (user ID, session ID, device info, app version) | No | Debugging, stability monitoring. Legitimate interest. | 90 days | Sentry (acting as data processor) | Sentry |
+| 28 | Error and crash reports | Diagnostics — Crash Data | Yes | Mobile (Firebase Crashlytics, iOS) + server (Google Cloud Error Reporting via Cloud Logging) | Yes — mobile records opaque `user_id` only (no email/display name); server stack traces include user IDs where present in log context | No | Debugging, stability monitoring. Legitimate interest. | 90 days | Firebase Crashlytics (mobile) / Google Cloud Error Reporting (backend) | None new — already-disclosed Google/Firebase processors |
 | 29 | Web JWT (`nave_jwt` localStorage) | Identifiers — User ID | Yes (web sign-in only) | Server | Yes | No | Web admin auth | Until logout / 30 days expiry | Browser localStorage | None |
 
 **Data NOT collected** (verified absent from code/configs):
@@ -281,7 +281,7 @@
 | `react-router-dom` ^6.23.1, `react`, `react-dom` | OSS | Routing / UI | n/a |
 | Google Fonts (Playfair Display, Inter) loaded via `<link rel="stylesheet">` from `fonts.googleapis.com` | Google | Web fonts. Note: this **does** transmit the user's IP and User-Agent to Google when the page loads — disclosed because it is a third-party network request originated by the page. | https://policies.google.com/privacy |
 
-No analytics, no marketing pixels, no chat widgets, no cookie consent banner, no error monitoring (Sentry/Bugsnag/Datadog) detected anywhere in the repo.
+No analytics, no marketing pixels, no chat widgets, no cookie consent banner, and no third-party error monitoring (Sentry/Bugsnag/Datadog) detected anywhere in the repo. Crash/error data flows to Firebase Crashlytics (mobile) and Google Cloud Error Reporting (backend), both within the existing Google/Firebase processor relationships.
 
 ---
 
@@ -362,7 +362,7 @@ Authoritative retention policies (source: `info/info.md` plus implementation in 
 | Application logs (Cloud Run stdout/stderr) | Yes (where the app logs identifiers — user ID, request ID, IP) | Debugging, error investigation, performance monitoring, abuse detection | **30 days** (GCP `_Default` Cloud Logging bucket) | Legitimate interest (GDPR Art. 6(1)(f)) | GCP-managed. |
 | HTTP request/access logs | Yes, indirectly (IP, user-agent, URL, timestamp, authenticated user_id where available) | Security monitoring, abuse detection, debugging, rate-limit enforcement | **30 days** (`_Default` bucket) | Legitimate interest (security and platform integrity) | GCP-managed. |
 | Cloud audit logs (Admin Activity, System Event, Access Transparency) | Yes for staff/admin actions; not for end users (service-account or staff identity) | Security audit trail, compliance, incident investigation | **400 days** (fixed by GCP `_Required` bucket; not configurable) | Legal obligation, legitimate interest | GCP-managed. |
-| Error and crash reports | Yes, where stack traces include user-scoped data (user ID, session ID, device info, app version) | Debugging, stability monitoring | **90 days** | Legitimate interest | Sentry (data processor) — **not yet wired into the codebase**; planned per `info/info.md`. |
+| Error and crash reports | Yes, where stack traces include user-scoped data (user ID, session ID, device info, app version) | Debugging, stability monitoring | **90 days** | Legitimate interest | Firebase Crashlytics (mobile, iOS) + Google Cloud Error Reporting (backend, via `google-cloud-logging` on Cloud Run). Mobile records opaque `user_id` only. |
 
 **Retention sweeper.** `python -m app.retention.sweep` runs as Cloud Run Job `nave-retention-sweep`, triggered daily by Cloud Scheduler (one-time setup outside CI). Each policy `DELETE`s in batches of 1000 with a per-run cap of 10,000 batches; failures in one policy are logged and the next policy still runs. The job is idempotent and re-entrant.
 
@@ -630,8 +630,8 @@ Still outstanding before legal documents and store listings ship:
 6. **Firebase user-deletion on account deletion** — `DELETE /users/me` removes the Postgres user record but does not delete the Firebase Auth user via `firebase_admin.auth.delete_user`. Confirm whether this is intentional (linkage by email allows re-sign-in to recreate) or should be added.
 7. **DMCA registration** — `navetakedown@cornerstonedev.co` is designated; register the agent with the U.S. Copyright Office before public scaling and add a `/dmca` web page describing the formal-notice format.
 8. **`/.well-known/security.txt`** — publish on naveapp.co pointing at `navetsecurity@cornerstonedev.co`.
-9. **EU representative / SCCs with subprocessors** — required if EU users are in scope (Neon, Google, OpenAI, Anthropic, Sentry).
-10. **Sentry wiring** — `info/info.md` documents a 90-day Sentry retention but Sentry is not yet integrated in either app or backend. Decide whether to wire it up; if not, drop the line from the privacy policy.
+9. **EU representative / SCCs with subprocessors** — required if EU users are in scope (Neon, Google/Firebase, OpenAI, Anthropic).
+10. **Crash reporting** — wired: Firebase Crashlytics on mobile (iOS; Android deferred until `google-services.json` + Google Services Gradle plugin are restored) and Google Cloud Error Reporting on the backend via `google-cloud-logging` (gated on `K_SERVICE`).
 11. **GDPR data-subject export endpoint** — `/users/me/export` not implemented; in-app delete works, but bulk export does not.
 12. **Beta testers / TestFlight terms** — separate concern but commonly bundled with App Store submission.
 13. **`api/.env` and `api/.env.local`** — these contain real production secrets. Confirm they are gitignored (`api/.gitignore`); the values in this audit must NOT be republished anywhere (they are paraphrased, never exposed verbatim).

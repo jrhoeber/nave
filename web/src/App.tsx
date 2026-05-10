@@ -7,6 +7,7 @@ import { ManagePage } from './pages/ManagePage';
 import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { UserReportsPage } from './pages/UserReportsPage';
 import { ManageParishesPage } from './pages/ManageParishesPage';
+import { ManageUsersPage } from './pages/ManageUsersPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { SupportPage } from './pages/SupportPage';
 import { DeletePage } from './pages/DeletePage';
@@ -58,6 +59,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <ManageParishesPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <ManageUsersPage />
               </AdminRoute>
             }
           />

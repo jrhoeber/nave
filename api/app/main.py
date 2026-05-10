@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 
@@ -9,15 +10,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import admin, admin_parishes, admin_reports, auth, blocks, friends, group_messages, notifications, parish_post_comments, parishes, prayer_groups, reports, users
+from app.routers import admin, admin_parishes, admin_reports, admin_users, auth, blocks, friends, group_messages, notifications, parish_post_comments, parishes, prayer_groups, reports, users
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
+# On Cloud Run, route through google-cloud-logging so stack traces become
+# structured JSON that Cloud Error Reporting groups automatically. Locally we
+# keep human-readable stdout.
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
+if os.getenv("K_SERVICE"):
+    import google.cloud.logging
+    google.cloud.logging.Client().setup_logging(log_level=logging.INFO)
+else:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
 
 logger = logging.getLogger("nave.api")
 
@@ -90,11 +98,14 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Strip user-submitted values from server logs; keep loc/type only.
+    # Response to the caller still includes full detail.
+    error_summary = [{"loc": e["loc"], "type": e["type"]} for e in exc.errors()]
     logger.warning(
         "Validation error on %s %s: %s",
         request.method,
         request.url.path,
-        exc.errors(),
+        error_summary,
     )
     return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
@@ -148,6 +159,7 @@ app.include_router(reports.router,          prefix="/reports",          tags=["r
 app.include_router(admin.router,           prefix="/admin/moderation", tags=["admin"])
 app.include_router(admin_parishes.router,  prefix="/admin/parishes",   tags=["admin"])
 app.include_router(admin_reports.router,   prefix="/admin/reports",    tags=["admin"])
+app.include_router(admin_users.router,     prefix="/admin/users",      tags=["admin"])
 
 
 @app.get("/health", tags=["health"])

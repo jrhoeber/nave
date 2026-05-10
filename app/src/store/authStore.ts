@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import type { User } from '../types';
 import { api, mapUser, registerUnauthorizedHandler } from '../lib/apiClient';
 import { clearCachedParish, loadCachedParish } from '../lib/parishCache';
+import { setUser as setCrashlyticsUser } from '../lib/crashlytics';
 
 interface AuthState {
   user: User | null;
@@ -39,6 +40,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         cached.avatarUrl = undefined;
         cached.parishCoverPhotoUrl = undefined;
         set({ token, user: cached, isAuthenticated: true });
+        setCrashlyticsUser(cached.id);
         await loadCachedParish();
       }
     } catch {
@@ -66,6 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem('auth_token', token);
     await AsyncStorage.setItem('auth_user', JSON.stringify(user));
     set({ user, token, isAuthenticated: true, avatarReady: false });
+    setCrashlyticsUser(user.id);
     if (user.avatarUrl) Image.prefetch(user.avatarUrl).catch(() => {});
     if (user.parishCoverPhotoUrl) Image.prefetch(user.parishCoverPhotoUrl).catch(() => {});
     return { isNewUser: data.is_new_user };
@@ -74,6 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
     set({ user: null, token: null, isAuthenticated: false, avatarReady: false });
+    setCrashlyticsUser(null);
     // Clear domain stores so a different account never sees the previous user's data.
     // Lazy require to avoid a startup-time circular dependency between stores.
     const { usePrayerStore } = require('./prayerStore');

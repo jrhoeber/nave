@@ -15,3 +15,4 @@ firebase-admin==6.5.0
 Pillow
 anthropic>=0.40.0
 openai>=1.50.0
+google-cloud-logging==3.11.0

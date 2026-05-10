@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { Splash } from './src/components/Splash';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { useAuthStore } from './src/store/authStore';
 import { useFriendsStore } from './src/store/friendsStore';
 import { registerPushToken, unregisterPushToken, setupNotificationHandlers } from './src/lib/notifications';
@@ -87,7 +88,9 @@ export default function App() {
                 );
               }}
             >
-              <RootNavigator />
+              <ErrorBoundary>
+                <RootNavigator />
+              </ErrorBoundary>
             </NavigationContainer>
           </SafeAreaProvider>
         </GestureHandlerRootView>

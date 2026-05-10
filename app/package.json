@@ -21,6 +21,7 @@
     "@react-native-community/blur": "^4.4.1",
     "@react-native-community/image-editor": "^4.3.0",
     "@react-native-firebase/app": "^24.0.0",
+    "@react-native-firebase/crashlytics": "^24.0.0",
     "@react-native-firebase/messaging": "^24.0.0",
     "@react-native-google-signin/google-signin": "^13.0.0",
     "@react-navigation/bottom-tabs": "^6.5.20",

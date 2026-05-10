@@ -183,6 +183,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | `parish_post_comments.py` | `GET/POST /parishes/{id}/posts/{id}/comments`, `PATCH/DELETE` comment, `POST` toggle reaction; flat replies via `reply_to_id`, block filtering, content moderation |
 | `reports.py` | `POST /reports` — user-submitted content reports (post, group_message, or comment); validates content exists, blocks self-reports, deduplicates via unique constraint (409) |
 | `admin_reports.py` | `GET /admin/reports/queue`, `PATCH /admin/reports/queue/{id}` — admin review of user reports; shows content snippets and per-item report counts; restricted to `app_admins` |
+| `admin_users.py` | `GET /admin/users`, `DELETE /admin/users/{id}` — list/search users and delete accounts; mirrors self-delete flow (reassigns admin-owned groups, stamps moderation rows); restricted to `app_admins` |
 
 #### Moderation (`/api/app/moderation/`)
 | File | Purpose |
