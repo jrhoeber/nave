@@ -49,7 +49,16 @@ function Spinner({ dark = false }: { dark?: boolean }) {
   );
 }
 
-export function SignInPage() {
+interface SignInPageProps {
+  /** If set, redirect here after a successful sign-in regardless of admin status. */
+  redirectTo?: string;
+  /** Optional override for the card heading (e.g. "Sign in to delete your account"). */
+  heading?: string;
+  /** Optional subheading shown beneath the heading. */
+  subheading?: string;
+}
+
+export function SignInPage({ redirectTo, heading, subheading }: SignInPageProps = {}) {
   const navigate = useNavigate();
   const { setToken, setIsAdmin } = useAuth();
   const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
@@ -81,7 +90,7 @@ export function SignInPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
       const admin = await exchangeToken(idToken);
-      navigate(admin ? '/admin' : '/manage');
+      navigate(redirectTo ?? (admin ? '/admin' : '/manage'));
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       // Ignore user-cancelled popup
@@ -105,7 +114,7 @@ export function SignInPage() {
       const result = await signInWithPopup(auth, appleProvider);
       const idToken = await result.user.getIdToken();
       const admin = await exchangeToken(idToken);
-      navigate(admin ? '/admin' : '/manage');
+      navigate(redirectTo ?? (admin ? '/admin' : '/manage'));
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       if (
@@ -149,10 +158,10 @@ export function SignInPage() {
             {/* Card header */}
             <div className="px-8 pt-8 pb-6 text-center border-b border-nave-border">
               <h1 className="font-serif text-2xl font-semibold text-nave-primary mb-1">
-                Welcome back
+                {heading ?? 'Welcome back'}
               </h1>
               <p className="text-nave-secondary text-sm">
-                Sign in to your Nave account
+                {subheading ?? 'Sign in to your Nave account'}
               </p>
             </div>
 

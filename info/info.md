@@ -8,3 +8,4 @@ Additional Nave info
 - DMCA agent: navetakedown@cornerstonedev.co
 - Vulnerability disclosure: navetsecurity@cornerstonedev.co
 - In-app Open Source Notices screen: in setting screen in RN app
+- account deletion URL: naveapp.co/delete

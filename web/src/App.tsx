@@ -9,6 +9,7 @@ import { UserReportsPage } from './pages/UserReportsPage';
 import { ManageParishesPage } from './pages/ManageParishesPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { SupportPage } from './pages/SupportPage';
+import { DeletePage } from './pages/DeletePage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 
@@ -60,6 +61,7 @@ export default function App() {
             }
           />
           <Route path="/support" element={<SupportPage />} />
+          <Route path="/delete" element={<DeletePage />} />
           <Route path="/privacy" element={<ComingSoonPage title="Privacy Policy" />} />
           <Route path="/terms" element={<ComingSoonPage title="Terms of Service" />} />
         </Routes>
