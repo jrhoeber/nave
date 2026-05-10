@@ -299,6 +299,12 @@ function Footer() {
 
           <nav className="flex items-center gap-8" aria-label="Footer">
             <Link
+              to="/support"
+              className="text-sm text-white/40 hover:text-nave-accent transition-colors duration-200"
+            >
+              Support
+            </Link>
+            <Link
               to="/privacy"
               className="text-sm text-white/40 hover:text-nave-accent transition-colors duration-200"
             >

@@ -8,6 +8,7 @@ import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { UserReportsPage } from './pages/UserReportsPage';
 import { ManageParishesPage } from './pages/ManageParishesPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
+import { SupportPage } from './pages/SupportPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 
@@ -58,6 +59,7 @@ export default function App() {
               </AdminRoute>
             }
           />
+          <Route path="/support" element={<SupportPage />} />
           <Route path="/privacy" element={<ComingSoonPage title="Privacy Policy" />} />
           <Route path="/terms" element={<ComingSoonPage title="Terms of Service" />} />
         </Routes>
