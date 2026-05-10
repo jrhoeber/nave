@@ -12,6 +12,7 @@ export type RootStackParamList = {
   CreateGroup: undefined;
   Settings: undefined;
   BlockedUsers: undefined;
+  OpenSourceNotices: undefined;
   EditProfile: undefined;
   ParishPostDetail: { parishId: string; postId: string };
 };

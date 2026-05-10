@@ -281,6 +281,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | `shared/PostDetailScreen.tsx` | Full post + comments |
 | `shared/UserProfileScreen.tsx` | Other users' profiles; kebab menu (ellipsis-horizontal) to block user |
 | `profile/BlockedUsersScreen.tsx` | List of blocked users with unblock action; navigated to from SettingsModal |
+| `profile/OpenSourceNoticesScreen.tsx` | Static list of open-source dependencies and licenses (mobile, web, backend); linked from Settings → About Nave |
 
 #### UI Components (`/app/src/components/`)
 | File | Purpose |

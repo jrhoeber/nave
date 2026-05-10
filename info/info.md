@@ -4,7 +4,7 @@ The owner of the Nave app is a company called Cornerstone Dev LLC (cornerstonede
 Additional Nave info
 - support email: nave@cornerstonedev.co
 - support page: naveapp.co/support
-- privacy contact: nave-privacy@cornerstonedev.co
-- DMCA agent: nave-takedown@cornerstonedev.co
-- Vulnerability disclosure: nave-security@cornerstonedev.co
-- In-app Open Source Notices screen
+- privacy contact: naveprivacy@cornerstonedev.co
+- DMCA agent: navetakedown@cornerstonedev.co
+- Vulnerability disclosure: navetsecurity@cornerstonedev.co
+- In-app Open Source Notices screen: in setting screen in RN app

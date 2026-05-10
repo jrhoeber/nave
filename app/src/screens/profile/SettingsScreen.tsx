@@ -164,6 +164,12 @@ export function SettingsScreen() {
             label="Privacy Policy"
             onPress={() => Linking.openURL('https://naveapp.co/privacy')}
           />
+          <View style={styles.sep} />
+          <SettingsRow
+            icon="code-slash-outline"
+            label="Open Source Notices"
+            onPress={() => navigation.navigate('OpenSourceNotices')}
+          />
         </View>
 
         {/* ── Account ── */}
