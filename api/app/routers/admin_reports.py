@@ -37,10 +37,12 @@ async def list_reports(
             CASE
                 WHEN ur.content_type = 'post'          THEN LEFT(pp.content, 300)
                 WHEN ur.content_type = 'group_message'  THEN LEFT(gm.content, 300)
+                WHEN ur.content_type = 'comment'        THEN LEFT(ppc.content, 300)
             END AS content_snippet,
             CASE
                 WHEN ur.content_type = 'post'          THEN pp.id IS NOT NULL
                 WHEN ur.content_type = 'group_message'  THEN gm.id IS NOT NULL
+                WHEN ur.content_type = 'comment'        THEN ppc.id IS NOT NULL
                 ELSE FALSE
             END AS content_exists,
             (
@@ -51,8 +53,9 @@ async def list_reports(
             ) AS report_count
         FROM user_reports ur
         JOIN users u ON u.id = ur.reporter_id
-        LEFT JOIN parish_posts   pp ON ur.content_type = 'post'          AND pp.id = ur.content_id
-        LEFT JOIN group_messages gm ON ur.content_type = 'group_message' AND gm.id = ur.content_id
+        LEFT JOIN parish_posts          pp  ON ur.content_type = 'post'          AND pp.id  = ur.content_id
+        LEFT JOIN group_messages        gm  ON ur.content_type = 'group_message'  AND gm.id  = ur.content_id
+        LEFT JOIN parish_post_comments  ppc ON ur.content_type = 'comment'        AND ppc.id = ur.content_id
         WHERE ($1::text IS NULL OR ur.status = $1)
         ORDER BY
             (SELECT COUNT(*) FROM user_reports ur3
@@ -133,6 +136,11 @@ async def review_report(
             elif content_type == "group_message":
                 await conn.execute(
                     "DELETE FROM group_messages WHERE id = $1",
+                    content_id,
+                )
+            elif content_type == "comment":
+                await conn.execute(
+                    "UPDATE parish_post_comments SET status = 'Deleted' WHERE id = $1 AND status != 'Deleted'",
                     content_id,
                 )
             content_removed = True

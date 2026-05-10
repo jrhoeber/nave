@@ -36,6 +36,13 @@ function ContextBadge({ type }: { type: string }) {
       </span>
     );
   }
+  if (type === 'comment') {
+    return (
+      <span className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-500/15 text-purple-400">
+        Comment
+      </span>
+    );
+  }
   return (
     <span className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-500/15 text-blue-400">
       Group Message

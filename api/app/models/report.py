@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class ReportCreate(BaseModel):
-    content_type: Literal["post", "group_message"]
+    content_type: Literal["post", "group_message", "comment"]
     content_id: str
     reason: Literal[
         "spam", "harassment", "hate_speech",

@@ -202,7 +202,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 |------|---------|
 | `user.py` | `FirebaseAuthRequest`, `UserUpdate` (includes `birthday`), `UserResponse` (includes `birthday`), `TokenResponse` (includes `is_new_user`) |
 | `parish.py` | `ParishResponse`, `ParishesResponse`, `ParishPostResponse` (includes `comment_count`), `ParishCommentCreate`, `ParishCommentUpdate`, `ParishCommentResponse`, `ParishCommentsResponse` |
-| `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `rosary`, `scripture_study`, `mens_group`, `womens_group`, `youth`, etc. |
+| `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `bible_study`, `mens_group`, `womens_group`, etc. |
 | `group_message.py` | `GroupMessageCreate`, `GroupMessageResponse`, `GroupMessagesResponse`, `AddReactionBody` |
 | `friendship.py` | `FriendRequestCreate`, `FriendRequestUpdate` |
 | `block.py` | `BlockCreate` |

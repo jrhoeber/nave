@@ -1,0 +1,12 @@
+1. **Apple submission identifiers.** `app/eas.json` still has placeholder strings for `appleId`, `ascAppId`, and `appleTeamId` in `submit.production.ios`. Fill these in (and the App Review human contact: name, email, phone) before the first TestFlight push.
+2. **Privacy Policy + Terms of Service.** Both `/privacy` and `/terms` on `naveapp.co` resolve to `ComingSoonPage` (`web/src/App.tsx:76-77`). Apple and Google both block submission without a live privacy URL.
+
+5. **Demo account for Apple App Review.** Required because the app gates everything behind sign-in. Provision a reviewer-only Firebase user with a pre-set parish, joined prayer group, and at least one incoming friend request.
+6. **GDPR data export.** Account deletion is implemented (`DELETE /users/me`); a self-serve **export** (Article 20 right to data portability) is not. Decide whether to build `GET /users/me/export` or handle export requests manually via `naveprivacy@cornerstonedev.co`.
+7. **Standard Contractual Clauses with subprocessors.** Confirm SCCs are on file with Neon, Google (Cloud Run, Storage, Vision, Logging, Firebase, FCM), OpenAI, and Anthropic for any EU data subjects.
+8. **Compliance certifications.** Do not claim SOC 2 / ISO 27001 on the marketing site or store listings until we hold them.
+9. **Accessibility (WCAG 2.1 AA) audit.** No formal audit performed. Decide on a target level and run a pass over the mobile screens that mix custom fonts (CormorantGaramond, Montserrat) with system text.
+10. **Apple / Google rating questionnaire.** Doc §14 proposes iOS 12+ / Google Teen — confirm with App Store Review and Google Play's rating questionnaire once the build is uploaded.
+11. **Bundled SDK Privacy Manifests.** Verify each linked SDK ships its own `PrivacyInfo.xcprivacy` inside the `.ipa` (Apple checks this automatically on archive).
+12. **Open Source Notices reconciliation.** The mobile in-app "Open Source Notices" screen (`app/src/screens/profile/OpenSourceNoticesScreen.tsx`) is hand-curated. Regenerate the transitive tree with `npm ls --prod --all` for `app/` and `web/` and reconcile.
+13. **GCS orphan cleanup.** Avatar / group-avatar / parish-cover / group-message-image uploads are "best-effort delete on replace" with no bucket-level lifecycle policy. Decide whether to add a 30/90-day lifecycle rule on the `nave-avatars` bucket once the orphan volume is observable.

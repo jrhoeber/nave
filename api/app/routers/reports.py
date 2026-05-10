@@ -17,6 +17,7 @@ router = APIRouter()
 _CONTENT_TABLES = {
     "post": ("parish_posts", "id", "user_id"),
     "group_message": ("group_messages", "id", "user_id"),
+    "comment": ("parish_post_comments", "id", "user_id"),
 }
 
 
