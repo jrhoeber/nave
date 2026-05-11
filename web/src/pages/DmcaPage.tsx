@@ -199,8 +199,7 @@ export function DmcaPage() {
             </p>
 
             <p className="text-nave-secondary text-sm leading-relaxed mt-10 pt-6 border-t border-nave-border">
-              This page is provided for general informational purposes and does not constitute
-              legal advice. Last updated May 10, 2026.
+              Last updated May 10, 2026.
             </p>
           </div>
 

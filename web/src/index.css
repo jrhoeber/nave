@@ -10,34 +10,43 @@
   }
 
   body {
-    @apply bg-nave-bg text-nave-primary font-body;
+    @apply bg-nave-bg text-nave-text font-body;
   }
 }
 
 @layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-sm
+      bg-nave-primary text-white
+      hover:bg-nave-primary-light transition-all duration-200
+      focus:outline-none focus:ring-2 focus:ring-nave-primary/40;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-sm
+      bg-white text-nave-text border border-nave-border
+      hover:border-nave-primary/30 hover:bg-nave-bg-alt transition-all duration-200
+      focus:outline-none focus:ring-2 focus:ring-nave-primary/20;
+  }
+
   .btn-gold {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-sm
       bg-nave-accent text-nave-primary-dark
-      hover:bg-nave-accent-light transition-all duration-200
-      focus:outline-none focus:ring-2 focus:ring-nave-accent/50;
+      hover:bg-nave-accent-light transition-all duration-200;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm
       border border-nave-accent/30 text-nave-accent
       hover:bg-nave-accent/10 transition-all duration-200;
+  }
+
+  .card-surface {
+    @apply bg-white rounded-2xl border border-nave-border shadow-sm;
   }
 }
 
 @layer utilities {
-  .text-gradient-gold {
-    background: linear-gradient(135deg, #c9a84c 0%, #e8c97a 50%, #c9a84c 100%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
   .hero-gradient {
     background: linear-gradient(160deg, #0f1a2e 0%, #1a2b4a 50%, #2d4270 100%);
   }
@@ -46,14 +55,31 @@
     background: linear-gradient(160deg, #1a2b4a 0%, #0f1a2e 100%);
   }
 
-  /* Entrance animations — elements start hidden, JS-free reveal via opacity-0 + animate-fade-up */
+  /* Cream parchment hero background matching the app's WelcomeScreen */
+  .cream-hero {
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(201,168,76,0.10) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 50% at 50% 100%, rgba(26,43,74,0.04) 0%, transparent 70%),
+      #faf7f3;
+  }
+
   .reveal {
     opacity: 0;
     animation: fadeUp 0.8s ease-out forwards;
   }
-
   .reveal-delay-1 { animation-delay: 0.1s; }
   .reveal-delay-2 { animation-delay: 0.2s; }
   .reveal-delay-3 { animation-delay: 0.3s; }
   .reveal-delay-4 { animation-delay: 0.5s; }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

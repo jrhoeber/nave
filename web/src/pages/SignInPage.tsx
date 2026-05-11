@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider, appleProvider } from '../firebase';
 import { useAuth, API_BASE, JWT_KEY } from '../context/AuthContext';
+import { NaveLogo } from '../components/NaveLogo';
 
 // Google SVG logo
 function GoogleLogo() {
@@ -148,10 +149,12 @@ export function SignInPage({ redirectTo, heading, subheading }: SignInPageProps 
         <div className="w-full max-w-sm">
 
           {/* Wordmark */}
-          <div className="text-center mb-8">
-            <span className="font-serif text-4xl font-semibold text-nave-primary">Nave</span>
-            <div className="mt-2 text-nave-accent/60 text-2xl select-none" aria-hidden>✝</div>
-          </div>
+          <Link to="/" className="flex flex-col items-center mb-8 group">
+            <NaveLogo size={56} />
+            <span className="font-garamond text-3xl text-nave-primary mt-2 tracking-tight group-hover:text-nave-accent-dark transition-colors">
+              Nave
+            </span>
+          </Link>
 
           {/* Card */}
           <div className="bg-white rounded-2xl border border-nave-border shadow-sm overflow-hidden">

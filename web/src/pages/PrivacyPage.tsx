@@ -652,8 +652,7 @@ export function PrivacyPage() {
             </P>
 
             <p className="text-nave-secondary text-sm leading-relaxed mt-10 pt-6 border-t border-nave-border">
-              This page is provided for general informational purposes and does not constitute
-              legal advice. Last updated {EFFECTIVE_DATE}.
+              Last updated {EFFECTIVE_DATE}.
             </p>
           </div>
 
