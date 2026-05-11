@@ -104,7 +104,7 @@ function ParishPostCardImpl({
           disabled={!onAuthorPress}
           activeOpacity={0.7}
         >
-          <Avatar name={post.author.displayName} size={44} uri={post.author.avatarUrl} />
+          <Avatar name={post.author.displayName} size={42} uri={post.author.avatarUrl} />
         </TouchableOpacity>
         <View style={styles.postRight}>
           <View style={styles.nameRow}>
@@ -150,7 +150,7 @@ export const ParishPostCard = React.memo(ParishPostCardImpl, (prev, next) => {
 
 const styles = StyleSheet.create({
   postCard: {
-    paddingHorizontal: Spacing[5],
+    paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.cardBorder,

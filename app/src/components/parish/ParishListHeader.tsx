@@ -123,7 +123,6 @@ function ParishListHeaderImpl({
       <View style={styles.sectionDivider} />
 
       <View style={styles.communityHeader}>
-        <Text style={styles.communityTitle}>COMMUNITY</Text>
         <TouchableOpacity
           style={styles.newPostBtn}
           onPress={onNewPostPress}
@@ -190,11 +189,11 @@ const styles = StyleSheet.create({
   },
   coverParishName: {
     fontFamily: Typography.fontSans,
-    fontSize: 30,
-    fontWeight: Typography.semibold,
+    fontSize: 34,
+    fontWeight: Typography.medium,
     color: '#1a1a1a',
     letterSpacing: -0.8,
-    lineHeight: 30 * 1.05,
+    lineHeight: 34 * 1.05,
   },
   noCoverHeader: {
     paddingHorizontal: Spacing[5],
@@ -229,7 +228,7 @@ const styles = StyleSheet.create({
   communityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: Spacing[5],
     paddingTop: Spacing[4],
     paddingBottom: Spacing[3],

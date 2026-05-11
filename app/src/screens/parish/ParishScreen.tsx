@@ -796,15 +796,13 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     }
   }, [parishId]);
 
-  // Cover URL we currently have available — prefer the parish object's URL,
-  // fall back to the user payload's parish_cover_photo_url so first-ever sign-in
-  // (before /parishes/{id} resolves) can already paint the cover.
-  const effectiveCoverUrl = parish?.coverPhotoUrl ?? userParishCoverUrl;
-  // Reserve the cover layout whenever we have *any* signal a cover exists,
-  // even if the URL isn't loaded yet. We only collapse to the no-cover layout
-  // once a fresh getParish has resolved with no cover URL — i.e. parish is
-  // loaded AND has no coverPhotoUrl AND the user payload also has none.
-  const knowsParishHasNoCover = !!parish && !parish.coverPhotoUrl && !userParishCoverUrl;
+  // Once /parishes/{id} has resolved (parish is non-null), trust it as the
+  // source of truth for whether a cover exists. userParishCoverUrl from the
+  // auth store can be stale within a session (e.g. cover removed server-side
+  // or parish switched) and only resets on cold start via loadStoredAuth.
+  // It's only useful as a placeholder before the first fetch resolves.
+  const effectiveCoverUrl = parish ? parish.coverPhotoUrl : userParishCoverUrl;
+  const knowsParishHasNoCover = !!parish && !parish.coverPhotoUrl;
   const hasCover = !knowsParishHasNoCover && !coverImgError;
 
   const handleProfilePress = useCallback(() => setProfileVisible(true), []);
