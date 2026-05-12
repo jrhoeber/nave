@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User, PrayerGroup, PrayerGroupCategory, Parish, ParishPost, ParishPostAuthor, ParishComment, GroupMessage, GroupMessageAuthor, Friendship, FriendSearchResult, BlockedUser, GroupInvitation } from '../types';
 import { API_BASE_URL } from './config';
 
@@ -188,8 +187,17 @@ interface ApiBlockedUser {
 
 interface ApiTokenResponse {
   access_token: string;
+  refresh_token: string;
+  access_token_expires_in: number;
   user: ApiUser;
   is_new_user: boolean;
+  is_admin?: boolean;
+}
+
+interface ApiRefreshResponse {
+  access_token: string;
+  refresh_token: string;
+  access_token_expires_in: number;
 }
 
 interface ApiGroupsResponse {
@@ -393,13 +401,38 @@ export function mapFriendSearchResult(raw: ApiFriendSearchResult): FriendSearchR
   };
 }
 
-// ─── 401 handler ─────────────────────────────────────────────────────────────
-// Registered by authStore after the store is created to avoid a circular import.
+// ─── Token + refresh integration ─────────────────────────────────────────────
+// Access token is kept in-memory; the refresh token lives in Keychain and is
+// managed by authStore. authStore registers both handlers below to avoid a
+// circular import.
 
+let accessToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
+let refreshHandler: (() => Promise<string | null>) | null = null;
+let inFlightRefresh: Promise<string | null> | null = null;
+
+export function setAccessToken(token: string | null) {
+  accessToken = token;
+}
 
 export function registerUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
+}
+
+// Returns a fresh access token on success, or null if refresh failed.
+export function registerRefreshHandler(handler: () => Promise<string | null>) {
+  refreshHandler = handler;
+}
+
+async function tryRefresh(): Promise<string | null> {
+  if (!refreshHandler) return null;
+  // Single-flight: concurrent 401s share the same refresh promise.
+  if (!inFlightRefresh) {
+    inFlightRefresh = refreshHandler().finally(() => {
+      inFlightRefresh = null;
+    });
+  }
+  return inFlightRefresh;
 }
 
 // ─── HTTP client ──────────────────────────────────────────────────────────────
@@ -415,34 +448,61 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = await AsyncStorage.getItem('auth_token');
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+function authHeader(): Record<string, string> {
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+}
 
-  const response = await fetch(API_BASE_URL + path, { ...options, headers });
+async function readError(response: Response): Promise<{ detail: string; code?: string }> {
+  let detail = `HTTP ${response.status}`;
+  let code: string | undefined;
+  try {
+    const body = await response.json();
+    if (typeof body?.detail === 'string') {
+      detail = body.detail;
+    } else if (typeof body?.detail === 'object' && body.detail !== null) {
+      detail = body.detail.message ?? JSON.stringify(body.detail);
+      code = body.detail.code;
+    }
+  } catch {}
+  return { detail, code };
+}
+
+interface ApiFetchOptions extends RequestInit {
+  // When true, do NOT attempt token refresh on 401. Used by /auth/refresh and
+  // /auth/upgrade-session themselves.
+  skipAuthRefresh?: boolean;
+}
+
+async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  const { skipAuthRefresh, ...init } = options;
+
+  const doRequest = (): Promise<Response> => fetch(API_BASE_URL + path, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeader(),
+      ...(init.headers as Record<string, string>),
+    },
+  });
+
+  let response = await doRequest();
+
+  if (response.status === 401 && !skipAuthRefresh) {
+    const fresh = await tryRefresh();
+    if (fresh) {
+      response = await doRequest();
+    } else {
+      onUnauthorized?.();
+      throw new Error('Session expired');
+    }
+  }
 
   if (!response.ok) {
     if (response.status === 401) {
       onUnauthorized?.();
       throw new Error('Session expired');
     }
-    let detail = `HTTP ${response.status}`;
-    let code: string | undefined;
-    try {
-      const body = await response.json();
-      if (typeof body?.detail === 'string') {
-        detail = body.detail;
-      } else if (typeof body?.detail === 'object' && body.detail !== null) {
-        detail = body.detail.message ?? JSON.stringify(body.detail);
-        code = body.detail.code;
-      }
-    } catch {}
+    const { detail, code } = await readError(response);
     throw new ApiError(response.status, detail, code);
   }
 
@@ -451,26 +511,30 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 }
 
 async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
-  const token = await AsyncStorage.getItem('auth_token');
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  const doRequest = (): Promise<Response> => fetch(API_BASE_URL + path, {
+    method: 'POST',
+    headers: authHeader(),
+    body: formData,
+  });
+
+  let response = await doRequest();
+
+  if (response.status === 401) {
+    const fresh = await tryRefresh();
+    if (fresh) {
+      response = await doRequest();
+    } else {
+      onUnauthorized?.();
+      throw new Error('Session expired');
+    }
   }
-  // Do NOT set Content-Type — the browser/RN sets it with the multipart boundary.
-  const response = await fetch(API_BASE_URL + path, { method: 'POST', headers, body: formData });
 
   if (!response.ok) {
     if (response.status === 401) {
       onUnauthorized?.();
       throw new Error('Session expired');
     }
-    let detail = `HTTP ${response.status}`;
-    try {
-      const body = await response.json();
-      if (body?.detail) {
-        detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
-      }
-    } catch {}
+    const { detail } = await readError(response);
     throw new ApiError(response.status, detail);
   }
 
@@ -485,7 +549,28 @@ export const api = {
     return apiFetch<ApiTokenResponse>('/auth/firebase', {
       method: 'POST',
       body: JSON.stringify({ id_token: idToken }),
+      skipAuthRefresh: true,
     });
+  },
+
+  refreshSession(refreshToken: string) {
+    return apiFetch<ApiRefreshResponse>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      skipAuthRefresh: true,
+    });
+  },
+
+  logoutSession(refreshToken: string) {
+    return apiFetch<void>('/auth/logout', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      skipAuthRefresh: true,
+    });
+  },
+
+  logoutAll() {
+    return apiFetch<void>('/auth/logout-all', { method: 'POST' });
   },
 
   // Prayer groups

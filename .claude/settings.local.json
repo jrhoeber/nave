@@ -111,7 +111,9 @@
       "Bash(sort -t\"'\" -k2 -n)",
       "Bash(python -c \"import ast; ast.parse\\(open\\('app/retention/sweep.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/routers/users.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/utils/push.py'\\).read\\(\\)\\); ast.parse\\(open\\('alembic/versions/20260510_0001_retention_cleanup.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
       "Bash(echo \"exit=$?\")",
-      "Bash(python -c \"import app.routers.group_messages, app.routers.parish_post_comments, app.routers.parishes, app.models.parish, app.models.group_message; print\\('ok'\\)\")"
+      "Bash(python -c \"import app.routers.group_messages, app.routers.parish_post_comments, app.routers.parishes, app.models.parish, app.models.group_message; print\\('ok'\\)\")",
+      "Bash(git check-ignore *)",
+      "Bash(python -c \"from app import auth, dependencies, config; from app.routers import auth as r; from app.models import user; print\\('imports OK'\\)\")"
     ]
   }
 }

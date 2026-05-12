@@ -30,7 +30,7 @@ interface NotificationPrefs {
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<RootNavigationProp>();
-  const { logout } = useAuthStore();
+  const { logout, logoutAll } = useAuthStore();
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -179,6 +179,26 @@ export function SettingsScreen() {
             icon="log-out-outline"
             label="Sign Out"
             onPress={async () => { await logout(); }}
+          />
+          <View style={styles.sep} />
+          <SettingsRow
+            icon="phone-portrait-outline"
+            label="Sign Out Everywhere"
+            subtitle="Sign out of every device you're signed in on"
+            onPress={() => {
+              Alert.alert(
+                'Sign Out Everywhere',
+                "This will sign you out of all devices, including this one.",
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Sign Out Everywhere',
+                    style: 'destructive',
+                    onPress: async () => { await logoutAll(); },
+                  },
+                ],
+              );
+            }}
           />
         </View>
 

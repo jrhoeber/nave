@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider, appleProvider } from '../firebase';
-import { useAuth, API_BASE, JWT_KEY } from '../context/AuthContext';
+import { useAuth, API_BASE } from '../context/AuthContext';
 import { NaveLogo } from '../components/NaveLogo';
 
 // Google SVG logo
@@ -61,7 +61,7 @@ interface SignInPageProps {
 
 export function SignInPage({ redirectTo, heading, subheading }: SignInPageProps = {}) {
   const navigate = useNavigate();
-  const { setToken, setIsAdmin } = useAuth();
+  const { setTokens, setIsAdmin } = useAuth();
   const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
   const [error, setError] = useState('');
 
@@ -78,8 +78,7 @@ export function SignInPage({ redirectTo, heading, subheading }: SignInPageProps 
       throw new Error(body.detail ?? 'Authentication failed. Please try again.');
     }
     const data = await res.json();
-    setToken(data.access_token);
-    localStorage.setItem(JWT_KEY, data.access_token);
+    setTokens(data.access_token, data.refresh_token);
     setIsAdmin(!!data.is_admin);
     return !!data.is_admin;
   };

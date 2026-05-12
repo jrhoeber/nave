@@ -66,7 +66,24 @@ class UserResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
+    access_token_expires_in: int  # seconds
     token_type: str = "bearer"
     user: UserResponse
     is_new_user: bool = False
     is_admin: bool = False
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    access_token_expires_in: int
+    token_type: str = "bearer"

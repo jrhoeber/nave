@@ -20,12 +20,33 @@ CREATE TABLE IF NOT EXISTS users (
     push_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     notify_group_messages     BOOLEAN NOT NULL DEFAULT TRUE,
     notify_friend_requests    BOOLEAN NOT NULL DEFAULT TRUE,
+    token_version             INT NOT NULL DEFAULT 0,
     created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
 CREATE INDEX IF NOT EXISTS idx_users_email    ON users (email);
+
+-- ============================================================
+-- REFRESH TOKENS (rotating, family-tracked)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash    TEXT NOT NULL UNIQUE,
+    family_id     UUID NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_used_at  TIMESTAMPTZ,
+    expires_at    TIMESTAMPTZ NOT NULL,
+    revoked_at    TIMESTAMPTZ,
+    rotated_to    UUID,
+    user_agent    TEXT,
+    ip            INET
+);
+
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id   ON refresh_tokens (user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_family_id ON refresh_tokens (family_id);
 
 -- ============================================================
 -- PARISHES

@@ -5,7 +5,8 @@ class Settings(BaseSettings):
     database_url: str
     secret_key: str = "change-me-in-production"
     algorithm: str = "HS256"
-    access_token_expire_days: int = 30
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 180
     gcs_bucket_name: str = "nave-avatars"
     gcs_enabled: bool = True
     # JSON string of the Firebase service account key. If empty, push notifications are disabled.

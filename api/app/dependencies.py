@@ -16,7 +16,7 @@ async def get_current_user(
     conn=Depends(get_db),
 ) -> dict:
     try:
-        user_id = decode_access_token(credentials.credentials)
+        user_id, token_version = decode_access_token(credentials.credentials)
     except ValueError as exc:
         logger.warning("Token validation failed: %s", exc)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
@@ -25,6 +25,9 @@ async def get_current_user(
     if row is None:
         logger.warning("Authenticated token references unknown user_id=%s", user_id)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if row["token_version"] != token_version:
+        logger.info("Revoked token presented for user_id=%s (tv=%s, current=%s)", user_id, token_version, row["token_version"])
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked")
     return dict(row)
 
 
