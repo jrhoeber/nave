@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { NaveLogo } from '../components/NaveLogo';
 
 const SUPPORT_EMAIL = 'nave@cornerstonedev.co';
 
@@ -110,7 +111,7 @@ export function SupportPage() {
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="text-center pt-6 pb-12">
-            <div className="text-nave-accent/50 text-4xl mb-6 select-none" aria-hidden>✝</div>
+            <NaveLogo size={56} className="mx-auto mb-6" />
             <div className="inline-flex items-center gap-3 mb-6">
               <div className="h-px w-10 bg-nave-accent/40" />
               <span className="text-nave-accent text-xs font-medium tracking-[0.35em] uppercase">
