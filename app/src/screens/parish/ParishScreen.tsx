@@ -329,43 +329,59 @@ function ComposeModal({ parishId, visible, onClose, onCreated, onUpdated, editPo
           >
             {/* Announcement toggle — only for new posts by admins */}
             {isParishAdmin && !editPost && (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={[composeStyles.announcementRow, isAnnouncement && composeStyles.announcementRowActive]}
-                onPress={() => setIsAnnouncement(v => !v)}
-              >
-                <View style={composeStyles.announcementLeft}>
-                  <MCIcon name="church" size={15} color={isAnnouncement ? Colors.accent : Colors.textSecondary} />
-                  <Text style={[composeStyles.announcementLabel, isAnnouncement && composeStyles.announcementLabelActive]}>
-                    Parish Announcement
-                  </Text>
-                </View>
-                <Switch
-                  value={isAnnouncement}
-                  onValueChange={setIsAnnouncement}
-                  trackColor={{ false: Colors.border, true: Colors.accent + '80' }}
-                  thumbColor={isAnnouncement ? Colors.accent : Colors.textLight}
-                />
-              </TouchableOpacity>
+              <>
+                <Text style={composeStyles.sectionLabel}>POST AS</Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[composeStyles.announcementCard, isAnnouncement && composeStyles.announcementCardActive]}
+                  onPress={() => setIsAnnouncement(v => !v)}
+                >
+                  <View style={[composeStyles.announcementIconTile, isAnnouncement && composeStyles.announcementIconTileActive]}>
+                    <MCIcon name="church" size={20} color={Colors.accent} />
+                  </View>
+                  <View style={composeStyles.announcementBody}>
+                    <Text style={composeStyles.announcementTitle}>Parish Announcement</Text>
+                    <Text style={composeStyles.announcementSublabel}>
+                      {isAnnouncement ? 'Highlighted with a gold marker in the feed' : 'Posts to the parish with a highlighted marker'}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={isAnnouncement}
+                    onValueChange={setIsAnnouncement}
+                    trackColor={{ false: Colors.border, true: Colors.accent + '90' }}
+                    thumbColor={isAnnouncement ? Colors.accent : '#ffffff'}
+                    ios_backgroundColor={Colors.border}
+                  />
+                </TouchableOpacity>
+              </>
             )}
 
-            {/* Compose area — avatar + name + input unified */}
-            <View style={composeStyles.composeArea}>
-              <Avatar name={user?.displayName ?? ''} uri={user?.avatarUrl} size={42} />
-              <View style={composeStyles.composeRight}>
-                <Text style={composeStyles.authorName}>{user?.displayName}</Text>
-                <TextInput
-                  style={composeStyles.input}
-                  placeholder="Share something with your parish…"
-                  placeholderTextColor={Colors.textLight}
-                  value={content}
-                  onChangeText={(t) => { setContent(t); if (error) setError(null); }}
-                  multiline
-                  scrollEnabled={false}
-                  autoFocus
-                  maxLength={1000}
-                  textAlignVertical="top"
-                />
+            <Text style={composeStyles.sectionLabel}>MESSAGE</Text>
+
+            {/* Compose card — previews how the post will appear in the feed */}
+            <View style={[composeStyles.composeCard, isAnnouncement && composeStyles.composeCardAnnouncement]}>
+              <View style={composeStyles.composeArea}>
+                <Avatar name={user?.displayName ?? ''} uri={user?.avatarUrl} size={42} />
+                <View style={composeStyles.composeRight}>
+                  {isAnnouncement && (
+                    <View style={composeStyles.previewBadge}>
+                      <Text style={composeStyles.previewBadgeText}>PARISH ANNOUNCEMENT</Text>
+                    </View>
+                  )}
+                  <Text style={composeStyles.authorName}>{user?.displayName}</Text>
+                  <TextInput
+                    style={composeStyles.input}
+                    placeholder="Share something with your parish…"
+                    placeholderTextColor={Colors.textLight}
+                    value={content}
+                    onChangeText={(t) => { setContent(t); if (error) setError(null); }}
+                    multiline
+                    scrollEnabled={false}
+                    autoFocus
+                    maxLength={1000}
+                    textAlignVertical="top"
+                  />
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -1239,39 +1255,83 @@ const composeStyles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.border,
   },
-  announcementRow: {
-    width: Dimensions.get('window').width - Spacing[4] * 2,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  sectionLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.bold,
+    color: Colors.textSecondary,
+    letterSpacing: 1.5,
     marginTop: Spacing[5],
-    marginBottom: Spacing[2],
-    paddingLeft: Spacing[3],
-    paddingRight: Spacing[6],
-    paddingVertical: Spacing[2],
-    backgroundColor: Colors.surface ?? Colors.background,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    marginBottom: Spacing[3],
+    marginHorizontal: Spacing[5],
   },
-  announcementRowActive: {
-    backgroundColor: Colors.accent + '12',
-    borderColor: Colors.accent + '40',
-  },
-  announcementLeft: {
+  announcementCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[2],
+    gap: Spacing[3],
+    marginHorizontal: Spacing[4],
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.cardBorder,
+    ...Shadows.sm,
   },
-  announcementLabel: {
+  announcementCardActive: {
+    backgroundColor: Colors.accent + '10',
+    borderColor: Colors.accent + '50',
+  },
+  announcementIconTile: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  announcementIconTileActive: {
+    backgroundColor: Colors.accent + '20',
+  },
+  announcementBody: {
+    flex: 1,
+  },
+  announcementTitle: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+  },
+  announcementSublabel: {
     fontSize: Typography.sm,
     color: Colors.textSecondary,
-    fontWeight: Typography.medium,
+    marginTop: 2,
+    lineHeight: Typography.sm * 1.35,
   },
-  announcementLabelActive: {
+  composeCard: {
+    marginHorizontal: Spacing[4],
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.cardBorder,
+    overflow: 'hidden',
+    ...Shadows.sm,
+  },
+  composeCardAnnouncement: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+  },
+  previewBadge: {
+    alignSelf: 'flex-start',
+    marginBottom: Spacing[1],
+    backgroundColor: Colors.accent + '20',
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: 2,
+  },
+  previewBadgeText: {
+    fontSize: 10,
+    fontWeight: Typography.bold,
     color: Colors.accent,
-    fontWeight: Typography.semibold,
+    letterSpacing: 0.8,
   },
   composeArea: {
     flexDirection: 'row',
