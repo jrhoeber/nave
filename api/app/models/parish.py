@@ -28,9 +28,10 @@ class ParishesResponse(BaseModel):
 
 
 class ParishUpdate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     website: Optional[str] = None
     mass_schedule: Optional[str] = None
-    cover_photo_url: Optional[str] = None
 
 
 ParishPostStatus = Literal["Pending", "Posted", "Deleted", "Rejected"]

@@ -382,6 +382,19 @@ async def update_comment(
     )
 
     if mod.action == "block":
+        try:
+            from app.moderation.review_queue import add_to_queue
+            await add_to_queue(
+                conn,
+                user_id=str(current_user["id"]),
+                content=body.content,
+                context_type="comment",
+                final_action="block",
+                layer1_result=mod.layer1_result,
+                layer2_result=mod.layer2_result,
+            )
+        except Exception:
+            pass
         raise HTTPException(
             status_code=400,
             detail={
@@ -390,16 +403,32 @@ async def update_comment(
             },
         )
 
-    row = await conn.fetchrow(
-        """
-        UPDATE parish_post_comments
-        SET content = $1, updated_at = NOW()
-        WHERE id = $2
-        RETURNING id, post_id, reply_to_id, content, status, created_at, updated_at
-        """,
-        body.content,
-        comment_id,
-    )
+    next_status = "Pending" if mod.action == "queue" else "Posted"
+
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            """
+            UPDATE parish_post_comments
+            SET content = $1, status = $3, updated_at = NOW()
+            WHERE id = $2
+            RETURNING id, post_id, reply_to_id, content, status, created_at, updated_at
+            """,
+            body.content,
+            comment_id,
+            next_status,
+        )
+        if mod.action == "queue":
+            from app.moderation.review_queue import add_to_queue
+            await add_to_queue(
+                conn,
+                user_id=str(current_user["id"]),
+                content=body.content,
+                context_type="comment",
+                content_id=str(row["id"]),
+                final_action="queue",
+                layer1_result=mod.layer1_result,
+                layer2_result=mod.layer2_result,
+            )
 
     # Fetch reply-to author if applicable
     reply_to_author = None
@@ -425,7 +454,7 @@ async def update_comment(
     rd = await _fetch_comment_reactions(conn, [comment_id], str(current_user["id"]))
     count, reacted = rd.get(cid, (0, False))
 
-    return ParishCommentResponse(
+    response = ParishCommentResponse(
         id=cid,
         post_id=str(row["post_id"]),
         author=ParishPostAuthor(
@@ -443,6 +472,22 @@ async def update_comment(
         reaction_count=count,
         user_reacted=reacted,
     )
+
+    if mod.action == "queue":
+        from fastapi.responses import JSONResponse
+        payload = response.model_dump(mode="json")
+        payload["_moderation"] = {"status": "pending_review", "crisis": mod.crisis}
+        if mod.crisis and mod.crisis_resources:
+            payload["_moderation"]["crisis_resources"] = mod.crisis_resources
+        return JSONResponse(status_code=200, content=payload)
+
+    if mod.crisis and mod.crisis_resources:
+        from fastapi.responses import JSONResponse
+        payload = response.model_dump(mode="json")
+        payload["_moderation"] = {"status": "allowed", "crisis": True, "crisis_resources": mod.crisis_resources}
+        return JSONResponse(status_code=200, content=payload)
+
+    return response
 
 
 @router.delete(

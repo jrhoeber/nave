@@ -12,10 +12,11 @@ class FirebaseAuthRequest(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     display_name: Optional[str] = None
     username: Optional[str] = None
     bio: Optional[str] = None
-    avatar_url: Optional[str] = None
     parish_id: Optional[str] = None
     diocese: Optional[str] = None
     location: Optional[str] = None

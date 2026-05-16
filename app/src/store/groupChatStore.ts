@@ -226,8 +226,8 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     }));
 
     try {
-      const { object_name } = await api.uploadGroupMessageImage(groupId, uri, type);
-      const raw = await api.sendGroupImageMessage(groupId, object_name, caption);
+      const { image_id } = await api.uploadGroupMessageImage(groupId, uri, type);
+      const raw = await api.sendGroupImageMessage(groupId, image_id, caption);
       const message = mapGroupMessage(raw);
       set((s) => replaceOptimistic(s, groupId, tempId, message));
     } catch (err) {

@@ -240,6 +240,19 @@ CREATE INDEX IF NOT EXISTS idx_gm_group_created ON group_messages (group_id, cre
 CREATE INDEX IF NOT EXISTS idx_gm_user          ON group_messages (user_id);
 CREATE INDEX IF NOT EXISTS idx_gm_moderation_status ON group_messages (moderation_status) WHERE moderation_status IS NOT NULL;
 
+-- Server-issued handle for moderated group-message uploads. send_message
+-- references rows here by id; the client never sees the GCS object_name.
+CREATE TABLE IF NOT EXISTS pending_message_images (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id      UUID NOT NULL REFERENCES prayer_groups(id) ON DELETE CASCADE,
+    user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    object_name   TEXT NOT NULL,
+    content_type  TEXT NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    consumed_at   TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_pmi_unconsumed ON pending_message_images (created_at) WHERE consumed_at IS NULL;
+
 -- ============================================================
 -- GROUP MESSAGE REACTIONS
 -- ============================================================

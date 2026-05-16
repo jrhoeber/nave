@@ -13,7 +13,7 @@ class GroupMessageAuthor(BaseModel):
 
 class GroupMessageCreate(BaseModel):
     content: Optional[str] = None
-    image_url: Optional[str] = None
+    image_id: Optional[str] = None
 
     @field_validator("content")
     @classmethod
@@ -27,7 +27,7 @@ class GroupMessageCreate(BaseModel):
         return v
 
     def model_post_init(self, __context: object) -> None:
-        if self.content is None and self.image_url is None:
+        if self.content is None and self.image_id is None:
             raise ValueError("A message must have content or an image")
 
 

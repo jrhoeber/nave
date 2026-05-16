@@ -63,6 +63,12 @@ _MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 def _resolve_image_url(raw: str | None) -> str | None:
+    """Sign a GCS object_name stored in group_messages.image_url.
+
+    All values written to that column originate from the server-side
+    upload-image endpoint, so they are always GCS object_names. Legacy rows
+    that may contain a full URL are passed through unchanged.
+    """
     if not raw:
         return None
     if raw.startswith("http"):
@@ -197,7 +203,19 @@ async def upload_message_image(
     temp_id = str(uuid.uuid4())
     object_name = _upload(file_bytes, group_id, temp_id, content_type)
     signed_url = get_signed_url(object_name)
-    return {"object_name": object_name, "url": signed_url}
+
+    row = await conn.fetchrow(
+        """
+        INSERT INTO pending_message_images (group_id, user_id, object_name, content_type)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+        """,
+        group_id,
+        current_user["id"],
+        object_name,
+        content_type,
+    )
+    return {"image_id": str(row["id"]), "url": signed_url}
 
 
 @router.post("/{group_id}/messages", response_model=GroupMessageResponse, status_code=201)
@@ -254,6 +272,26 @@ async def send_message(
         mod_crisis_resources = mod.crisis_resources
 
     async with conn.transaction():
+        object_name: Optional[str] = None
+        if body.image_id:
+            pending = await conn.fetchrow(
+                """
+                UPDATE pending_message_images
+                   SET consumed_at = NOW()
+                 WHERE id = $1
+                   AND group_id = $2
+                   AND user_id = $3
+                   AND consumed_at IS NULL
+                RETURNING object_name
+                """,
+                body.image_id,
+                group_id,
+                current_user["id"],
+            )
+            if pending is None:
+                raise HTTPException(status_code=400, detail="Invalid or already-used image_id")
+            object_name = pending["object_name"]
+
         row = await conn.fetchrow(
             """
             INSERT INTO group_messages (group_id, user_id, content, image_url, moderation_status)
@@ -263,7 +301,7 @@ async def send_message(
             group_id,
             current_user["id"],
             body.content,
-            body.image_url,
+            object_name,
             mod_status,
         )
 

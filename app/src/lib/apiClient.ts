@@ -697,7 +697,7 @@ export const api = {
     return apiFetch<ApiParishPostsResponse>(`/parishes/${parishId}/posts?${query}`);
   },
 
-  updateParish(parishId: string, data: { website?: string; mass_schedule?: string; cover_photo_url?: string }) {
+  updateParish(parishId: string, data: { website?: string; mass_schedule?: string }) {
     return apiFetch<ApiParish>(`/parishes/${parishId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -785,17 +785,17 @@ export const api = {
     });
   },
 
-  sendGroupImageMessage(groupId: string, imageObjectName: string, content?: string) {
+  sendGroupImageMessage(groupId: string, imageId: string, content?: string) {
     return apiFetch<ApiGroupMessage>(`/prayer-groups/${groupId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ image_url: imageObjectName, content: content ?? null }),
+      body: JSON.stringify({ image_id: imageId, content: content ?? null }),
     });
   },
 
   uploadGroupMessageImage(groupId: string, uri: string, type: string) {
     const formData = new FormData();
     formData.append('file', { uri, type, name: 'photo.jpg' } as unknown as Blob);
-    return apiUpload<{ object_name: string; url: string | null }>(
+    return apiUpload<{ image_id: string; url: string | null }>(
       `/prayer-groups/${groupId}/messages/upload-image`,
       formData,
     );
@@ -932,7 +932,7 @@ export const api = {
     return apiFetch<ApiUser>(`/users/${id}`);
   },
 
-  updateProfile(data: { display_name?: string; username?: string; parish_id?: string; bio?: string; location?: string; avatar_url?: string; birthday?: string }) {
+  updateProfile(data: { display_name?: string; username?: string; parish_id?: string; bio?: string; location?: string; birthday?: string }) {
     return apiFetch<ApiUser>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),

@@ -458,22 +458,67 @@ async def update_parish_post(
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    row = await conn.fetchrow(
-        """
-        UPDATE parish_posts
-        SET content = $1
-        WHERE id = $2 AND parish_id = $3 AND user_id = $4 AND status = 'Posted'
-        RETURNING id, parish_id, content, status, is_announcement, created_at
-        """,
-        body.content,
-        post_id,
-        parish_id,
-        current_user["id"],
+    from app.moderation.moderate import moderate_content
+
+    mod = await moderate_content(
+        text=body.content,
+        context_type="post",
+        user_id=str(current_user["id"]),
     )
+    if mod.action == "block":
+        try:
+            from app.moderation.review_queue import add_to_queue
+            await add_to_queue(
+                conn,
+                user_id=str(current_user["id"]),
+                content=body.content,
+                context_type="post",
+                final_action="block",
+                layer1_result=mod.layer1_result,
+                layer2_result=mod.layer2_result,
+            )
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "moderation_blocked",
+                "message": "This content can't be posted in our community. If you believe this is a mistake, please contact us.",
+            },
+        )
+
+    next_status = "Pending" if mod.action == "queue" else "Posted"
+
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            """
+            UPDATE parish_posts
+            SET content = $1, status = $5
+            WHERE id = $2 AND parish_id = $3 AND user_id = $4 AND status = 'Posted'
+            RETURNING id, parish_id, content, status, is_announcement, created_at
+            """,
+            body.content,
+            post_id,
+            parish_id,
+            current_user["id"],
+            next_status,
+        )
+        if row is not None and mod.action == "queue":
+            from app.moderation.review_queue import add_to_queue
+            await add_to_queue(
+                conn,
+                user_id=str(current_user["id"]),
+                content=body.content,
+                context_type="post",
+                content_id=str(row["id"]),
+                final_action="queue",
+                layer1_result=mod.layer1_result,
+                layer2_result=mod.layer2_result,
+            )
     if row is None:
         raise HTTPException(status_code=404, detail="Post not found")
 
-    return ParishPostResponse(
+    response = ParishPostResponse(
         id=str(row["id"]),
         parish_id=str(row["parish_id"]),
         author=ParishPostAuthor(
@@ -487,6 +532,22 @@ async def update_parish_post(
         is_announcement=row["is_announcement"],
         created_at=row["created_at"],
     )
+
+    if mod.action == "queue":
+        from fastapi.responses import JSONResponse
+        payload = response.model_dump(mode="json")
+        payload["_moderation"] = {"status": "pending_review", "crisis": mod.crisis}
+        if mod.crisis and mod.crisis_resources:
+            payload["_moderation"]["crisis_resources"] = mod.crisis_resources
+        return JSONResponse(status_code=200, content=payload)
+
+    if mod.crisis and mod.crisis_resources:
+        from fastapi.responses import JSONResponse
+        payload = response.model_dump(mode="json")
+        payload["_moderation"] = {"status": "allowed", "crisis": True, "crisis_resources": mod.crisis_resources}
+        return JSONResponse(status_code=200, content=payload)
+
+    return response
 
 
 @router.delete("/{parish_id}/posts/{post_id}", status_code=204)

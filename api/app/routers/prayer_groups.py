@@ -217,8 +217,8 @@ async def create_group(
         group_row = await conn.fetchrow(
             """
             INSERT INTO prayer_groups
-                (name, description, category, is_private, admin_id, parish, diocese, meeting_schedule, avatar_url)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                (name, description, category, is_private, admin_id, parish, diocese, meeting_schedule)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
             RETURNING *
             """,
             body.name,
@@ -229,7 +229,6 @@ async def create_group(
             body.parish,
             body.diocese,
             body.meeting_schedule,
-            body.avatar_url,
         )
         await conn.execute(
             "INSERT INTO prayer_group_members (group_id, user_id, status) VALUES ($1, $2, 'member')",
@@ -257,6 +256,8 @@ async def get_group(
         group_id,
     )
     if row is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if row["is_private"] and not row["is_member"]:
         raise HTTPException(status_code=404, detail="Prayer group not found")
     return _build_group(dict(row))
 
@@ -363,8 +364,24 @@ async def list_group_members(
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    pg = await conn.fetchrow("SELECT id FROM prayer_groups WHERE id = $1", group_id)
+    pg = await conn.fetchrow(
+        """
+        SELECT pg.id, pg.is_private,
+               EXISTS (
+                   SELECT 1 FROM prayer_group_members pgm
+                   WHERE pgm.group_id = pg.id
+                     AND pgm.user_id = $2
+                     AND pgm.status = 'member'
+               ) AS is_member
+        FROM prayer_groups pg
+        WHERE pg.id = $1
+        """,
+        group_id,
+        current_user["id"],
+    )
     if pg is None:
+        raise HTTPException(status_code=404, detail="Prayer group not found")
+    if pg["is_private"] and not pg["is_member"]:
         raise HTTPException(status_code=404, detail="Prayer group not found")
     rows = await conn.fetch(
         """

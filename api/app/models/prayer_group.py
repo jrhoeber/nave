@@ -12,6 +12,8 @@ PrayerGroupCategory = Literal[
 
 
 class PrayerGroupCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     name: str
     description: str
     category: PrayerGroupCategory
@@ -19,10 +21,11 @@ class PrayerGroupCreate(BaseModel):
     parish: Optional[str] = None
     diocese: Optional[str] = None
     meeting_schedule: Optional[str] = None
-    avatar_url: Optional[str] = None
 
 
 class PrayerGroupUpdate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     name: Optional[str] = None
     description: Optional[str] = None
     category: Optional[PrayerGroupCategory] = None
@@ -30,7 +33,6 @@ class PrayerGroupUpdate(BaseModel):
     parish: Optional[str] = None
     diocese: Optional[str] = None
     meeting_schedule: Optional[str] = None
-    avatar_url: Optional[str] = None
 
 
 class PrayerGroupResponse(BaseModel):
