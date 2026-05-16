@@ -1,6 +1,5 @@
 import React from 'react';
 import { ActionSheetIOS, Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Avatar } from '../ui/Avatar';
 import { ReactionBar } from './ReactionBar';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
@@ -86,27 +85,30 @@ function ParishPostCardImpl({
 
   return (
     <TouchableOpacity
-      style={[styles.postCard, isLast && styles.postCardLast]}
+      style={[
+        styles.postCard,
+        isLast && styles.postCardLast,
+        post.isAnnouncement && styles.postCardAnnouncement,
+      ]}
       onPress={onPress}
       onLongPress={handleLongPress}
       activeOpacity={0.7}
       delayLongPress={400}
     >
-      {post.isAnnouncement && (
-        <View style={styles.announcementBadge}>
-          <MCIcon name="church" size={11} color={Colors.accent} />
-          <Text style={styles.announcementBadgeText}>PARISH ANNOUNCEMENT</Text>
-        </View>
-      )}
       <View style={styles.postRow}>
         <TouchableOpacity
           onPress={() => onAuthorPress?.(post.author.id)}
           disabled={!onAuthorPress}
           activeOpacity={0.7}
         >
-          <Avatar name={post.author.displayName} size={42} uri={post.author.avatarUrl} />
+          <Avatar name={post.author.displayName} size={34} uri={post.author.avatarUrl} />
         </TouchableOpacity>
         <View style={styles.postRight}>
+          {post.isAnnouncement && (
+            <View style={styles.announcementBadge}>
+              <Text style={styles.announcementBadgeText}>PARISH ANNOUNCEMENT</Text>
+            </View>
+          )}
           <View style={styles.nameRow}>
             <Text style={styles.postAuthor}>{post.author.displayName}</Text>
             <Text style={styles.postTime}> · {relativeTime(post.createdAt)}</Text>
@@ -158,16 +160,18 @@ const styles = StyleSheet.create({
   postCardLast: {
     borderBottomWidth: 0,
   },
+  postCardAnnouncement: {
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.accent,
+    paddingLeft: Spacing[4] - 2,
+  },
   announcementBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: Spacing[3],
     alignSelf: 'flex-start',
+    marginBottom: Spacing[1],
     backgroundColor: Colors.accent + '20',
     borderRadius: Radius.full,
-    paddingHorizontal: Spacing[3],
-    paddingVertical: 3,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: 2,
   },
   announcementBadgeText: {
     fontSize: 10,

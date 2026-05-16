@@ -258,7 +258,7 @@ function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss
                 <Icon
                   name={item.icon}
                   size={20}
-                  color={item.destructive ? Colors.error : item.label === 'Like' || item.label === 'Unlike' ? '#dc2626' : Colors.textSecondary}
+                  color={item.destructive ? Colors.error : item.label === 'Like' || item.label === 'Unlike' ? Colors.heart : Colors.textSecondary}
                 />
               </TouchableOpacity>
             ))}
@@ -424,7 +424,7 @@ const MessageBubble = React.memo(function MessageBubble({ message, groupId, isMe
             <Icon
               name={message.userReacted ? 'heart' : 'heart-outline'}
               size={14}
-              color={message.userReacted ? '#dc2626' : Colors.textSecondary}
+              color={message.userReacted ? Colors.heart : Colors.textSecondary}
             />
             <Text style={[msgStyles.heartCount, message.userReacted && msgStyles.heartCountActive]}>
               {message.reactionCount}
@@ -503,7 +503,7 @@ const msgStyles = StyleSheet.create({
     fontWeight: Typography.medium,
   },
   heartCountActive: {
-    color: '#dc2626',
+    color: Colors.heart,
   },
 });
 

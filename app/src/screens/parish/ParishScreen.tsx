@@ -43,7 +43,7 @@ import type { Parish, ParishPost } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const COVER_BASE_HEIGHT = 300;
+const COVER_BASE_HEIGHT = 200;
 
 // Cover photos are GCS V4 signed URLs whose query-string token rotates on each
 // server-side cache miss. Re-rendering <ImageX> with a different `source.uri`
@@ -592,6 +592,8 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   const tabBarPadding = useTabBarContentPadding();
   const navigation = useNavigation<RootNavigationProp>();
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentUserName = useAuthStore((s) => s.user?.displayName);
+  const currentUserAvatarUrl = useAuthStore((s) => s.user?.avatarUrl);
   const [profileVisible, setProfileVisible] = useState(false);
   const [composeVisible, setComposeVisible] = useState(false);
   const [manageVisible, setManageVisible] = useState(false);
@@ -818,6 +820,10 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
       hasCover={hasCover}
       coverHeight={coverHeight}
       parishName={parishName}
+      diocese={parish?.diocese}
+      established={parish?.established}
+      currentUserName={currentUserName ?? ''}
+      currentUserAvatarUrl={currentUserAvatarUrl}
       isParishAdmin={isParishAdmin}
       uploadingCover={uploadingCover}
       loadingPosts={loadingPosts}
@@ -832,6 +838,10 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     hasCover,
     coverHeight,
     parishName,
+    parish?.diocese,
+    parish?.established,
+    currentUserName,
+    currentUserAvatarUrl,
     isParishAdmin,
     uploadingCover,
     loadingPosts,

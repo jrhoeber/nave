@@ -26,6 +26,9 @@ export const Colors = {
   warning: '#d97706',
   info: '#2563eb',
 
+  // Reaction
+  heart: '#8b1d2e',
+
   // UI elements
   border: '#e5e0d8',
   borderLight: '#f0ebe3',
@@ -131,10 +134,12 @@ export const CardList = StyleSheet.create({
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
   },
   itemLast: {
     borderBottomLeftRadius: Radius.lg,
     borderBottomRightRadius: Radius.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
   },
 });

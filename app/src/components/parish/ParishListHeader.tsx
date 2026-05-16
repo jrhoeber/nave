@@ -4,16 +4,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import { BlurView } from '@react-native-community/blur';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Avatar } from '../ui/Avatar';
 import { ImageX } from '../ui/ImageX';
-import { Colors, Spacing, Typography } from '../../theme';
+import { Colors, Radius, Spacing, Typography } from '../../theme';
 
 const TOP_GRADIENT_COLORS = ['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)'];
-const BOTTOM_GRADIENT_COLORS = [
-  'rgba(250,247,242,0)',
-  'rgba(250,247,242,0.4)',
-  'rgba(250,247,242,1)',
-];
-const BOTTOM_GRADIENT_LOCATIONS = [0, 0.55, 1];
 const COVER_ACTION_TINT = 'rgba(237, 235, 235, 0.9)';
 const COVER_ACTION_TINT_ALT = 'rgba(255,255,255,0.9)';
 
@@ -22,6 +17,10 @@ interface ParishListHeaderProps {
   hasCover: boolean;
   coverHeight: number;
   parishName: string;
+  diocese?: string;
+  established?: number;
+  currentUserName: string;
+  currentUserAvatarUrl?: string;
   isParishAdmin: boolean;
   uploadingCover: boolean;
   loadingPosts: boolean;
@@ -37,6 +36,10 @@ function ParishListHeaderImpl({
   hasCover,
   coverHeight,
   parishName,
+  diocese,
+  established,
+  currentUserName,
+  currentUserAvatarUrl,
   isParishAdmin,
   uploadingCover,
   loadingPosts,
@@ -61,11 +64,6 @@ function ParishListHeaderImpl({
           <LinearGradient
             colors={TOP_GRADIENT_COLORS}
             style={styles.topGradient}
-          />
-          <LinearGradient
-            colors={BOTTOM_GRADIENT_COLORS}
-            locations={BOTTOM_GRADIENT_LOCATIONS}
-            style={styles.bottomGradient}
           />
           {uploadingCover && (
             <View style={styles.coverPhotoUploading}>
@@ -92,9 +90,6 @@ function ParishListHeaderImpl({
               </TouchableOpacity>
             ) : null}
           </View>
-          <View style={styles.coverNameOverlay}>
-            <Text style={styles.coverParishName} numberOfLines={2}>{parishName}</Text>
-          </View>
         </View>
       ) : (
         <View style={[styles.noCoverHeader, { paddingTop: insetTop + Spacing[3] }]}>
@@ -116,22 +111,38 @@ function ParishListHeaderImpl({
               </TouchableOpacity>
             ) : null}
           </View>
-          <Text style={styles.noCoverParishName} numberOfLines={2}>{parishName}</Text>
         </View>
       )}
 
-      <View style={styles.sectionDivider} />
-
-      <View style={styles.communityHeader}>
-        <TouchableOpacity
-          style={styles.newPostBtn}
-          onPress={onNewPostPress}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.newPostText}>+ New post</Text>
-        </TouchableOpacity>
+      <View style={styles.parishNameSection}>
+        <Text style={styles.parishNameText} numberOfLines={2}>{parishName}</Text>
+        {(diocese || established) && (
+          <View style={styles.parishMetaRow}>
+            {diocese ? (
+              <Text style={styles.parishMetaText} numberOfLines={1}>
+                {diocese.toUpperCase()}
+              </Text>
+            ) : null}
+            {diocese && established ? (
+              <View style={styles.parishMetaDot} />
+            ) : null}
+            {established ? (
+              <Text style={styles.parishMetaText}>EST. {established}</Text>
+            ) : null}
+          </View>
+        )}
       </View>
+
+      <TouchableOpacity
+        style={styles.composerCard}
+        onPress={onNewPostPress}
+        activeOpacity={0.75}
+      >
+        <Avatar name={currentUserName} size={34} uri={currentUserAvatarUrl} />
+        <Text style={styles.composerPrompt} numberOfLines={1}>
+          Share something with your parish…
+        </Text>
+      </TouchableOpacity>
 
       {loadingPosts && (
         <ActivityIndicator color={Colors.accent} style={styles.initialLoader} />
@@ -149,13 +160,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 110,
-  },
-  bottomGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 180,
   },
   coverPhotoUploading: {
     ...StyleSheet.absoluteFillObject,
@@ -179,25 +183,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(80,80,80,0.35)',
   },
-  coverNameOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: Spacing[5],
-    paddingBottom: Spacing[6],
-  },
-  coverParishName: {
-    fontFamily: Typography.fontSans,
-    fontSize: 34,
-    fontWeight: Typography.medium,
-    color: '#1a1a1a',
-    letterSpacing: -0.8,
-    lineHeight: 34 * 1.05,
-  },
   noCoverHeader: {
     paddingHorizontal: Spacing[5],
-    paddingBottom: Spacing[6],
   },
   noCoverActions: {
     flexDirection: 'row',
@@ -214,43 +201,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noCoverParishName: {
+  parishNameSection: {
+    paddingHorizontal: Spacing[5],
+    paddingTop: Spacing[2],
+    paddingBottom: Spacing[2],
+  },
+  parishNameText: {
     fontFamily: 'CormorantGaramond-Regular',
-    fontSize: 36,
+    fontSize: 32,
     color: '#000000',
     letterSpacing: -0.5,
-    lineHeight: 36 * 1.15,
+    lineHeight: 32 * 1.15,
   },
-  sectionDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-  },
-  communityHeader: {
+  parishMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[4],
-    paddingBottom: Spacing[3],
+    marginTop: 6,
+    gap: Spacing[2],
   },
-  communityTitle: {
-    fontSize: 12,
+  parishMetaText: {
+    fontSize: 11,
     fontWeight: Typography.semibold,
     color: Colors.textSecondary,
-    letterSpacing: 1,
+    letterSpacing: 1.4,
+    flexShrink: 1,
   },
-  newPostBtn: {
+  parishMetaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: Colors.accent,
+  },
+  composerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[2],
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.accent,
-    paddingBottom: 4,
+    gap: Spacing[3],
+    backgroundColor: '#fcfbf9',
+    marginHorizontal: Spacing[3],
+    marginTop: Spacing[2],
+    marginBottom: Spacing[2],
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[2],
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.cardBorder,
   },
-  newPostText: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
+  composerPrompt: {
+    flex: 1,
+    fontSize: Typography.sm,
+    color: Colors.textLight,
   },
   initialLoader: {
     marginTop: Spacing[4],

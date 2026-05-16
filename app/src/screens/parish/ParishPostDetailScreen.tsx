@@ -329,7 +329,7 @@ export function ParishPostDetailScreen() {
                 <Icon
                   name={hasReacted ? 'heart' : 'heart-outline'}
                   size={14}
-                  color={hasReacted ? '#dc2626' : Colors.textSecondary}
+                  color={hasReacted ? Colors.heart : Colors.textSecondary}
                 />
                 {heartCount > 0 && (
                   <Text style={[styles.heartCount, hasReacted && styles.heartCountActive]}>
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.medium,
   },
   heartCountActive: {
-    color: '#dc2626',
+    color: Colors.heart,
   },
 
   // Compose bar

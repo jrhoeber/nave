@@ -28,7 +28,7 @@ export function ReactionBar({
           <Icon
             name={userReacted ? 'heart' : 'heart-outline'}
             size={16}
-            color={userReacted ? '#dc2626' : Colors.textSecondary}
+            color={userReacted ? Colors.heart : Colors.textSecondary}
           />
           {reactionCount > 0 && (
             <Text style={[styles.countText, userReacted && styles.countTextActive]}>{reactionCount}</Text>
@@ -71,6 +71,6 @@ const styles = StyleSheet.create({
     fontWeight: Typography.medium,
   },
   countTextActive: {
-    color: '#dc2626',
+    color: Colors.heart,
   },
 });
