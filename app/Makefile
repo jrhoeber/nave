@@ -2,7 +2,7 @@
 
 ios-local:
 	rm -f /tmp/envfile
-	ENVFILE=.env npm run ios -- --simulator="iPhone 13 mini"
+	ENVFILE=.env npm run ios -- --simulator="iPhone 17 Pro"
 
 ios:
 	rm -f /tmp/envfile
