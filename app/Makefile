@@ -1,7 +1,7 @@
 .PHONY: ios ios-hosted android android-hosted start start-hosted
 
 ios-local:
-	ENVFILE=.env npm run ios -- --simulator="iPhone 17"
+	ENVFILE=.env npm run ios -- --simulator="iPhone 17 Pro Max"
 
 ios:
 	ENVFILE=.env.hosted npm run ios -- --simulator="iPhone 17 Pro"

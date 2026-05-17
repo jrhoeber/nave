@@ -43,7 +43,10 @@ import type { Parish, ParishPost } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const COVER_BASE_HEIGHT = 200;
+// Cover photo uses a fixed aspect ratio so it looks identical on every device
+// (16 Pro, Pro Max, etc.). Status bar stays translucent over the top.
+const COVER_ASPECT_RATIO = 3 / 2; // width / height
+const COVER_HEIGHT = Math.round(SCREEN_WIDTH / COVER_ASPECT_RATIO);
 
 // Cover photos are GCS V4 signed URLs whose query-string token rotates on each
 // server-side cache miss. Re-rendering <ImageX> with a different `source.uri`
@@ -408,7 +411,6 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
   setUploadingCover: (v: boolean) => void;
 }) {
   const insets = useSafeAreaInsets();
-  const coverHeight = COVER_BASE_HEIGHT + insets.top;
   const [website, setWebsite] = useState('');
   const [massSchedule, setMassSchedule] = useState('');
   const [saving, setSaving] = useState(false);
@@ -524,7 +526,7 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
           >
             {/* Cover Photo */}
             <SectionLabel style={{ marginTop: Spacing[6] }}>COVER PHOTO</SectionLabel>
-            <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={[manageStyles.coverPhotoBtn, { height: (SCREEN_WIDTH - 2 * Spacing[5]) * (coverHeight / SCREEN_WIDTH) }]}>
+            <TouchableOpacity onPress={handlePickCoverPhoto} activeOpacity={0.8} disabled={uploadingCover} style={[manageStyles.coverPhotoBtn, { height: (SCREEN_WIDTH - 2 * Spacing[5]) / COVER_ASPECT_RATIO }]}>
               {(localCoverUri ?? parish?.coverPhotoUrl) ? (
                 <>
                   <ImageX source={{ uri: localCoverUri ?? parish!.coverPhotoUrl! }} style={manageStyles.coverPhotoPreview} contentFit="cover" />
@@ -587,7 +589,7 @@ function ManageParishModal({ parish, visible, onClose, onUpdated, uploadingCover
           imageUri={pickedImage.uri}
           imageWidth={pickedImage.width}
           imageHeight={pickedImage.height}
-          aspectRatio={SCREEN_WIDTH / coverHeight}
+          aspectRatio={COVER_ASPECT_RATIO}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />
@@ -604,7 +606,6 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   onChangeParish: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const coverHeight = COVER_BASE_HEIGHT + insets.top;
   const tabBarPadding = useTabBarContentPadding();
   const navigation = useNavigation<RootNavigationProp>();
   const currentUserId = useAuthStore((s) => s.user?.id);
@@ -834,7 +835,7 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
     <ParishListHeader
       coverUrl={effectiveCoverUrl}
       hasCover={hasCover}
-      coverHeight={coverHeight}
+      coverHeight={COVER_HEIGHT}
       parishName={parishName}
       diocese={parish?.diocese}
       established={parish?.established}
@@ -852,7 +853,6 @@ function ParishFeed({ parishId, parishName, onChangeParish }: {
   ), [
     effectiveCoverUrl,
     hasCover,
-    coverHeight,
     parishName,
     parish?.diocese,
     parish?.established,

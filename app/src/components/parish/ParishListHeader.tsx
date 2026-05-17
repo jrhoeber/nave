@@ -1,5 +1,5 @@
-import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { BlurView } from '@react-native-community/blur';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -49,6 +49,16 @@ function ParishListHeaderImpl({
   onManagePress,
   onNewPostPress,
 }: ParishListHeaderProps) {
+  // iOS "Reduce Transparency" disables UIVisualEffectView blur system-wide, so
+  // BlurView renders empty. Fall back to a darker, slightly transparent fill
+  // so the icons stay readable on light cover photos.
+  const [reduceTransparency, setReduceTransparency] = useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceTransparencyEnabled?.().then(setReduceTransparency).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener('reduceTransparencyChanged', setReduceTransparency);
+    return () => sub.remove();
+  }, []);
+
   return (
     <View>
       {hasCover ? (
@@ -74,18 +84,22 @@ function ParishListHeaderImpl({
             <TouchableOpacity
               onPress={onProfilePress}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.coverPhotoActionBtn}
+              style={[styles.coverPhotoActionBtn, reduceTransparency && styles.coverPhotoActionBtnSolid]}
             >
-              <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
+              {!reduceTransparency && (
+                <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
+              )}
               <MCIcon name="information-outline" size={19} color={COVER_ACTION_TINT} />
             </TouchableOpacity>
             {isParishAdmin ? (
               <TouchableOpacity
                 onPress={onManagePress}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={styles.coverPhotoActionBtn}
+                style={[styles.coverPhotoActionBtn, reduceTransparency && styles.coverPhotoActionBtnSolid]}
               >
-                <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
+                {!reduceTransparency && (
+                  <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
+                )}
                 <Icon name="ellipsis-horizontal" size={17} color={COVER_ACTION_TINT_ALT} />
               </TouchableOpacity>
             ) : null}
@@ -182,6 +196,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(80,80,80,0.35)',
+  },
+  coverPhotoActionBtnSolid: {
+    backgroundColor: 'rgba(150,150,150,0.85)',
   },
   noCoverHeader: {
     paddingHorizontal: Spacing[5],
