@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(80,80,80,0.35)',
   },
   coverPhotoActionBtnSolid: {
-    backgroundColor: 'rgba(150,150,150,0.85)',
+    backgroundColor: 'rgba(180,180,180,0.85)',
   },
   noCoverHeader: {
     paddingHorizontal: Spacing[5],

@@ -114,7 +114,9 @@
       "Bash(python -c \"import app.routers.group_messages, app.routers.parish_post_comments, app.routers.parishes, app.models.parish, app.models.group_message; print\\('ok'\\)\")",
       "Bash(git check-ignore *)",
       "Bash(python -c \"from app import auth, dependencies, config; from app.routers import auth as r; from app.models import user; print\\('imports OK'\\)\")",
-      "Bash(python -c \"import ast; ast.parse\\(open\\('app/routers/group_messages.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/models/group_message.py'\\).read\\(\\)\\); ast.parse\\(open\\('alembic/versions/20260513_0001_pending_message_images.py'\\).read\\(\\)\\); print\\('ok'\\)\")"
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app/routers/group_messages.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/models/group_message.py'\\).read\\(\\)\\); ast.parse\\(open\\('alembic/versions/20260513_0001_pending_message_images.py'\\).read\\(\\)\\); print\\('ok'\\)\")",
+      "Bash(rm /tmp/envfile)",
+      "Bash(rm -rf /Users/jordanhoeber/wksp/nave/app/ios/build)"
     ]
   }
 }

@@ -9,9 +9,9 @@ PODS:
   - BVLinearGradient (2.8.3):
     - React-Core
   - DoubleConversion (1.1.6)
-  - EXConstants (55.0.15):
+  - EXConstants (55.0.16):
     - ExpoModulesCore
-  - Expo (55.0.19):
+  - Expo (55.0.24):
     - boost
     - DoubleConversion
     - ExpoModulesCore
@@ -46,15 +46,15 @@ PODS:
     - ExpoModulesCore
     - GoogleSignIn (~> 7.1)
     - React-Core
-  - ExpoAsset (55.0.16):
+  - ExpoAsset (55.0.17):
     - ExpoModulesCore
   - ExpoCrypto (55.0.14):
     - ExpoModulesCore
-  - ExpoDomWebView (55.0.5):
+  - ExpoDomWebView (55.0.6):
     - ExpoModulesCore
-  - ExpoFileSystem (55.0.17):
+  - ExpoFileSystem (55.0.20):
     - ExpoModulesCore
-  - ExpoFont (55.0.6):
+  - ExpoFont (55.0.7):
     - ExpoModulesCore
   - ExpoImage (55.0.9):
     - ExpoModulesCore
@@ -63,11 +63,11 @@ PODS:
     - SDWebImageAVIFCoder (~> 0.11.0)
     - SDWebImageSVGCoder (~> 1.7.0)
     - SDWebImageWebPCoder (~> 0.14.6)
-  - ExpoKeepAwake (55.0.7):
+  - ExpoKeepAwake (55.0.8):
     - ExpoModulesCore
-  - ExpoLogBox (55.0.11):
+  - ExpoLogBox (55.0.12):
     - React-Core
-  - ExpoModulesCore (55.0.24):
+  - ExpoModulesCore (55.0.25):
     - boost
     - DoubleConversion
     - ExpoModulesJSI
@@ -97,7 +97,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - ExpoModulesJSI (55.0.24):
+  - ExpoModulesJSI (55.0.25):
     - hermes-engine
     - React-Core
     - React-runtimescheduler
@@ -3826,19 +3826,19 @@ SPEC CHECKSUMS:
   boost: 1dca942403ed9342f98334bf4c3621f011aa7946
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   DoubleConversion: f16ae600a246532c4020132d54af21d0ddb2a385
-  EXConstants: 5caf448ff399f60be9d1053e77aed32e39411900
-  Expo: 14364d94b7e0aa81169d3d70fe760eec23cb71b6
+  EXConstants: dadbeba983acc30f855a919658a2b34fbd86615d
+  Expo: ced324f4c15e057504b98110006d674b6bf08f84
   ExpoAdapterGoogleSignIn: 2d18762fc21b37216b3afdf39ad4aea5352f22e9
-  ExpoAsset: f56ed740b6a127da2bfd90832cf688ae309d4410
+  ExpoAsset: 7721c5c4ae2a7c3c8147a046727ac6c020b05648
   ExpoCrypto: 9fd0b78215cffa1aa20de026d452242401aa37dc
-  ExpoDomWebView: 2b2fbd9a07de8790569257cbf9dfdaa31cf95c70
-  ExpoFileSystem: a0e4a5a09c9c4f84338289b273a172609452dec9
-  ExpoFont: cdd7a1d574a376fa003c713eff49e0a4df8672c7
+  ExpoDomWebView: b2e9d601f9cb77d3c97da73234e175b64be91928
+  ExpoFileSystem: 5d01aa6678ccde01172351aad5720ee16845ae82
+  ExpoFont: a95606f106a6394df8edf6d0d87aab9020af5ad4
   ExpoImage: bd9e9c5bc4eff7a6883339be305f8b0bb5a0cf1c
-  ExpoKeepAwake: 861c66deb0f9f28f87882610195f26c4b88fba6f
-  ExpoLogBox: 617da77cbc083627692b2ea050a3666808aef2cd
-  ExpoModulesCore: 1ce30cfe9929142e1cd58ac74b8d248e123c7e66
-  ExpoModulesJSI: 9b60671a31c30bc8e24b25632e7cb475a84b9016
+  ExpoKeepAwake: d0eb7a0719500d2a43fbf29b6f79e84d70c75ebf
+  ExpoLogBox: a678d36477ab9544fe63e0b5328a0716539b6774
+  ExpoModulesCore: 604798b3c018ba24fb399581087cca68f218f272
+  ExpoModulesJSI: 964334271fc77832736f66ee1785761cdc778dbe
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
   FBLazyVector: 3bcb3055086e5d90a12f0fe1668e79f6eceabc17
   Firebase: 99f203d3a114c6ba591f3b32263a9626e450af65
