@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { StyleSheet, View, type TextInputProps } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
+import { Text, TextInput } from './Text';
 
 interface FormFieldProps extends Omit<TextInputProps, 'style'> {
   label: string;

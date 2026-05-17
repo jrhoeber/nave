@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
+import { Text } from '../ui/Text';
 
 interface AboutCardProps {
   bio: string;

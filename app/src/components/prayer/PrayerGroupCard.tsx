@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Dimensions, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Modal, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Avatar } from '../../components/ui/Avatar';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { PrayerGroup, PrayerGroupCategory } from '../../types';
 import { useAuthStore } from '../../store/authStore';
+import { Text } from '../ui/Text';
 
 interface PrayerGroupCardProps {
   group: PrayerGroup;

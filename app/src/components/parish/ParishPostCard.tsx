@@ -1,9 +1,10 @@
 import React from 'react';
-import { ActionSheetIOS, Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActionSheetIOS, Alert, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Avatar } from '../ui/Avatar';
 import { ReactionBar } from './ReactionBar';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
 import type { ParishPost } from '../../types';
+import { Text } from '../ui/Text';
 
 interface ParishPostCardProps {
   post: ParishPost;
@@ -110,7 +111,7 @@ function ParishPostCardImpl({
             </View>
           )}
           <View style={styles.nameRow}>
-            <Text style={styles.postAuthor}>{post.author.displayName}</Text>
+            <Text style={styles.postAuthor} numberOfLines={1}>{post.author.displayName}</Text>
             <Text style={styles.postTime}> · {relativeTime(post.createdAt)}</Text>
           </View>
           <Text style={styles.postContent}>{post.content}</Text>
@@ -193,11 +194,13 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   postAuthor: {
+    flexShrink: 1,
     fontSize: Typography.base,
     fontWeight: Typography.bold,
     color: Colors.textPrimary,
   },
   postTime: {
+    flexShrink: 0,
     fontSize: Typography.sm,
     color: Colors.textSecondary,
   },

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, type TextInputProps } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, type TextInputProps } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
+import { Text, TextInput } from './Text';
 
 interface InputProps extends TextInputProps {
   label?: string;

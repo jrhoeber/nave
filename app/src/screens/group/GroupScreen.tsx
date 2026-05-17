@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import { markNotificationsRead, syncBadgeCount } from '../../lib/notifications';
 import { CardList, Colors, Radius, Spacing, Typography } from '../../theme';
 import type { GroupInvitation, PrayerGroup } from '../../types';
 import type { RootNavigationProp } from '../../types/navigation';
+import { Text } from '../../components/ui/Text';
 
 export function GroupScreen() {
   const insets = useSafeAreaInsets();

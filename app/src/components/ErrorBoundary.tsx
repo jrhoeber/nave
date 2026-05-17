@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Colors } from '../theme';
 import { recordError } from '../lib/crashlytics';
+import { Text } from './ui/Text';
 
 interface State {
   hasError: boolean;

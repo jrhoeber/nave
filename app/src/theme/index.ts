@@ -72,6 +72,16 @@ export const Typography = {
   relaxed: 1.7,
 } as const;
 
+// Caps for Dynamic Type scaling. Applied by the project Text/TextInput
+// wrapper in components/ui/Text.tsx. Use `tight` for nav chrome and `hero`
+// for width-constrained display type — the bigger the design footprint, the
+// more headroom the clamp can give before layout breaks.
+export const FontScale = {
+  default: 1.6,
+  tight: 1.15,
+  hero: 1.1,
+} as const;
+
 export const Spacing = {
   0: 0,
   1: 4,

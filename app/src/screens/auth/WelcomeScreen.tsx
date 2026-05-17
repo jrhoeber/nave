@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApp } from '@react-native-firebase/app';
@@ -12,6 +12,7 @@ import { log } from '../../lib/log';
 import { NaveLogo } from '../../components/ui/NaveLogo';
 import { Colors, Spacing, Typography } from '../../theme';
 import type { AuthNavigationProp } from '../../types/navigation';
+import { Text } from '../../components/ui/Text';
 
 GoogleSignin.configure({
   webClientId: '667996115450-9uq4d4jlgpk6p43occmgb3ikv9fr1u6l.apps.googleusercontent.com',

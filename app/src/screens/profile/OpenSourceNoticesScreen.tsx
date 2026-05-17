@@ -1,10 +1,11 @@
 import React from 'react';
-import { ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FormHeader } from '../../components/ui/FormHeader';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
+import { Text } from '../../components/ui/Text';
 
 interface Dependency {
   name: string;

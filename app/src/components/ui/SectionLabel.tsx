@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, type TextStyle } from 'react-native';
+import { StyleSheet, type TextStyle } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
+import { Text } from './Text';
 
 interface SectionLabelProps {
   children: string;

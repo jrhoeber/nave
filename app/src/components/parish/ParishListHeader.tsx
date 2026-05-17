@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { BlurView } from '@react-native-community/blur';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Avatar } from '../ui/Avatar';
 import { ImageX } from '../ui/ImageX';
-import { Colors, Radius, Spacing, Typography } from '../../theme';
+import { Colors, FontScale, Radius, Spacing, Typography } from '../../theme';
+import { Text } from '../ui/Text';
 
 const TOP_GRADIENT_COLORS = ['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)'];
 const COVER_ACTION_TINT = 'rgba(237, 235, 235, 0.9)';
@@ -129,11 +130,17 @@ function ParishListHeaderImpl({
       )}
 
       <View style={styles.parishNameSection}>
-        <Text style={styles.parishNameText} numberOfLines={2}>{parishName}</Text>
+        <Text
+          style={styles.parishNameText}
+          numberOfLines={3}
+          maxFontSizeMultiplier={FontScale.hero}
+        >
+          {parishName}
+        </Text>
         {(diocese || established) && (
           <View style={styles.parishMetaRow}>
             {diocese ? (
-              <Text style={styles.parishMetaText} numberOfLines={1}>
+              <Text style={styles.parishMetaText} numberOfLines={2}>
                 {diocese.toUpperCase()}
               </Text>
             ) : null}
@@ -141,7 +148,7 @@ function ParishListHeaderImpl({
               <View style={styles.parishMetaDot} />
             ) : null}
             {established ? (
-              <Text style={styles.parishMetaText}>EST. {established}</Text>
+              <Text style={[styles.parishMetaText, styles.parishMetaTextEst]}>EST. {established}</Text>
             ) : null}
           </View>
         )}
@@ -153,7 +160,7 @@ function ParishListHeaderImpl({
         activeOpacity={0.75}
       >
         <Avatar name={currentUserName} size={34} uri={currentUserAvatarUrl} />
-        <Text style={styles.composerPrompt} numberOfLines={1}>
+        <Text style={styles.composerPrompt} numberOfLines={2}>
           Share something with your parish…
         </Text>
       </TouchableOpacity>
@@ -242,6 +249,9 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     letterSpacing: 1.4,
     flexShrink: 1,
+  },
+  parishMetaTextEst: {
+    flexShrink: 0,
   },
   parishMetaDot: {
     width: 3,

@@ -16,8 +16,9 @@ import { usePrayerStore } from '../store/prayerStore';
 import { api, mapGroupMessage } from '../lib/apiClient';
 import { syncBadgeCount } from '../lib/notifications';
 import { TabBadge } from '../components/ui/TabBadge';
-import { Colors, Typography } from '../theme';
+import { Colors, FontScale, Typography } from '../theme';
 import type { AppTabParamList } from '../types/navigation';
+import { Text } from '../components/ui/Text';
 
 // Tab bar tokens matching the Nave design language
 const INK = '#1A1A1A';
@@ -35,6 +36,28 @@ export function useTabBarContentPadding(extra = 24) {
 }
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
+
+const tabLabelBaseStyle = {
+  fontSize: 11,
+  fontWeight: Typography.medium,
+  letterSpacing: 0.1,
+  textAlign: 'center' as const,
+  marginTop: 0,
+};
+
+function renderTabLabel(label: string) {
+  return ({ color }: { color: string }) => (
+    <Text
+      style={[tabLabelBaseStyle, { color }]}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      minimumFontScale={0.8}
+      maxFontSizeMultiplier={FontScale.tight}
+    >
+      {label}
+    </Text>
+  );
+}
 
 const styles = StyleSheet.create({
   iconWrapper: {
@@ -279,12 +302,9 @@ export function AppNavigator() {
           paddingTop: 8,
           gap: 4,
         },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: Typography.medium,
-          letterSpacing: 0.1,
-          marginTop: 0,
-        },
+        // tabBarLabel is rendered per-screen via renderTabLabel below so we can
+        // clamp Dynamic Type scaling (tab cells are flex-1, so unbounded
+        // scaling truncates labels like "Friends" to "Frie…").
         tabBarIconStyle: {
           marginBottom: 0,
         },
@@ -295,6 +315,7 @@ export function AppNavigator() {
         component={ParishScreen}
         options={{
           tabBarTestID: 'tab-parish',
+          tabBarLabel: renderTabLabel('Parish'),
           tabBarIcon: ({ focused }) => <ChapelIcon active={focused} />,
         }}
       />
@@ -303,6 +324,7 @@ export function AppNavigator() {
         component={GroupScreen}
         options={{
           tabBarTestID: 'tab-groups',
+          tabBarLabel: renderTabLabel('Groups'),
           tabBarIcon: ({ focused }) => (
             <IconWithBadge showBadge={totalUnreadCount > 0 || invitationsCount > 0}>
               <GroupsIcon active={focused} />
@@ -315,6 +337,7 @@ export function AppNavigator() {
         component={FriendsScreen}
         options={{
           tabBarTestID: 'tab-friends',
+          tabBarLabel: renderTabLabel('Friends'),
           tabBarIcon: ({ focused }) => (
             <IconWithBadge showBadge={incomingRequestCount > 0}>
               <FriendsIcon active={focused} />
@@ -327,6 +350,7 @@ export function AppNavigator() {
         component={ProfileScreen}
         options={{
           tabBarTestID: 'tab-profile',
+          tabBarLabel: renderTabLabel('Profile'),
           tabBarIcon: ({ focused }) => <ProfileTabIcon focused={focused} />,
         }}
       />

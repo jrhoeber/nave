@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
 import { EmptyActionButton } from './EmptyActionButton';
+import { Text } from './Text';
 
 interface EmptyStateBoxProps {
   title: string;

@@ -1,10 +1,11 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
 import { SectionLabel } from '../ui/SectionLabel';
 import { FormCard } from '../ui/FormCard';
 import { Separator } from '../ui/Separator';
+import { Text } from '../ui/Text';
 
 type Visibility = 'private' | 'parish';
 

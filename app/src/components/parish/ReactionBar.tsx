@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Spacing, Typography } from '../../theme';
+import { Text } from '../ui/Text';
 
 interface ReactionBarProps {
   reactionCount: number;

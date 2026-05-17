@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
 import { SectionLabel } from '../ui/SectionLabel';
 import type { PrayerGroupCategory } from '../../types';
 import { CATEGORIES } from './constants';
+import { Text } from '../ui/Text';
 
 interface CategoryPickerProps {
   value: PrayerGroupCategory;

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { ImageX } from './ImageX';
 import { Colors, Typography } from '../../theme';
+import { Text } from './Text';
 
 interface AvatarProps {
   uri?: string;

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Animated, StatusBar, StyleSheet, View } from 'react-native';
 import { NaveLogo } from './ui/NaveLogo';
 import { Colors, Spacing, Typography } from '../theme';
+import { Text } from './ui/Text';
 
 export function Splash({ visible }: { visible: boolean }) {
   const opacity = useRef(new Animated.Value(1)).current;

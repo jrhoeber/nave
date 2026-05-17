@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar } from '../../components/ui/Avatar';
 import { ImageX } from '../../components/ui/ImageX';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../theme';
 import type { Post, PostType } from '../../types';
+import { Text } from '../ui/Text';
 
 interface PostCardProps {
   post: Post;
