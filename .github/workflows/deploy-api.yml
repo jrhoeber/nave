@@ -33,17 +33,19 @@ jobs:
       - name: Install API dependencies
         run: pip install -r api/requirements.txt
 
-      - name: Fetch DATABASE_URL from Secret Manager
+      - name: Fetch secrets from Secret Manager
         id: secrets
         uses: google-github-actions/get-secretmanager-secrets@v2
         with:
           secrets: |-
             DATABASE_URL:${{ vars.PROJECT_ID }}/DATABASE_URL
+            SECRET_KEY:${{ vars.PROJECT_ID }}/SECRET_KEY
 
       - name: Run database migrations
         working-directory: api
         env:
           DATABASE_URL: ${{ steps.secrets.outputs.DATABASE_URL }}
+          SECRET_KEY: ${{ steps.secrets.outputs.SECRET_KEY }}
         run: alembic upgrade head
 
       # ── Build and push Docker image ────────────────────────────────────────
