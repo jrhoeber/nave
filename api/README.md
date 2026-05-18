@@ -43,7 +43,7 @@ To skip GCS locally (upload endpoints return 501), add to `api/.env.local`:
 GCS_ENABLED=false
 ```
 
-### Firebase — local setup
+### Firebase — local push notification setup
 
 Push notifications require a Firebase service account key:
 
