@@ -83,5 +83,19 @@ target 'Nave' do
         config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
       end
     end
+
+    # Force the react-native-config Pod target to read .env.production in Release builds.
+    # The ENVFILE setting on the Nave app target does not propagate to Pod targets, so
+    # archives from the Xcode GUI (which don't have an ENVFILE shell env var) silently
+    # fall back to .env (localhost). Only override Release — Debug is left unset so the
+    # Makefile's shell-exported ENVFILE (e.g. ENVFILE=.env.hosted) still wins for `make ios`.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'react-native-config'
+      target.build_configurations.each do |config|
+        next unless config.name == 'Release'
+        # Resolved relative to HOST_PATH ("<app>/") inside BuildDotenvConfig.rb.
+        config.build_settings['ENVFILE'] = '.env.production'
+      end
+    end
   end
 end

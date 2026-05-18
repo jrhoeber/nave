@@ -116,7 +116,8 @@
       "Bash(python -c \"from app import auth, dependencies, config; from app.routers import auth as r; from app.models import user; print\\('imports OK'\\)\")",
       "Bash(python -c \"import ast; ast.parse\\(open\\('app/routers/group_messages.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/models/group_message.py'\\).read\\(\\)\\); ast.parse\\(open\\('alembic/versions/20260513_0001_pending_message_images.py'\\).read\\(\\)\\); print\\('ok'\\)\")",
       "Bash(rm /tmp/envfile)",
-      "Bash(rm -rf /Users/jordanhoeber/wksp/nave/app/ios/build)"
+      "Bash(rm -rf /Users/jordanhoeber/wksp/nave/app/ios/build)",
+      "Bash(sips *)"
     ]
   }
 }
