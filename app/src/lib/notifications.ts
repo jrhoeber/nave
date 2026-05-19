@@ -175,7 +175,7 @@ export async function setupNotificationHandlers(
       const groupId = data.groupId as string;
       const { mutedGroupIds } = usePrayerStore.getState();
       if (mutedGroupIds.has(groupId)) return;
-      const { messagesByGroup, appendNewMessages } = useGroupChatStore.getState();
+      const { messagesByGroup, appendNewMessages, activePollGroupId } = useGroupChatStore.getState();
       const messages = messagesByGroup[groupId];
       if (!messages?.length) return;
       try {
@@ -184,7 +184,15 @@ export async function setupNotificationHandlers(
           appendNewMessages(groupId, result.messages.map(mapGroupMessage));
         }
       } catch {}
-      syncBadgeCount();
+      // If the user is currently viewing this chat, the message is "seen" —
+      // mark the inbox row read so the APNS badge doesn't carry it after the
+      // app is closed. markNotificationsRead also updates the badge, so we
+      // only fall back to a plain sync when the chat isn't active.
+      if (activePollGroupId === groupId) {
+        await markNotificationsRead({ type: 'group_message', entityId: groupId });
+      } else {
+        syncBadgeCount();
+      }
     });
 
     // App backgrounded — user tapped notification

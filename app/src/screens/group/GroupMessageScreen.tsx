@@ -787,6 +787,10 @@ export function GroupMessageScreen() {
         const data = await api.getGroupMessages(groupId, undefined, 50, after);
         if (data.messages.length > 0) {
           appendNewMessages(groupId, data.messages.map(mapGroupMessage));
+          // User is viewing this chat, so the new arrivals are seen — mark the
+          // inbox rows read so the APNS badge doesn't strand them if the user
+          // backgrounds the app right after.
+          markNotificationsRead({ type: 'group_message', entityId: groupId });
         }
       } catch {
         // Silently ignore polling errors

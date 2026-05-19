@@ -60,6 +60,15 @@ function replaceOptimistic(
   };
 }
 
+// Bump/drop the in-flight send counter for a group. Spread into a `set`
+// return alongside other patches. Floors at zero so a stray decrement can't
+// poison the gate.
+function bumpInFlight(s: GroupChatState, groupId: string, delta: 1 | -1) {
+  const current = s.inFlightSendsByGroup[groupId] ?? 0;
+  const next = Math.max(0, current + delta);
+  return { inFlightSendsByGroup: { ...s.inFlightSendsByGroup, [groupId]: next } };
+}
+
 // Remove an optimistic temp message (rollback or pending-review). If lastRead
 // pointed at the removed id, fall back to the new latest message so we don't
 // leave a dangling pointer that breaks unread counting.
@@ -80,7 +89,18 @@ interface GroupChatState {
   loadingByGroup: Record<string, boolean>;
   lastReadIdByGroup: Record<string, string>;
   activePollGroupId: string | null;
+  // Per-group count of sends whose server response hasn't landed. While
+  // non-zero, polls/FCM refetches must NOT prepend self-authored messages —
+  // those would duplicate the still-resident optimistic, since they have a
+  // different id. `replaceOptimistic` is the single writer of the real row.
+  inFlightSendsByGroup: Record<string, number>;
+  // Cached unread counts. Both populated by a single subscription; reading
+  // these primitives avoids re-derive churn from per-poll messagesByGroup
+  // reference changes. `totalUnreadCount` excludes muted groups (drives the
+  // tab badge); `unreadCountByGroup` does NOT (drives per-group dots in
+  // GroupScreen, which renders dots regardless of mute state).
   totalUnreadCount: number;
+  unreadCountByGroup: Record<string, number>;
   clearAll: () => void;
   setActivePollGroupId: (groupId: string | null) => void;
 
@@ -94,8 +114,6 @@ interface GroupChatState {
   markGroupAsRead: (groupId: string) => void;
   hydrateLastRead: () => Promise<void>;
   loadGroupBaseline: (groupId: string) => Promise<void>;
-  getUnreadCount: (groupId: string) => number;
-  getTotalUnreadCount: () => number;
   appendNewMessages: (groupId: string, messages: GroupMessage[]) => void;
 }
 
@@ -106,7 +124,9 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
   loadingByGroup: {},
   lastReadIdByGroup: {},
   activePollGroupId: null,
+  inFlightSendsByGroup: {},
   totalUnreadCount: 0,
+  unreadCountByGroup: {},
 
   setActivePollGroupId: (groupId: string | null) => set({ activePollGroupId: groupId }),
 
@@ -177,6 +197,7 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
         [groupId]: [optimistic, ...(s.messagesByGroup[groupId] ?? [])],
       },
       ...advanceLastRead(s, groupId, tempId),
+      ...bumpInFlight(s, groupId, 1),
     }));
 
     try {
@@ -194,6 +215,8 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     } catch (err) {
       set((s) => removeOptimistic(s, groupId, tempId));
       throw err;
+    } finally {
+      set((s) => bumpInFlight(s, groupId, -1));
     }
   },
 
@@ -223,6 +246,7 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
         [groupId]: [optimistic, ...(s.messagesByGroup[groupId] ?? [])],
       },
       ...advanceLastRead(s, groupId, tempId),
+      ...bumpInFlight(s, groupId, 1),
     }));
 
     try {
@@ -233,23 +257,35 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     } catch (err) {
       set((s) => removeOptimistic(s, groupId, tempId));
       throw err;
+    } finally {
+      set((s) => bumpInFlight(s, groupId, -1));
     }
   },
 
   deleteMessage: async (groupId: string, messageId: string) => {
     const prev = get().messagesByGroup[groupId] ?? [];
-    // Optimistic remove
-    set((s) => ({
-      messagesByGroup: {
-        ...s.messagesByGroup,
-        [groupId]: (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== messageId),
-      },
-    }));
+    const prevLastRead = get().lastReadIdByGroup[groupId];
+    // Optimistic remove. If lastRead pointed at the deleted message, advance
+    // to the new latest so unread counting doesn't see a -1 from findIndex.
+    set((s) => {
+      const newMessages = (s.messagesByGroup[groupId] ?? []).filter((m) => m.id !== messageId);
+      const advance =
+        s.lastReadIdByGroup[groupId] === messageId ? newMessages[0]?.id : undefined;
+      return {
+        messagesByGroup: { ...s.messagesByGroup, [groupId]: newMessages },
+        ...advanceLastRead(s, groupId, advance),
+      };
+    });
     try {
       await api.deleteGroupMessage(groupId, messageId);
     } catch {
-      // Rollback
-      set((s) => ({ messagesByGroup: { ...s.messagesByGroup, [groupId]: prev } }));
+      // Rollback both arrays
+      set((s) => ({
+        messagesByGroup: { ...s.messagesByGroup, [groupId]: prev },
+        lastReadIdByGroup: prevLastRead
+          ? { ...s.lastReadIdByGroup, [groupId]: prevLastRead }
+          : s.lastReadIdByGroup,
+      }));
     }
   },
 
@@ -315,7 +351,22 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     try {
       const json = await AsyncStorage.getItem(LAST_READ_KEY);
       if (json) {
-        set({ lastReadIdByGroup: JSON.parse(json) as Record<string, string> });
+        // Drop any `pending-*` ids — they're client-only optimistic markers
+        // that won't appear in server data after a relaunch, so leaving them
+        // in would make `findIndex` return -1 and inflate the unread count.
+        // loadGroupBaseline will re-seed lastReadId from the server's latest.
+        const parsed = JSON.parse(json) as Record<string, string>;
+        const cleaned: Record<string, string> = {};
+        let droppedAny = false;
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === 'string' && v.startsWith('pending-')) {
+            droppedAny = true;
+            continue;
+          }
+          cleaned[k] = v;
+        }
+        if (droppedAny) persistLastRead(cleaned);
+        set({ lastReadIdByGroup: cleaned });
       }
     } catch {}
   },
@@ -349,33 +400,21 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     }
   },
 
-  getUnreadCount: (groupId: string) => {
-    const { messagesByGroup, lastReadIdByGroup } = get();
-    const messages = messagesByGroup[groupId];
-    const lastReadId = lastReadIdByGroup[groupId];
-    if (!messages || !lastReadId) return 0;
-    const idx = messages.findIndex((m) => m.id === lastReadId);
-    // idx === -1: lastReadId is older than our fetched window → all fetched messages are unread
-    return idx === -1 ? messages.length : idx;
-  },
-
-  getTotalUnreadCount: () => {
-    const { messagesByGroup, lastReadIdByGroup } = get();
-    return Object.keys(messagesByGroup).reduce((total, groupId) => {
-      const messages = messagesByGroup[groupId];
-      const lastReadId = lastReadIdByGroup[groupId];
-      if (!messages || !lastReadId) return total;
-      const idx = messages.findIndex((m) => m.id === lastReadId);
-      return total + (idx === -1 ? messages.length : idx);
-    }, 0);
-  },
-
   appendNewMessages: (groupId: string, newMessages: GroupMessage[]) => {
     if (newMessages.length === 0) return;
     set((s) => {
+      // While a send is in flight, drop self-authored arrivals: their server
+      // row has a different id than the still-resident optimistic, so dedup
+      // can't catch them and they'd duplicate after `replaceOptimistic`.
+      const currentUserId = useAuthStore.getState().user?.id;
+      const guardSelf = (s.inFlightSendsByGroup[groupId] ?? 0) > 0 && !!currentUserId;
+      const incoming = guardSelf
+        ? newMessages.filter((m) => m.author.id !== currentUserId)
+        : newMessages;
+      if (incoming.length === 0) return s;
       const existing = s.messagesByGroup[groupId] ?? [];
       const existingIds = new Set(existing.map((m) => m.id));
-      const deduped = newMessages.filter((m) => !existingIds.has(m.id));
+      const deduped = incoming.filter((m) => !existingIds.has(m.id));
       if (deduped.length === 0) return s;
       return {
         messagesByGroup: {
@@ -394,7 +433,9 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
       loadingByGroup: {},
       lastReadIdByGroup: {},
       activePollGroupId: null,
+      inFlightSendsByGroup: {},
       totalUnreadCount: 0,
+      unreadCountByGroup: {},
     });
   },
 
@@ -404,41 +445,76 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
       const cursorByGroup = { ...s.cursorByGroup };
       const hasMoreByGroup = { ...s.hasMoreByGroup };
       const loadingByGroup = { ...s.loadingByGroup };
+      const unreadCountByGroup = { ...s.unreadCountByGroup };
       delete messagesByGroup[groupId];
       delete cursorByGroup[groupId];
       delete hasMoreByGroup[groupId];
       delete loadingByGroup[groupId];
-      return { messagesByGroup, cursorByGroup, hasMoreByGroup, loadingByGroup };
+      delete unreadCountByGroup[groupId];
+      return { messagesByGroup, cursorByGroup, hasMoreByGroup, loadingByGroup, unreadCountByGroup };
     });
   },
 }));
 
-// ─── Derived: totalUnreadCount ───────────────────────────────────────────────
-// Stored as a primitive on the store so subscribers (e.g. AppNavigator's tab
-// badge) can re-render only when the count actually changes — not on every
-// poll-driven `messagesByGroup` reference change.
+// ─── Derived: unreadCountByGroup + totalUnreadCount ──────────────────────────
+// Both caches are populated in a single pass by a subscription. Reading these
+// primitives lets the tab badge and per-group dots re-render only when the
+// count actually changes, not on every poll-driven reference change.
+//
+// Self-authored messages are excluded from the count: you can't have an
+// "unread" message you sent yourself. This makes the count immune to the
+// race window between the optimistic send, the server response, and any
+// poll/FCM refetch that may return the user's own real message before
+// `replaceOptimistic` lands.
 
-function computeTotalUnread(state: GroupChatState, mutedIds: Set<string>): number {
-  let total = 0;
-  const { messagesByGroup, lastReadIdByGroup } = state;
-  for (const id of Object.keys(messagesByGroup)) {
-    if (mutedIds.has(id)) continue;
-    const msgs = messagesByGroup[id];
-    const lastRead = lastReadIdByGroup[id];
-    if (!msgs || !lastRead) continue;
-    const idx = msgs.findIndex((m) => m.id === lastRead);
-    total += idx === -1 ? msgs.length : idx;
+function countUnreadInGroup(
+  messages: GroupMessage[] | undefined,
+  lastReadId: string | undefined,
+  currentUserId: string | undefined,
+): number {
+  if (!messages || messages.length === 0) return 0;
+  const idx = lastReadId ? messages.findIndex((m) => m.id === lastReadId) : -1;
+  // idx === -1: either no lastRead, or lastRead is older than our fetched
+  // window, or lastRead points at a now-deleted message. In all three cases
+  // we walk the full window. Self-authored exclusion still applies.
+  const end = idx === -1 ? messages.length : idx;
+  let count = 0;
+  for (let i = 0; i < end; i++) {
+    if (messages[i].author.id !== currentUserId) count++;
   }
-  return total;
+  return count;
 }
 
-function refreshTotalUnread(): void {
+function shallowEqualNumberMap(
+  a: Record<string, number>,
+  b: Record<string, number>,
+): boolean {
+  const ak = Object.keys(a);
+  if (ak.length !== Object.keys(b).length) return false;
+  for (const k of ak) if (a[k] !== b[k]) return false;
+  return true;
+}
+
+function refreshUnreadCaches(): void {
   const state = useGroupChatStore.getState();
   const mutedIds = usePrayerStore.getState().mutedGroupIds;
-  const next = computeTotalUnread(state, mutedIds);
-  if (next !== state.totalUnreadCount) {
-    useGroupChatStore.setState({ totalUnreadCount: next });
+  const currentUserId = useAuthStore.getState().user?.id;
+  const { messagesByGroup, lastReadIdByGroup } = state;
+
+  const nextByGroup: Record<string, number> = {};
+  let nextTotal = 0;
+  for (const id of Object.keys(messagesByGroup)) {
+    const n = countUnreadInGroup(messagesByGroup[id], lastReadIdByGroup[id], currentUserId);
+    nextByGroup[id] = n;
+    if (!mutedIds.has(id)) nextTotal += n;
   }
+
+  const patch: Partial<GroupChatState> = {};
+  if (nextTotal !== state.totalUnreadCount) patch.totalUnreadCount = nextTotal;
+  if (!shallowEqualNumberMap(nextByGroup, state.unreadCountByGroup)) {
+    patch.unreadCountByGroup = nextByGroup;
+  }
+  if (Object.keys(patch).length > 0) useGroupChatStore.setState(patch);
 }
 
 useGroupChatStore.subscribe((state, prev) => {
@@ -446,12 +522,12 @@ useGroupChatStore.subscribe((state, prev) => {
     state.messagesByGroup !== prev.messagesByGroup ||
     state.lastReadIdByGroup !== prev.lastReadIdByGroup
   ) {
-    refreshTotalUnread();
+    refreshUnreadCaches();
   }
 });
 
 usePrayerStore.subscribe((state, prev) => {
   if (state.mutedGroupIds !== prev.mutedGroupIds) {
-    refreshTotalUnread();
+    refreshUnreadCaches();
   }
 });

@@ -41,7 +41,7 @@ export function GroupScreen() {
   const loadMuteStatus = usePrayerStore((s) => s.loadMuteStatus);
   const mutedGroupIds = usePrayerStore((s) => s.mutedGroupIds);
   const messagesByGroup = useGroupChatStore((s) => s.messagesByGroup);
-  const lastReadIdByGroup = useGroupChatStore((s) => s.lastReadIdByGroup);
+  const unreadCountByGroup = useGroupChatStore((s) => s.unreadCountByGroup);
   const appendNewMessages = useGroupChatStore((s) => s.appendNewMessages);
   const loadGroupBaseline = useGroupChatStore((s) => s.loadGroupBaseline);
   const [editingGroup, setEditingGroup] = useState<PrayerGroup | null>(null);
@@ -126,14 +126,6 @@ export function GroupScreen() {
     }, [appendNewMessages]),
   );
 
-  const getUnreadCount = (groupId: string) => {
-    const messages = messagesByGroup[groupId];
-    const lastReadId = lastReadIdByGroup[groupId];
-    if (!messages || !lastReadId) return 0;
-    const idx = messages.findIndex((m) => m.id === lastReadId);
-    return idx > 0 ? idx : 0;
-  };
-
   // ─── List data (FriendsScreen pattern) ────────────────────────────────────
 
   type ListItem =
@@ -202,7 +194,7 @@ export function GroupScreen() {
           onMute={muteGroup}
           onUnmute={unmuteGroup}
           isMuted={mutedGroupIds.has(item.data.id)}
-          unreadCount={getUnreadCount(item.data.id)}
+          unreadCount={unreadCountByGroup[item.data.id] ?? 0}
           lastMessageAt={messagesByGroup[item.data.id]?.[0]?.createdAt}
           isLast={item.isLast}
         />
@@ -222,7 +214,7 @@ export function GroupScreen() {
     unmuteGroup,
     mutedGroupIds,
     messagesByGroup,
-    lastReadIdByGroup,
+    unreadCountByGroup,
   ]);
 
   const keyExtractor = useCallback((item: ListItem) => {
