@@ -167,6 +167,11 @@ export interface GroupMessage {
   author: GroupMessageAuthor;
   content?: string;
   imageUrl?: string;
+  // Local file URI for an image just sent by the current user this session.
+  // Held alongside `imageUrl` (which becomes the GCS URL after upload) so the
+  // rendered URI stays stable across the optimistic→server swap and the image
+  // doesn't blink. Not persisted; absent on messages fetched from the server.
+  localImageUrl?: string;
   reactionCount: number;
   userReacted: boolean;
   createdAt: string;

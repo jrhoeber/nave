@@ -296,6 +296,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | `ui/SectionLabel.tsx` | Uppercase accent-colored section label for form sections |
 | `ui/Separator.tsx` | Hairline separator for dividing form fields within cards |
 | `ui/SearchModal.tsx` | Shared pageSheet modal shell with dragger, Cancel header, section label, hero text, and search bar (used by AddFriendModal, AddGroupModal, AddToGroupModal) |
+| `ui/FullScreenImageViewer.tsx` | Reusable full-screen image lightbox: pinch-zoom (1×–4×), double-tap zoom, pan when zoomed, swipe-down to dismiss, close button. Driven by `imageUrl: string \| null` + `onClose`. Used in GroupMessageScreen. |
 | `ui/Button.tsx` | Button with variants (primary, secondary, ghost) |
 | `ui/Input.tsx` | Styled text input |
 | `Splash.tsx` | Startup splash screen |

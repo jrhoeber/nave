@@ -234,6 +234,7 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
       },
       content: caption,
       imageUrl: uri,
+      localImageUrl: uri,
       reactionCount: 0,
       userReacted: false,
       createdAt: new Date().toISOString(),
@@ -252,7 +253,11 @@ export const useGroupChatStore = create<GroupChatState>((set, get) => ({
     try {
       const { image_id } = await api.uploadGroupMessageImage(groupId, uri, type);
       const raw = await api.sendGroupImageMessage(groupId, image_id, caption);
-      const message = mapGroupMessage(raw);
+      // Carry the local file URI onto the swapped-in real message so the
+      // bubble keeps rendering from the same source — the GCS URL is held in
+      // `imageUrl` for the lightbox and for future sessions, but the in-chat
+      // image stays anchored to the local file for this session.
+      const message: GroupMessage = { ...mapGroupMessage(raw), localImageUrl: uri };
       set((s) => replaceOptimistic(s, groupId, tempId, message));
     } catch (err) {
       set((s) => removeOptimistic(s, groupId, tempId));

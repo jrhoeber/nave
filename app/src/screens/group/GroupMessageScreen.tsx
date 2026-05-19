@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { ImageX } from '../../components/ui/ImageX';
 import { Button } from '../../components/ui/Button';
+import { FullScreenImageViewer } from '../../components/ui/FullScreenImageViewer';
 import { usePrayerStore } from '../../store/prayerStore';
 import { useGroupChatStore } from '../../store/groupChatStore';
 import { useAuthStore } from '../../store/authStore';
@@ -232,8 +233,8 @@ function MessageContextMenu({ visible, message, groupId, isOwnMessage, onDismiss
               <Text style={ctxStyles.authorName}>{message.author.displayName}</Text>
               <Text style={ctxStyles.messageTime}>{formatMessageTime(message.createdAt)}</Text>
             </View>
-            {message.imageUrl && (
-              <ImageX source={{ uri: message.imageUrl }} style={ctxStyles.messageImage} contentFit="cover" />
+            {(message.localImageUrl ?? message.imageUrl) && (
+              <ImageX source={{ uri: message.localImageUrl ?? message.imageUrl }} style={ctxStyles.messageImage} contentFit="cover" />
             )}
             {message.content ? (
               <Text style={ctxStyles.messageText}>{message.content}</Text>
@@ -352,12 +353,20 @@ interface MessageBubbleProps {
   position: MessagePosition;
   onLongPress: (messageId: string) => void;
   onAvatarPress: (userId: string) => void;
+  onImagePress: (imageUrl: string) => void;
 }
 
-const MessageBubble = React.memo(function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPress, onAvatarPress }: MessageBubbleProps) {
+const MessageBubble = React.memo(function MessageBubble({ message, groupId, isMember, isOwn, position, onLongPress, onAvatarPress, onImagePress }: MessageBubbleProps) {
   const toggleReaction = useGroupChatStore((s) => s.toggleReaction);
+  // Prefer the local file URI when present so the displayed URI stays stable
+  // across the optimistic→server swap (otherwise the source flip from file://
+  // → GCS changes ImageX's recyclingKey and the native view tears down → flash).
+  const displayImageUrl = message.localImageUrl ?? message.imageUrl;
+  // For the lightbox we want the canonical (higher-quality) GCS URL when we
+  // have it, falling back to the local file before upload completes.
+  const lightboxImageUrl = message.imageUrl ?? message.localImageUrl;
   const [imgError, setImgError] = useState(false);
-  useEffect(() => { setImgError(false); }, [message.imageUrl]);
+  useEffect(() => { setImgError(false); }, [displayImageUrl]);
 
   const showAvatar = position === 'solo' || position === 'top';
   const showMeta = position === 'solo' || position === 'top';
@@ -389,10 +398,15 @@ const MessageBubble = React.memo(function MessageBubble({ message, groupId, isMe
           </View>
         )}
 
-        {message.imageUrl && !imgError && (
-          <View>
+        {displayImageUrl && !imgError && (
+          <Pressable
+            onPress={() => !message.pending && lightboxImageUrl && onImagePress(lightboxImageUrl)}
+            onLongPress={() => isMember && !message.pending && onLongPress(message.id)}
+            delayLongPress={350}
+            style={msgStyles.imageWrapper}
+          >
             <ImageX
-              source={{ uri: message.imageUrl }}
+              source={{ uri: displayImageUrl }}
               style={msgStyles.image}
               contentFit="cover"
               onError={() => setImgError(true)}
@@ -402,10 +416,10 @@ const MessageBubble = React.memo(function MessageBubble({ message, groupId, isMe
                 <ActivityIndicator size="small" color="#ffffff" />
               </View>
             )}
-          </View>
+          </Pressable>
         )}
-        {message.imageUrl && imgError && (
-          <View style={[msgStyles.image, msgStyles.imageFallback]}>
+        {displayImageUrl && imgError && (
+          <View style={[msgStyles.imageWrapper, msgStyles.imageFallback]}>
             <Icon name="image-outline" size={32} color={Colors.textLight} />
           </View>
         )}
@@ -473,11 +487,16 @@ const msgStyles = StyleSheet.create({
     color: D.text,
     lineHeight: Typography.base * 1.5,
   },
-  image: {
+  imageWrapper: {
     width: '75%',
     aspectRatio: 1.2,
     borderRadius: Radius.lg,
+    overflow: 'hidden',
     marginBottom: 4,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
   },
   imageFallback: {
     backgroundColor: Colors.surfaceAlt,
@@ -731,6 +750,7 @@ export function GroupMessageScreen() {
   const hasMore = hasMoreByGroup[groupId] ?? false;
 
   const [contextMessage, setContextMessage] = useState<GroupMessage | null>(null);
+  const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
 
   // Track the latest message timestamp for polling
   const latestMessageTimestampRef = useRef<string | null>(null);
@@ -883,6 +903,10 @@ export function GroupMessageScreen() {
     [navigation],
   );
 
+  const handleImagePress = useCallback((imageUrl: string) => {
+    setViewerImageUrl(imageUrl);
+  }, []);
+
   const renderItem = useCallback(
     ({ item }: { item: RenderItem }) => {
       if ('type' in item && item.type === 'separator') {
@@ -898,10 +922,11 @@ export function GroupMessageScreen() {
           position={msg._position ?? 'solo'}
           onLongPress={handleLongPress}
           onAvatarPress={handleAvatarPress}
+          onImagePress={handleImagePress}
         />
       );
     },
-    [groupId, group?.isMember, user?.id, handleLongPress, handleAvatarPress],
+    [groupId, group?.isMember, user?.id, handleLongPress, handleAvatarPress, handleImagePress],
   );
 
   if (!group) {
@@ -1023,6 +1048,12 @@ export function GroupMessageScreen() {
         onDismiss={() => setContextMessage(null)}
         onReport={handleReportMessage}
         onDelete={handleDeleteMessage}
+      />
+
+      {/* ── Full-screen image viewer ── */}
+      <FullScreenImageViewer
+        imageUrl={viewerImageUrl}
+        onClose={() => setViewerImageUrl(null)}
       />
 
     </KeyboardAvoidingView>
