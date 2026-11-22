@@ -7,6 +7,7 @@ from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import MutualFriendBrief, UserResponse, UserUpdate
+from app.utils.queries import like_contains
 from app.utils.storage import (
     _ALLOWED_CONTENT_TYPES,
     _MAX_AVATAR_BYTES,
@@ -36,7 +37,9 @@ def _resolve_parish_cover(raw: str | None) -> str | None:
     return get_signed_url(raw)
 
 
-def _build_user_response(row: dict) -> UserResponse:
+def _build_user_response(row: dict, *, include_private: bool = False) -> UserResponse:
+    """Build a UserResponse. Private fields (birthday) are only included when
+    ``include_private`` is True, i.e. when the row is the requesting user."""
     return UserResponse(
         id=str(row["id"]),
         username=row["username"],
@@ -49,7 +52,7 @@ def _build_user_response(row: dict) -> UserResponse:
         parish_cover_photo_url=_resolve_parish_cover(row.get("parish_cover_photo_url")),
         diocese=row.get("diocese"),
         location=row.get("location"),
-        birthday=row.get("birthday"),
+        birthday=row.get("birthday") if include_private else None,
         friend_count=row.get("friend_count", 0),
         prayer_group_count=row.get("prayer_group_count", 0),
         created_at=row["created_at"],
@@ -74,7 +77,7 @@ async def search_users(
           AND (u.username ILIKE $1 OR u.display_name ILIKE $1)
         LIMIT $3
         """,
-        f"%{q}%",
+        like_contains(q),
         current_user["id"],
         limit,
     )
@@ -117,7 +120,7 @@ async def get_my_profile(
         """,
         current_user["id"],
     )
-    return _build_user_response(dict(row))
+    return _build_user_response(dict(row), include_private=True)
 
 
 @router.patch("/me", response_model=UserResponse)
@@ -138,7 +141,7 @@ async def update_my_profile(
             """,
             current_user["id"],
         )
-        return _build_user_response(dict(row))
+        return _build_user_response(dict(row), include_private=True)
 
     if "username" in updates:
         normalized = updates["username"].strip().lower()
@@ -170,7 +173,7 @@ async def update_my_profile(
         """,
         current_user["id"],
     )
-    return _build_user_response(dict(row))
+    return _build_user_response(dict(row), include_private=True)
 
 
 @router.post("/me/avatar", response_model=UserResponse)
@@ -222,7 +225,7 @@ async def upload_my_avatar(
         """,
         current_user["id"],
     )
-    return _build_user_response(dict(row))
+    return _build_user_response(dict(row), include_private=True)
 
 
 @router.delete("/me", status_code=204)
@@ -300,7 +303,9 @@ async def get_user(
     if block:
         raise HTTPException(status_code=404, detail="User not found")
 
-    response = _build_user_response(dict(row))
+    response = _build_user_response(
+        dict(row), include_private=str(row["id"]) == str(current_user["id"])
+    )
 
     friendship = await conn.fetchrow(
         """

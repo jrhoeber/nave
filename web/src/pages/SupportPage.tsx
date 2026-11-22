@@ -19,7 +19,7 @@ const FAQS = [
   },
   {
     q: 'Why do I need to provide my birthday?',
-    a: 'Nave requires users to be at least 13 years old. Your birthday is also displayed on your profile so other members can wish you well.',
+    a: 'Nave requires users to be at least 13 years old. Your birthday is only used to confirm your age and is never shown to other members.',
   },
   {
     q: 'How do I change my parish?',

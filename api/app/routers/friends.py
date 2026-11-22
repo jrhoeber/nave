@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.friendship import FriendRequestCreate, FriendRequestUpdate
+from app.utils.queries import like_contains
 from app.utils.storage import get_avatar_signed_url
 
 router = APIRouter()
@@ -65,7 +66,11 @@ async def search_for_friends(
     current_user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    """Search users by name, username, or email — returns each result with their friendship status."""
+    """Search users by name or username (substring), or by exact email address.
+
+    Email is matched only in full (case-insensitive) so results can't be used as an
+    oracle to reconstruct someone's address one character at a time.
+    Returns each result with their friendship status."""
     rows = await conn.fetch(
         """
         SELECT
@@ -83,7 +88,7 @@ async def search_for_friends(
             OR (f.addressee_id = $2 AND f.requester_id = u.id)
         )
         WHERE u.id != $2
-          AND (u.username ILIKE $1 OR u.display_name ILIKE $1 OR u.email ILIKE $1)
+          AND (u.username ILIKE $1 OR u.display_name ILIKE $1 OR lower(u.email) = lower($4::text))
           AND NOT EXISTS (
               SELECT 1 FROM user_blocks
               WHERE (blocker_id = $2 AND blocked_id = u.id)
@@ -92,9 +97,10 @@ async def search_for_friends(
         ORDER BY u.display_name
         LIMIT $3
         """,
-        f"%{q}%",
+        like_contains(q),
         current_user["id"],
         limit,
+        q.strip(),
     )
     results = []
     for r in rows:

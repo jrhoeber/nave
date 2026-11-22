@@ -200,7 +200,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 #### Models (`/api/app/models/`)
 | File | Schemas |
 |------|---------|
-| `user.py` | `FirebaseAuthRequest`, `UserUpdate` (includes `birthday`), `UserResponse` (includes `birthday`), `TokenResponse` (includes `is_new_user`) |
+| `user.py` | `FirebaseAuthRequest`, `UserUpdate` (includes `birthday`), `UserResponse` (`birthday` is populated only for the requesting user's own record — never for other users), `TokenResponse` (includes `is_new_user`) |
 | `parish.py` | `ParishResponse`, `ParishesResponse`, `ParishPostResponse` (includes `comment_count`), `ParishCommentCreate`, `ParishCommentUpdate`, `ParishCommentResponse`, `ParishCommentsResponse` |
 | `prayer_group.py` | `PrayerGroupCreate`, `PrayerGroupUpdate`, `PrayerGroupResponse`; categories: `bible_study`, `mens_group`, `womens_group`, etc. |
 | `group_message.py` | `GroupMessageCreate`, `GroupMessageResponse`, `GroupMessagesResponse`, `AddReactionBody` |
@@ -212,7 +212,7 @@ When renaming, adding, or removing values that exist on both frontend and backen
 | File | Purpose |
 |------|---------|
 | `storage.py` | `upload_avatar()`, `upload_group_avatar()`, `get_signed_url()` — Google Cloud Storage integration; signed URLs cached 55 min |
-| `queries.py` | `USER_STATS_COLS`, `USER_STATS_JOIN` — reusable user stats query fragments |
+| `queries.py` | `like_contains()` — builds an escaped `ILIKE '%term%'` pattern; use for any user-supplied search term so `_`/`%` aren't wildcards |
 | `firebase.py` | `verify_firebase_token()`, `get_messaging()` — shared Firebase Admin SDK init; used by auth router and push helper |
 | `push.py` | `send_push_notifications()` — sends per-token FCM messages with per-user APNS badge; cleans up invalid tokens |
 | `inbox.py` | `enqueue()` / `mark_read()` / `unread_count()` — type-agnostic notifications inbox. All routers should call `enqueue` instead of `send_push_notifications` directly so badge counts stay correct across notification types |
