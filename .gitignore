@@ -1,0 +1,9 @@
+# Machine-local files that should never be committed
+.DS_Store
+**/.claude/settings.local.json
+
+# Env files and secrets (package-level .gitignores also cover these)
+.env
+.env.local
+.env.*.local
+.secrets/

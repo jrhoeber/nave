@@ -47,6 +47,8 @@ def _resolve_parish_cover(raw: str | None) -> str | None:
 
 
 def _build_user_response(row: dict) -> UserResponse:
+    """Build the authenticated user's OWN record (token exchange, /auth/me), so it
+    includes private fields like birthday. Use users._build_user_response for others."""
     return UserResponse(
         id=str(row["id"]),
         username=row["username"],
