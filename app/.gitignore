@@ -51,3 +51,5 @@ detox-artifacts/
 .expo
 dist/
 web-build/
+# Machine-specific Node path for Xcode build phases
+ios/.xcode.env.local
